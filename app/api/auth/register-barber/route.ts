@@ -26,7 +26,9 @@ export async function POST(request: Request) {
       prisma.user.update({
         where: { id: user.id },
         data: {
-          password: hashedPassword
+          password: hashedPassword,
+          inviteToken: null,
+          inviteExpires: null
         }
       }),
       prisma.barber.update({

@@ -1,8 +1,18 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies, headers } from 'next/headers'
 
-const secretKey = process.env.JWT_SECRET || 'sas-barbery-super-secret-key-*123'
-const key = new TextEncoder().encode(secretKey)
+function getJwtSecretKey(): Uint8Array {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL SECURITY ERROR: JWT_SECRET environment variable is missing in production.')
+    }
+    return new TextEncoder().encode('sas-barbery-dev-only-secret-key-123')
+  }
+  return new TextEncoder().encode(secret)
+}
+
+const key = getJwtSecretKey()
 
 export interface SessionPayload {
   userId: string

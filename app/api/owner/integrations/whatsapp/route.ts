@@ -77,12 +77,20 @@ export async function GET() {
       ? `${integration.metaAccessToken.slice(0, 6)}••••••••${integration.metaAccessToken.slice(-4)}`
       : null
 
+    // DTO Seguro: Nunca enviar tokens o secretos privados de Meta en texto plano al cliente
+    const {
+      metaAccessToken: _rawToken,
+      metaAppSecret: _rawSecret,
+      ...safeIntegration
+    } = integration
+
     return NextResponse.json({
-      ...integration,
+      ...safeIntegration,
       businessName: business?.name || 'tu Barbería',
       businessSlug: business?.slug || 'demo',
       metaAccessTokenMasked: maskedToken,
       hasMetaAccessToken: Boolean(integration.metaAccessToken),
+      hasMetaAppSecret: Boolean(integration.metaAppSecret),
       conversations,
       humanConversations,
       recentLogs,

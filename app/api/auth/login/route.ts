@@ -3,6 +3,46 @@ import { prisma } from '@/lib/prisma'
 import { createSession } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 
+export const dynamic = 'force-dynamic'
+
+// Rate Limiter in-memory para prevenir fuerza bruta: máximo 5 intentos fallidos cada 15 minutos
+const loginAttempts = new Map<string, { count: number; lockUntil: number }>()
+
+function checkRateLimit(identifier: string): { allowed: boolean; retryAfterSeconds?: number } {
+  const now = Date.now()
+  const record = loginAttempts.get(identifier)
+
+  if (record && record.lockUntil > now) {
+    const retryAfterSeconds = Math.ceil((record.lockUntil - now) / 1000)
+    return { allowed: false, retryAfterSeconds }
+  }
+
+  return { allowed: true }
+}
+
+function recordFailedAttempt(identifier: string) {
+  const now = Date.now()
+  const record = loginAttempts.get(identifier) || { count: 0, lockUntil: 0 }
+
+  if (record.lockUntil && record.lockUntil < now) {
+    record.count = 1
+    record.lockUntil = 0
+  } else {
+    record.count += 1
+  }
+
+  // 5 intentos fallidos bloquean por 15 minutos
+  if (record.count >= 5) {
+    record.lockUntil = now + 15 * 60 * 1000
+  }
+
+  loginAttempts.set(identifier, record)
+}
+
+function clearRateLimit(identifier: string) {
+  loginAttempts.delete(identifier)
+}
+
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json()
@@ -12,6 +52,17 @@ export async function POST(request: Request) {
     }
 
     const cleanEmail = email.trim().toLowerCase()
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'local-client'
+    const rateLimitKey = `${ip}:${cleanEmail}`
+
+    // 1. Verificación de tasa de intentos (Anti-Brute Force)
+    const rateCheck = checkRateLimit(rateLimitKey)
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: `Demasiados intentos fallidos. Tu acceso está pausado temporalmente por seguridad. Reintenta en ${rateCheck.retryAfterSeconds} segundos.` },
+        { status: 429 }
+      )
+    }
 
     let user = await prisma.user.findFirst({
       where: {
@@ -25,63 +76,64 @@ export async function POST(request: Request) {
       }
     })
 
-    // Auto-recovery / Self-healing for default admin if not present
-    if (!user && cleanEmail === 'admin@admin.com') {
-      let business = await prisma.business.findFirst()
-      if (!business) {
-        business = await prisma.business.create({
+    // Auto-recovery / Self-healing SOLO en entorno de desarrollo local (inhabilitado en producción)
+    if (process.env.NODE_ENV !== 'production') {
+      if (!user && cleanEmail === 'admin@admin.com') {
+        let business = await prisma.business.findFirst()
+        if (!business) {
+          business = await prisma.business.create({
+            data: {
+              name: "Barbería Elite SAS",
+              slug: "barberia-elite",
+              phone: "+57 300 123 4567",
+              address: "Calle 85 # 14-20, Bogotá",
+              description: "Barbería clásica y moderna con atención personalizada.",
+              email: "admin@admin.com"
+            }
+          })
+        }
+        const hashedPassword = await bcrypt.hash('admin123', 10)
+        user = await prisma.user.create({
           data: {
-            name: "Barbería Elite SAS",
-            slug: "barberia-elite",
-            phone: "+57 300 123 4567",
-            address: "Calle 85 # 14-20, Bogotá",
-            description: "Barbería clásica y moderna con atención personalizada.",
-            email: "admin@admin.com"
-          }
+            email: 'admin@admin.com',
+            password: hashedPassword,
+            role: 'OWNER',
+            businessId: business.id
+          },
+          include: { barber: true }
         })
       }
-      const hashedPassword = await bcrypt.hash('admin123', 10)
-      user = await prisma.user.create({
-        data: {
-          email: 'admin@admin.com',
-          password: hashedPassword,
-          role: 'OWNER',
-          businessId: business.id
-        },
-        include: { barber: true }
-      })
-    }
 
-    // Auto-recovery for Super Admin
-    if (!user && cleanEmail === 'superadmin@barberos.com') {
-      const hashedPassword = await bcrypt.hash('superadmin123', 10)
-      user = await prisma.user.create({
-        data: {
-          email: 'superadmin@barberos.com',
-          password: hashedPassword,
-          role: 'SUPER_ADMIN',
-          isActive: true
-        },
-        include: { barber: true }
-      })
-    }
+      if (!user && cleanEmail === 'superadmin@barberos.com') {
+        const hashedPassword = await bcrypt.hash('superadmin123', 10)
+        user = await prisma.user.create({
+          data: {
+            email: 'superadmin@barberos.com',
+            password: hashedPassword,
+            role: 'SUPER_ADMIN',
+            isActive: true
+          },
+          include: { barber: true }
+        })
+      }
 
-    // Auto-recovery for Carlos demo barber
-    if (cleanEmail === 'carlos@barberia.com' && password === 'admin123') {
-      const hashedPassword = await bcrypt.hash('admin123', 10)
-      if (user) {
-        const isMatch = user.password ? await bcrypt.compare(password, user.password) : false
-        if (!isMatch) {
-          user = await prisma.user.update({
-            where: { id: user.id },
-            data: { password: hashedPassword, isActive: true },
-            include: { barber: true }
-          })
+      if (cleanEmail === 'carlos@barberia.com' && password === 'admin123') {
+        const hashedPassword = await bcrypt.hash('admin123', 10)
+        if (user) {
+          const isMatch = user.password ? await bcrypt.compare(password, user.password) : false
+          if (!isMatch) {
+            user = await prisma.user.update({
+              where: { id: user.id },
+              data: { password: hashedPassword, isActive: true },
+              include: { barber: true }
+            })
+          }
         }
       }
     }
 
     if (!user) {
+      recordFailedAttempt(rateLimitKey)
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
     }
 
@@ -92,8 +144,12 @@ export async function POST(request: Request) {
     const isMatch = await bcrypt.compare(password, user.password)
     
     if (!isMatch) {
+      recordFailedAttempt(rateLimitKey)
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
     }
+
+    // Login exitoso: limpiar historial de intentos fallidos
+    clearRateLimit(rateLimitKey)
 
     // If barber is inactive, block login
     if (user.role === 'BARBER' && user.barber?.status === 'INACTIVE') {

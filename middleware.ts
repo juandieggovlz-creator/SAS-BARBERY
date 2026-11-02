@@ -15,7 +15,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/b/') ||
     pathname.startsWith('/reserve') ||
     pathname.startsWith('/terms') ||
-    pathname.startsWith('/privacy')
+    pathname.startsWith('/privacy') ||
+    pathname.startsWith('/terminos') ||
+    pathname.startsWith('/privacidad')
 
   if (isPublicPage) {
     return NextResponse.next()

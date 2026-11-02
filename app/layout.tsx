@@ -59,6 +59,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider, themeInitScript } from "@/lib/theme";
 import AccentColorProvider from "@/components/ui/AccentColorProvider";
 import { accentInitScript } from "@/lib/accent-colors";
+import CookieConsentBanner from "@/components/ui/CookieConsentBanner";
 
 export default function RootLayout({
   children,
@@ -89,6 +90,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AccentColorProvider>
             {children}
+            <CookieConsentBanner />
             <Toaster position="top-right" richColors closeButton duration={4000} visibleToasts={3} />
           </AccentColorProvider>
         </ThemeProvider>

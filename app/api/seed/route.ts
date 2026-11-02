@@ -2,7 +2,27 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
-export async function GET() {
+export const dynamic = 'force-dynamic'
+
+export async function GET(request: Request) {
+  // BLOQUEO ABSOLUTO EN PRODUCCIÓN
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'El endpoint de seed está permanentemente deshabilitado en entornos de producción por seguridad.' },
+      { status: 403 }
+    )
+  }
+
+  // En desarrollo, exigir confirmación explícita
+  const { searchParams } = new URL(request.url)
+  const confirm = searchParams.get('confirm')
+  if (confirm !== 'true') {
+    return NextResponse.json(
+      { error: 'Para ejecutar el seed en desarrollo debes pasar ?confirm=true explícitamente.' },
+      { status: 400 }
+    )
+  }
+
   try {
     await prisma.payment.deleteMany()
     await prisma.expense.deleteMany()

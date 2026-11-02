@@ -307,38 +307,40 @@ export default function LoginPage() {
               </form>
             </div>
 
-            {/* Quick Demo Credentials */}
-            <div className="mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800/80">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">
-                Accesos Rápidos de Prueba:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => fillCredentials('admin@barberos.co', 'superadmin123')}
-                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-500/15 hover:bg-amber-200 dark:hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 transition-colors cursor-pointer flex items-center gap-1.5"
-                >
-                  <span className="w-2 h-2 rounded-full bg-amber-500" />
-                  <span>Super Admin</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillCredentials('admin@admin.com', 'admin123')}
-                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800/90 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700 transition-colors cursor-pointer flex items-center gap-1.5"
-                >
-                  <span className="w-2 h-2 rounded-full bg-blue-500" />
-                  <span>Dueño Demo</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillCredentials('julian@barber.com', 'barber123')}
-                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800/90 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700 transition-colors cursor-pointer flex items-center gap-1.5"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span>Barbero Demo</span>
-                </button>
+            {/* Quick Demo Credentials (solo visible en entorno local de desarrollo) */}
+            {process.env.NODE_ENV !== 'production' && (
+              <div className="mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800/80">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">
+                  Accesos Rápidos de Prueba (Dev Only):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fillCredentials('admin@barberos.co', 'superadmin123')}
+                    className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-500/15 hover:bg-amber-200 dark:hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span>Super Admin</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fillCredentials('admin@admin.com', 'admin123')}
+                    className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800/90 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span>Dueño Demo</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fillCredentials('julian@barber.com', 'barber123')}
+                    className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800/90 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>Barbero Demo</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* ══════════════════════════════════════════════════════
