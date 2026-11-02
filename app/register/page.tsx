@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { 
-  Scissors, 
   ArrowRight, 
   ArrowLeft, 
   Check, 
@@ -29,10 +28,12 @@ import {
   Moon, 
   DollarSign, 
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Scissors
 } from 'lucide-react'
 import { DEFAULT_SCHEDULE, DayScheduleItem } from '@/lib/schedule'
 import LocationSelector from '@/components/ui/LocationSelector'
+import Image from 'next/image'
 
 type PresetColor = {
   id: string
@@ -381,10 +382,10 @@ export default function RegisterWizardPage() {
       }`}>
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black shadow-md group-hover:scale-105 transition-transform ${
-              isDark ? 'bg-white text-zinc-950' : 'bg-zinc-950 text-white'
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform overflow-hidden ${
+              isDark ? 'bg-white' : 'bg-zinc-950'
             }`}>
-              <Scissors className="w-4 h-4" />
+              <Image src="/logo.png" alt="BarberOS" width={32} height={32} className="object-contain" />
             </div>
             <span className={`text-xl font-black tracking-tight uppercase ${
               isDark ? 'text-white' : 'text-zinc-950'
