@@ -16,6 +16,32 @@ export interface CookieConsentState {
 const STORAGE_KEY = 'barberos_cookie_consent'
 const CONSENT_VERSION = '1.0'
 
+function getStoredCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  try {
+    const value = `; ${document.cookie}`
+    const parts = value.split(`; ${name}=`)
+    if (parts.length === 2) {
+      const raw = parts.pop()?.split(';').shift()
+      return raw ? decodeURIComponent(raw) : null
+    }
+  } catch {
+    // Entornos con cookies deshabilitadas
+  }
+  return null
+}
+
+function setStoredCookie(name: string, val: string, days = 365) {
+  if (typeof document === 'undefined') return
+  try {
+    const maxAge = days * 24 * 60 * 60
+    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:'
+    document.cookie = `${name}=${encodeURIComponent(val)}; path=/; max-age=${maxAge}; SameSite=Lax${isHttps ? '; Secure' : ''}`
+  } catch {
+    // Entornos con cookies restringidas
+  }
+}
+
 export default function CookieConsentBanner() {
   const [isOpen, setIsOpen] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
@@ -27,40 +53,73 @@ export default function CookieConsentBanner() {
     marketing: false,
   })
 
-  // Cargar estado guardado o preparar banner inicial
-  useEffect(() => {
+  // Obtener consentimiento de cualquiera de los dos almacenes (localStorage o Cookie)
+  const getExistingConsent = useCallback((): CookieConsentState | null => {
     try {
-      const savedRaw = localStorage.getItem(STORAGE_KEY)
-      if (savedRaw) {
-        const saved: CookieConsentState = JSON.parse(savedRaw)
-        // Si ya hay consentimiento válido y vigente de esta versión, cargar valores
-        if (saved && saved.version === CONSENT_VERSION) {
-          setPreferences({
-            preferences: Boolean(saved.preferences),
-            analytics: Boolean(saved.analytics),
-            marketing: Boolean(saved.marketing),
-          })
-          return
+      // 1. Intentar localStorage
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const localRaw = localStorage.getItem(STORAGE_KEY)
+        if (localRaw) {
+          const parsed = JSON.parse(localRaw)
+          if (parsed && parsed.version === CONSENT_VERSION) return parsed
         }
       }
-      
-      // Primera visita: pequeña pausa para no interferir con la carga inicial
-      const timer = setTimeout(() => {
-        setIsOpen(true)
-      }, 700)
-      return () => clearTimeout(timer)
-    } catch {
-      // Entornos con localStorage bloqueado
-    }
+    } catch {}
+
+    try {
+      // 2. Intentar Cookie HTTP / Document
+      const cookieRaw = getStoredCookie(STORAGE_KEY)
+      if (cookieRaw) {
+        const parsed = JSON.parse(cookieRaw)
+        if (parsed && parsed.version === CONSENT_VERSION) return parsed
+      }
+    } catch {}
+
+    return null
   }, [])
 
-  // Guardar consentimiento en localStorage
-  const saveConsent = useCallback((state: CookieConsentState) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-    } catch {
-      // Ignorar errores de almacenamiento local
+  // Cargar estado guardado o preparar banner inicial
+  useEffect(() => {
+    const existing = getExistingConsent()
+    if (existing) {
+      setPreferences({
+        preferences: Boolean(existing.preferences),
+        analytics: Boolean(existing.analytics),
+        marketing: Boolean(existing.marketing),
+      })
+      // Asegurar sincronización en ambos almacenes por redundancia
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(existing))
+        }
+        setStoredCookie(STORAGE_KEY, JSON.stringify(existing))
+      } catch {}
+      return
     }
+    
+    // Primera visita real: pequeña pausa estética para no interferir con la carga inicial
+    const timer = setTimeout(() => {
+      setIsOpen(true)
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [getExistingConsent])
+
+  // Guardar consentimiento en localStorage Y Cookie persistente (365 días)
+  const saveConsent = useCallback((state: CookieConsentState) => {
+    const serialized = JSON.stringify(state)
+
+    // 1. Guardar en localStorage
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(STORAGE_KEY, serialized)
+      }
+    } catch {}
+
+    // 2. Guardar en Cookie de 1 año con path=/ para persistencia total entre sesiones y pestañas
+    try {
+      setStoredCookie(STORAGE_KEY, serialized, 365)
+    } catch {}
+
     setIsOpen(false)
     setShowConfig(false)
   }, [])
@@ -109,18 +168,14 @@ export default function CookieConsentBanner() {
   // Listener para reabrir el configurador desde cualquier enlace del footer
   useEffect(() => {
     const handleOpenModal = () => {
-      // Cargar preferencias actuales si existen
-      try {
-        const savedRaw = localStorage.getItem(STORAGE_KEY)
-        if (savedRaw) {
-          const saved: CookieConsentState = JSON.parse(savedRaw)
-          setPreferences({
-            preferences: Boolean(saved.preferences),
-            analytics: Boolean(saved.analytics),
-            marketing: Boolean(saved.marketing),
-          })
-        }
-      } catch {}
+      const existing = getExistingConsent()
+      if (existing) {
+        setPreferences({
+          preferences: Boolean(existing.preferences),
+          analytics: Boolean(existing.analytics),
+          marketing: Boolean(existing.marketing),
+        })
+      }
       setShowConfig(true)
       setIsOpen(true)
     }
@@ -136,7 +191,7 @@ export default function CookieConsentBanner() {
         delete (window as any).openCookiePreferences
       }
     }
-  }, [])
+  }, [getExistingConsent])
 
   if (!isOpen) return null
 
@@ -214,12 +269,10 @@ export default function CookieConsentBanner() {
                 onClick={() => {
                   setShowConfig(false)
                   // Si ya había consentimiento guardado, cerramos; si no, volvemos a la vista previa
-                  try {
-                    const saved = localStorage.getItem(STORAGE_KEY)
-                    if (saved) setIsOpen(false)
-                  } catch {}
+                  const existing = getExistingConsent()
+                  if (existing) setIsOpen(false)
                 }}
-                className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800 transition-colors"
+                className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
                 title="Cerrar panel"
               >
                 <X className="w-4 h-4" />
@@ -247,7 +300,7 @@ export default function CookieConsentBanner() {
                 <div className="space-y-0.5">
                   <p className="font-semibold text-white">Preferencias Visuales</p>
                   <p className="text-[11px] text-zinc-400 leading-snug">
-                    Almacena en localStorage tu tema preferido (oscuro/claro) y paleta de acento.
+                    Almacena tu tema preferido (oscuro/claro) y paleta de acento del sistema.
                   </p>
                 </div>
                 <input

@@ -3,24 +3,24 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  Scissors, 
-  MapPin, 
-  Phone, 
-  Calendar, 
-  ArrowRight, 
-  User, 
-  Clock, 
-  Star, 
-  Check, 
-  Sparkles, 
-  ChevronRight, 
-  ChevronLeft, 
-  X, 
-  Sun, 
-  Moon, 
-  CheckCircle2, 
-  Share2, 
+import {
+  Scissors,
+  MapPin,
+  Phone,
+  Calendar,
+  ArrowRight,
+  User,
+  Clock,
+  Star,
+  Check,
+  Sparkles,
+  ChevronRight,
+  ChevronLeft,
+  X,
+  Sun,
+  Moon,
+  CheckCircle2,
+  Share2,
   Loader2,
   CalendarCheck,
   MessageCircle,
@@ -42,25 +42,25 @@ import { parseLocation } from '@/lib/maps'
 /* ── Brand Social Icons ── */
 const InstagramIcon = () => (
   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
   </svg>
 )
 
 const WhatsAppIcon = () => (
   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
   </svg>
 )
 
 const FacebookIcon = () => (
   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
   </svg>
 )
 
 const TikTokIcon = () => (
   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
   </svg>
 )
 
@@ -361,8 +361,8 @@ export default function PublicBusinessPage() {
   })()
 
   // Testimonials
-  const testimonialItems = Array.isArray(pageConfig.testimonials) && pageConfig.testimonials.length > 0 
-    ? pageConfig.testimonials 
+  const testimonialItems = Array.isArray(pageConfig.testimonials) && pageConfig.testimonials.length > 0
+    ? pageConfig.testimonials
     : DEFAULT_TESTIMONIALS
 
   // Horarios Semanales Estructurados & Estado de Hoy
@@ -387,13 +387,13 @@ export default function PublicBusinessPage() {
   const locationInfo = parseLocation(data.mapsUrl || data.address, data.name, data.address)
 
   return (
-    <div 
+    <div
       className="min-h-screen w-full flex flex-col transition-colors duration-300 antialiased overflow-x-hidden"
-      style={{ 
-        backgroundColor: colors.bg, 
+      style={{
+        backgroundColor: colors.bg,
         color: colors.textPrimary,
         fontFamily: fontConfig.bodyFont,
-        '--accent-color': colors.accent 
+        '--accent-color': colors.accent
       } as React.CSSProperties}
     >
       {/* 💈 BARBER POLE ENTRANCE LOADER */}
@@ -402,15 +402,15 @@ export default function PublicBusinessPage() {
       {/* ════════════════════════════════════════════════════════
           1. HEADER / NAVBAR FLOTANTE (transparente en hero, sólido al hacer scroll)
       ════════════════════════════════════════════════════════ */}
-      <header 
+      <header
         className="fixed top-0 left-0 right-0 z-40 transition-all duration-500"
-        style={{ 
-          backgroundColor: navScrolled 
-            ? (colorMode === 'light' ? 'rgba(255, 255, 255, 0.95)' : `${colors.bg}f0`) 
+        style={{
+          backgroundColor: navScrolled
+            ? (colorMode === 'light' ? 'rgba(255, 255, 255, 0.95)' : `${colors.bg}f0`)
             : 'transparent',
           backdropFilter: navScrolled ? 'blur(14px)' : 'none',
-          borderBottom: navScrolled 
-            ? `1px solid ${colorMode === 'light' ? 'rgba(0,0,0,0.08)' : colors.border}` 
+          borderBottom: navScrolled
+            ? `1px solid ${colorMode === 'light' ? 'rgba(0,0,0,0.08)' : colors.border}`
             : 'none',
           boxShadow: navScrolled ? '0 4px 30px rgba(0,0,0,0.1)' : 'none',
         }}
@@ -418,29 +418,28 @@ export default function PublicBusinessPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             {data.logo ? (
-              <div 
+              <div
                 className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-md transition-transform hover:scale-105"
                 style={{ borderColor: `${colors.accent}60`, boxShadow: `0 2px 10px ${colors.accent}25`, border: `1.5px solid ${colors.accent}50` }}
               >
-                <img 
-                  src={data.logo} 
-                  alt={data.name} 
+                <img
+                  src={data.logo}
+                  alt={data.name}
                   className="w-full h-full object-cover"
                   loading="eager"
                 />
               </div>
             ) : (
-              <div 
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center font-black shadow-md shrink-0 border" 
+              <div
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center font-black shadow-md shrink-0 border"
                 style={{ backgroundColor: colors.accent, color: '#000000', borderColor: colors.accent }}
               >
                 <Scissors className="w-5 h-5" />
               </div>
             )}
-            <span 
-              className={`font-black text-base sm:text-lg md:text-xl tracking-tight leading-tight truncate transition-colors ${
-                navScrolled && colorMode === 'light' ? 'text-zinc-900' : 'text-white drop-shadow-md'
-              }`} 
+            <span
+              className={`font-black text-base sm:text-lg md:text-xl tracking-tight leading-tight truncate transition-colors ${navScrolled && colorMode === 'light' ? 'text-zinc-900' : 'text-white drop-shadow-md'
+                }`}
               style={{ fontFamily: fontConfig.headingFont }}
             >
               {data.name}
@@ -448,9 +447,8 @@ export default function PublicBusinessPage() {
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className={`hidden lg:flex items-center gap-6 text-xs font-bold uppercase tracking-wider transition-colors ${
-            navScrolled && colorMode === 'light' ? 'text-zinc-700' : 'text-white/80'
-          }`}>
+          <nav className={`hidden lg:flex items-center gap-6 text-xs font-bold uppercase tracking-wider transition-colors ${navScrolled && colorMode === 'light' ? 'text-zinc-700' : 'text-white/80'
+            }`}>
             {data.services && data.services.length > 0 && (
               <a href="#servicios" className={`transition-colors ${navScrolled && colorMode === 'light' ? 'hover:text-black' : 'hover:text-white'}`}>Servicios</a>
             )}
@@ -466,11 +464,10 @@ export default function PublicBusinessPage() {
             {/* Color Mode Toggle */}
             <button
               onClick={() => setColorMode(prev => prev === 'dark' ? 'light' : 'dark')}
-              className={`p-2.5 rounded-full border transition-all active:scale-95 cursor-pointer shadow-sm flex items-center justify-center ${
-                navScrolled && colorMode === 'light'
+              className={`p-2.5 rounded-full border transition-all active:scale-95 cursor-pointer shadow-sm flex items-center justify-center ${navScrolled && colorMode === 'light'
                   ? 'bg-zinc-100 border-zinc-300 text-zinc-900 hover:bg-zinc-200 hover:border-zinc-400 shadow-xs'
                   : 'bg-black/50 border-white/20 text-white hover:bg-black/75 backdrop-blur-md'
-              }`}
+                }`}
               title={colorMode === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
               aria-label="Cambiar tema"
             >
@@ -513,20 +510,20 @@ export default function PublicBusinessPage() {
       <section className="relative overflow-hidden min-h-screen w-full flex items-center justify-center px-4 sm:px-5 py-20 sm:py-24">
         {/* Cinematic Background Image with luxury dark gradient overlay */}
         <div className="absolute inset-0 z-0 overflow-hidden">
-          <img 
-            src={pageConfig.bannerUrl || DEFAULT_BANNER} 
+          <img
+            src={pageConfig.bannerUrl || DEFAULT_BANNER}
             alt={`Portada de ${data.name}`}
-            className="w-full h-full object-cover object-center filter brightness-[0.38] contrast-[1.1] scale-105 animate-hero-zoom transition-transform duration-1000 ease-out" 
+            className="w-full h-full object-cover object-center filter brightness-[0.38] contrast-[1.1] scale-105 animate-hero-zoom transition-transform duration-1000 ease-out"
           />
           {/* Deep dark cinematic gradient overlay for 100% razor-sharp contrast in all modes */}
-          <div 
-            className="absolute inset-0" 
-            style={{ 
+          <div
+            className="absolute inset-0"
+            style={{
               background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.52) 50%, rgba(0, 0, 0, 0.88) 100%)'
-            }} 
+            }}
           />
           {/* Radial Ambient Glow */}
-          <div 
+          <div
             className="absolute inset-0 opacity-40 pointer-events-none"
             style={{
               background: `radial-gradient(circle at 50% 40%, ${colors.accent}35 0%, transparent 70%)`
@@ -539,7 +536,7 @@ export default function PublicBusinessPage() {
           <div className="mb-4 sm:mb-6" />
 
           {/* Title — usa coverTitle configurado o el nombre real del negocio */}
-          <h1 
+          <h1
             className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.12] mb-6 text-white drop-shadow-lg animate-fade-in-up delay-100 px-2"
             style={{ fontFamily: fontConfig.headingFont }}
           >
@@ -633,9 +630,8 @@ export default function PublicBusinessPage() {
                   <div
                     key={service.id}
                     onClick={() => toggleService(service)}
-                    className={`group relative p-6 rounded-3xl border-2 transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col justify-between ${
-                      isSelected ? 'shadow-xl scale-[1.01]' : 'hover:border-zinc-500/40'
-                    }`}
+                    className={`group relative p-6 rounded-3xl border-2 transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col justify-between ${isSelected ? 'shadow-xl scale-[1.01]' : 'hover:border-zinc-500/40'
+                      }`}
                     style={{
                       backgroundColor: isSelected ? colors.badgeBg : colors.surfaceCard,
                       borderColor: isSelected ? colors.accent : colors.border,
@@ -668,10 +664,9 @@ export default function PublicBusinessPage() {
                         <span className={`text-xs font-black uppercase tracking-wider ${isSelected ? 'text-amber-400' : 'opacity-60'}`}>
                           {isSelected ? 'Seleccionado' : 'Añadir'}
                         </span>
-                        <div 
-                          className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${
-                            isSelected ? 'border-transparent' : 'opacity-40'
-                          }`}
+                        <div
+                          className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${isSelected ? 'border-transparent' : 'opacity-40'
+                            }`}
                           style={isSelected ? { backgroundColor: colors.accent, color: accentBtnText } : { borderColor: colors.textSecondary }}
                         >
                           {isSelected ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Plus className="w-3 h-3" />}
@@ -727,17 +722,17 @@ export default function PublicBusinessPage() {
                     <div className="flex flex-col items-center w-full">
                       {/* Barber Photo Container */}
                       <div className="relative mb-5 mx-auto">
-                        <div 
+                        <div
                           className="w-28 h-28 rounded-full overflow-hidden border-2 shadow-lg transition-transform duration-300 group-hover:scale-105 mx-auto bg-zinc-800"
                           style={{ borderColor: colors.accent }}
                         >
-                          <img 
-                            src={barberPhoto} 
-                            alt={barber.name} 
-                            className="w-full h-full object-cover object-center" 
+                          <img
+                            src={barberPhoto}
+                            alt={barber.name}
+                            className="w-full h-full object-cover object-center"
                           />
                         </div>
-                        <div 
+                        <div
                           className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-md"
                           style={{ backgroundColor: colors.accent, color: '#000000' }}
                         >
@@ -746,8 +741,8 @@ export default function PublicBusinessPage() {
                       </div>
 
                       {/* Name — uniform min-height for perfect grid alignment */}
-                      <h3 
-                        className="font-black text-lg tracking-tight mb-1 text-center w-full truncate" 
+                      <h3
+                        className="font-black text-lg tracking-tight mb-1 text-center w-full truncate"
                         style={{ fontFamily: fontConfig.headingFont, color: colors.textPrimary }}
                         title={barber.name}
                       >
@@ -755,8 +750,8 @@ export default function PublicBusinessPage() {
                       </h3>
 
                       {/* Specialty */}
-                      <p 
-                        className="text-xs font-bold uppercase tracking-wider mb-2 text-center w-full truncate" 
+                      <p
+                        className="text-xs font-bold uppercase tracking-wider mb-2 text-center w-full truncate"
                         style={{ color: colors.accent }}
                       >
                         {barber.specialty || 'Master Barber'}
@@ -764,8 +759,8 @@ export default function PublicBusinessPage() {
 
                       {/* Experience badge */}
                       <div className="flex items-center justify-center gap-1.5 mb-5 w-full">
-                        <span 
-                          className="text-[11px] font-semibold px-3 py-1 rounded-full border inline-flex items-center gap-1" 
+                        <span
+                          className="text-[11px] font-semibold px-3 py-1 rounded-full border inline-flex items-center gap-1"
                           style={{ borderColor: colors.border, backgroundColor: `${colors.accent}12`, color: colors.textSecondary }}
                         >
                           <Award className="w-3 h-3" style={{ color: colors.accent }} />
@@ -777,10 +772,10 @@ export default function PublicBusinessPage() {
                     <div className="w-full pt-3.5 border-t mt-auto" style={{ borderColor: `${colors.border}60` }}>
                       <button
                         className="w-full text-xs font-black uppercase tracking-wider py-2.5 rounded-xl transition-all border flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-95 shadow-xs"
-                        style={{ 
-                          borderColor: colors.border, 
+                        style={{
+                          borderColor: colors.border,
                           backgroundColor: colors.surface,
-                          color: colors.textPrimary 
+                          color: colors.textPrimary
                         }}
                       >
                         <span>Agendar con {barber.name.split(' ')[0]}</span>
@@ -828,9 +823,8 @@ export default function PublicBusinessPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveGalleryCat(tab.id as any)}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    activeGalleryCat === tab.id ? 'shadow-sm font-black' : 'opacity-60 hover:opacity-100'
-                  }`}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${activeGalleryCat === tab.id ? 'shadow-sm font-black' : 'opacity-60 hover:opacity-100'
+                    }`}
                   style={activeGalleryCat === tab.id ? { backgroundColor: colors.accent, color: colors.bg } : {}}
                 >
                   {tab.label}
@@ -841,11 +835,11 @@ export default function PublicBusinessPage() {
 
           {/* Grid or Empty State */}
           {filteredGallery.length === 0 ? (
-            <div 
+            <div
               className="py-16 px-6 text-center rounded-3xl border border-dashed flex flex-col items-center justify-center max-w-md mx-auto"
               style={{ borderColor: colors.border, backgroundColor: colors.surfaceCard }}
             >
-              <div 
+              <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 opacity-60"
                 style={{ backgroundColor: `${colors.accent}15`, color: colors.accent }}
               >
@@ -867,9 +861,9 @@ export default function PublicBusinessPage() {
                   className="group relative h-52 sm:h-72 rounded-3xl overflow-hidden cursor-pointer border shadow-sm"
                   style={{ borderColor: colors.border }}
                 >
-                  <img 
-                    src={item.url} 
-                    alt={item.caption || 'Corte de barbería'} 
+                  <img
+                    src={item.url}
+                    alt={item.caption || 'Corte de barbería'}
                     className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-5">
@@ -884,20 +878,20 @@ export default function PublicBusinessPage() {
 
       {/* ── Modal Lightbox ── */}
       {lightboxImg && (
-        <div 
+        <div
           onClick={() => setLightboxImg(null)}
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
         >
-          <button 
+          <button
             onClick={() => setLightboxImg(null)}
             className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
-          <img 
-            src={lightboxImg} 
-            alt="Ampliación de foto" 
-            className="max-h-[85vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl" 
+          <img
+            src={lightboxImg}
+            alt="Ampliación de foto"
+            className="max-h-[85vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl"
             onClick={e => e.stopPropagation()}
           />
         </div>
@@ -925,7 +919,7 @@ export default function PublicBusinessPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonialItems.map((test: any) => (
-              <div 
+              <div
                 key={test.id}
                 className="p-8 rounded-3xl border flex flex-col justify-between relative shadow-sm"
                 style={{ backgroundColor: colors.surfaceCard, borderColor: colors.border }}
@@ -978,7 +972,7 @@ export default function PublicBusinessPage() {
           <div className={`grid grid-cols-1 ${locationInfo ? 'md:grid-cols-3' : 'md:grid-cols-2 max-w-4xl mx-auto'} gap-6`}>
             {/* Card 1: Dirección & Mapa Incrustado */}
             {locationInfo && (
-              <div 
+              <div
                 className="p-8 rounded-3xl border flex flex-col justify-between shadow-sm"
                 style={{ backgroundColor: colors.surfaceCard, borderColor: colors.border }}
               >
@@ -995,7 +989,7 @@ export default function PublicBusinessPage() {
 
                   {/* Mapa incrustado o tarjeta visual limpia */}
                   {locationInfo.embedUrl ? (
-                    <div 
+                    <div
                       className="w-full h-44 rounded-2xl overflow-hidden border shadow-xs mb-5 relative bg-zinc-100 dark:bg-zinc-900"
                       style={{ borderColor: colors.border }}
                     >
@@ -1009,7 +1003,7 @@ export default function PublicBusinessPage() {
                       />
                     </div>
                   ) : (
-                    <div 
+                    <div
                       className="w-full p-4 rounded-2xl border shadow-xs mb-5 flex items-center gap-3 bg-zinc-50/60 dark:bg-zinc-900/60"
                       style={{ borderColor: colors.border }}
                     >
@@ -1036,7 +1030,7 @@ export default function PublicBusinessPage() {
             )}
 
             {/* Card 2: Horarios Semanales */}
-            <div 
+            <div
               className="p-8 rounded-3xl border flex flex-col justify-between shadow-sm"
               style={{ backgroundColor: colors.surfaceCard, borderColor: colors.border }}
             >
@@ -1064,11 +1058,10 @@ export default function PublicBusinessPage() {
                   {effectiveSchedule.map((item: DayScheduleItem) => {
                     const isToday = item.dayIndex === todayIndex
                     return (
-                      <div 
-                        key={item.day} 
-                        className={`flex items-center justify-between text-xs py-1 px-2 rounded-lg transition-colors ${
-                          isToday ? 'font-black bg-zinc-500/10' : 'font-medium opacity-80'
-                        }`}
+                      <div
+                        key={item.day}
+                        className={`flex items-center justify-between text-xs py-1 px-2 rounded-lg transition-colors ${isToday ? 'font-black bg-zinc-500/10' : 'font-medium opacity-80'
+                          }`}
                         style={{ color: colors.textPrimary }}
                       >
                         <span className="flex items-center gap-1.5">
@@ -1090,7 +1083,7 @@ export default function PublicBusinessPage() {
             </div>
 
             {/* Card 3: Canales Oficiales & Redes */}
-            <div 
+            <div
               className="p-8 rounded-3xl border flex flex-col justify-between shadow-sm"
               style={{ backgroundColor: colors.surfaceCard, borderColor: colors.border }}
             >
@@ -1192,10 +1185,10 @@ export default function PublicBusinessPage() {
       {/* ══════════════════════════════════════════════════════════
           8. MÓDULO DE RESERVA ONLINE INTERACTIVO (#reservar)
       ══════════════════════════════════════════════════════════ */}
-      <section 
-        id="reservar" 
+      <section
+        id="reservar"
         ref={reserveRef}
-        className="py-20 px-5 border-t scroll-mt-10" 
+        className="py-20 px-5 border-t scroll-mt-10"
         style={{ borderColor: colors.border, backgroundColor: colors.bg }}
       >
         <div className="max-w-4xl mx-auto">
@@ -1228,9 +1221,8 @@ export default function PublicBusinessPage() {
                   <button
                     onClick={() => s.num < bookingStep && setBookingStep(s.num as any)}
                     disabled={s.num > bookingStep}
-                    className={`w-7 h-7 rounded-full text-xs font-black flex items-center justify-center transition-all ${
-                      isCurrent ? 'scale-110 shadow-md' : isPast ? 'cursor-pointer' : 'opacity-40'
-                    }`}
+                    className={`w-7 h-7 rounded-full text-xs font-black flex items-center justify-center transition-all ${isCurrent ? 'scale-110 shadow-md' : isPast ? 'cursor-pointer' : 'opacity-40'
+                      }`}
                     style={
                       isCurrent || isPast
                         ? { backgroundColor: colors.accent, color: colors.bg }
@@ -1249,7 +1241,7 @@ export default function PublicBusinessPage() {
           </div>
 
           {/* Booking Card Container */}
-          <div 
+          <div
             className="p-6 sm:p-10 rounded-[32px] border shadow-2xl relative"
             style={{ backgroundColor: colors.surfaceCard, borderColor: colors.border }}
           >
@@ -1287,9 +1279,8 @@ export default function PublicBusinessPage() {
                       <div
                         key={svc.id}
                         onClick={() => toggleService(svc)}
-                        className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex justify-between items-center ${
-                          isSelected ? 'shadow-md scale-[1.01]' : 'opacity-80 hover:opacity-100'
-                        }`}
+                        className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex justify-between items-center ${isSelected ? 'shadow-md scale-[1.01]' : 'opacity-80 hover:opacity-100'
+                          }`}
                         style={{
                           borderColor: isSelected ? colors.accent : colors.border,
                           backgroundColor: isSelected ? colors.badgeBg : colors.bg,
@@ -1344,8 +1335,8 @@ export default function PublicBusinessPage() {
                   <h3 className="text-xl font-black" style={{ fontFamily: fontConfig.headingFont }}>
                     2. Selecciona a tu barbero
                   </h3>
-                  <button 
-                    onClick={() => setBookingStep(1)} 
+                  <button
+                    onClick={() => setBookingStep(1)}
                     className="text-xs font-bold opacity-60 hover:opacity-100 flex items-center gap-1 cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" /> Volver
@@ -1356,9 +1347,8 @@ export default function PublicBusinessPage() {
                   {/* Opción Cualquiera */}
                   <div
                     onClick={() => setSelectedBarber(null)}
-                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-3.5 ${
-                      selectedBarber === null ? 'shadow-md scale-[1.01]' : 'opacity-80 hover:opacity-100'
-                    }`}
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-3.5 ${selectedBarber === null ? 'shadow-md scale-[1.01]' : 'opacity-80 hover:opacity-100'
+                      }`}
                     style={{
                       borderColor: selectedBarber === null ? colors.accent : colors.border,
                       backgroundColor: selectedBarber === null ? colors.badgeBg : colors.bg,
@@ -1380,9 +1370,8 @@ export default function PublicBusinessPage() {
                       <div
                         key={b.id}
                         onClick={() => setSelectedBarber(b)}
-                        className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-3.5 ${
-                          isSelected ? 'shadow-md scale-[1.01]' : 'opacity-80 hover:opacity-100'
-                        }`}
+                        className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-3.5 ${isSelected ? 'shadow-md scale-[1.01]' : 'opacity-80 hover:opacity-100'
+                          }`}
                         style={{
                           borderColor: isSelected ? colors.accent : colors.border,
                           backgroundColor: isSelected ? colors.badgeBg : colors.bg,
@@ -1432,8 +1421,8 @@ export default function PublicBusinessPage() {
                   <h3 className="text-xl font-black" style={{ fontFamily: fontConfig.headingFont }}>
                     3. Selecciona la fecha
                   </h3>
-                  <button 
-                    onClick={() => setBookingStep(2)} 
+                  <button
+                    onClick={() => setBookingStep(2)}
                     className="text-xs font-bold opacity-60 hover:opacity-100 flex items-center gap-1 cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" /> Volver
@@ -1447,9 +1436,8 @@ export default function PublicBusinessPage() {
                       <button
                         key={d.full}
                         onClick={() => setSelectedDate(d.full)}
-                        className={`p-3.5 rounded-2xl border-2 text-center transition-all cursor-pointer ${
-                          isSelected ? 'shadow-md scale-[1.03]' : 'opacity-70 hover:opacity-100'
-                        }`}
+                        className={`p-3.5 rounded-2xl border-2 text-center transition-all cursor-pointer ${isSelected ? 'shadow-md scale-[1.03]' : 'opacity-70 hover:opacity-100'
+                          }`}
                         style={{
                           borderColor: isSelected ? colors.accent : colors.border,
                           backgroundColor: isSelected ? colors.badgeBg : colors.bg,
@@ -1494,8 +1482,8 @@ export default function PublicBusinessPage() {
                       Fecha: {selectedDate} • {selectedBarber ? selectedBarber.name : 'Cualquier barbero disponible'}
                     </span>
                   </div>
-                  <button 
-                    onClick={() => setBookingStep(3)} 
+                  <button
+                    onClick={() => setBookingStep(3)}
                     className="text-xs font-bold opacity-60 hover:opacity-100 flex items-center gap-1 cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" /> Cambiar fecha
@@ -1528,9 +1516,8 @@ export default function PublicBusinessPage() {
                         <button
                           key={slot.time}
                           onClick={() => setSelectedSlot(slot.time)}
-                          className={`py-3 px-2 rounded-xl border-2 text-center text-xs font-mono font-bold transition-all cursor-pointer ${
-                            isSelected ? 'scale-105 shadow-md font-black' : 'opacity-75 hover:opacity-100'
-                          }`}
+                          className={`py-3 px-2 rounded-xl border-2 text-center text-xs font-mono font-bold transition-all cursor-pointer ${isSelected ? 'scale-105 shadow-md font-black' : 'opacity-75 hover:opacity-100'
+                            }`}
                           style={{
                             borderColor: isSelected ? colors.accent : colors.border,
                             backgroundColor: isSelected ? colors.accent : colors.bg,
@@ -1554,19 +1541,18 @@ export default function PublicBusinessPage() {
                   <button
                     disabled={!selectedSlot}
                     onClick={() => setBookingStep(5)}
-                    className={`flex items-center gap-2 px-7 py-3.5 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-md ${
-                      !selectedSlot ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105 active:scale-95'
-                    }`}
+                    className={`flex items-center gap-2 px-7 py-3.5 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-md ${!selectedSlot ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105 active:scale-95'
+                      }`}
                     style={
                       !selectedSlot
                         ? {
-                            backgroundColor: isLightMode ? '#e2e8f0' : '#27272a',
-                            color: isLightMode ? '#64748b' : '#94a3b8',
-                          }
+                          backgroundColor: isLightMode ? '#e2e8f0' : '#27272a',
+                          color: isLightMode ? '#64748b' : '#94a3b8',
+                        }
                         : {
-                            backgroundColor: colors.accent,
-                            color: accentBtnText,
-                          }
+                          backgroundColor: colors.accent,
+                          color: accentBtnText,
+                        }
                     }
                   >
                     <span>Continuar a Confirmar</span>
@@ -1656,9 +1642,9 @@ export default function PublicBusinessPage() {
                       <h3 className="text-xl font-black" style={{ fontFamily: fontConfig.headingFont }}>
                         5. Confirma tus datos
                       </h3>
-                      <button 
+                      <button
                         type="button"
-                        onClick={() => setBookingStep(4)} 
+                        onClick={() => setBookingStep(4)}
                         className="text-xs font-bold opacity-60 hover:opacity-100 flex items-center gap-1 cursor-pointer"
                       >
                         <ChevronLeft className="w-3.5 h-3.5" /> Cambiar hora
@@ -1753,7 +1739,7 @@ export default function PublicBusinessPage() {
       {/* ══════════════════════════════════════════════════════════
           FOOTER DE AGENCIA PROFESIONAL
       ══════════════════════════════════════════════════════════ */}
-      <footer 
+      <footer
         className="pt-16 pb-12 px-5 border-t mt-auto text-left"
         style={{ borderColor: colors.border, backgroundColor: colors.surface }}
       >
@@ -1763,19 +1749,19 @@ export default function PublicBusinessPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 {data.logo ? (
-                  <div 
+                  <div
                     className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-md"
                     style={{ border: `1.5px solid ${colors.accent}50`, boxShadow: `0 2px 10px ${colors.accent}25` }}
                   >
-                    <img 
-                      src={data.logo} 
-                      alt={data.name} 
+                    <img
+                      src={data.logo}
+                      alt={data.name}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
                   </div>
                 ) : (
-                  <div 
+                  <div
                     className="w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-md shrink-0 border"
                     style={{ backgroundColor: colors.accent, color: '#000000', borderColor: colors.accent }}
                   >
@@ -1935,29 +1921,29 @@ export default function PublicBusinessPage() {
           </div>
 
           {/* Sub-footer Bottom Bar */}
-          <div 
+          <div
             className="pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-4 text-xs opacity-60"
             style={{ borderColor: colors.border }}
           >
             <p>© {new Date().getFullYear()} {data.name}. Todos los derechos reservados.</p>
             <div className="flex items-center gap-4">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setLegalModal('terms')}
                 className="hover:opacity-100 transition-opacity cursor-pointer"
               >
                 Términos
               </button>
               <span>•</span>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setLegalModal('privacy')}
                 className="hover:opacity-100 transition-opacity cursor-pointer"
               >
                 Privacidad
               </button>
               <span>•</span>
-              <Link 
+              <Link
                 href="/politica-de-cookies"
                 className="hover:opacity-100 transition-opacity"
               >
@@ -1976,11 +1962,11 @@ export default function PublicBusinessPage() {
           MODAL DE TÉRMINOS & POLÍTICA DE PRIVACIDAD
       ══════════════════════════════════════════════════════════ */}
       {legalModal && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
           onClick={() => setLegalModal(null)}
         >
-          <div 
+          <div
             className="w-full max-w-2xl max-h-[85vh] rounded-3xl border overflow-hidden flex flex-col shadow-2xl relative animate-scaleUp"
             style={{ backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }}
             onClick={(e) => e.stopPropagation()}
@@ -1988,7 +1974,7 @@ export default function PublicBusinessPage() {
             {/* Header del Modal */}
             <div className="p-6 border-b flex items-center justify-between shrink-0" style={{ borderColor: colors.border }}>
               <div className="flex items-center gap-3">
-                <div 
+                <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
                   style={{ backgroundColor: `${colors.accent}15`, borderColor: `${colors.accent}40`, color: colors.accent }}
                 >
@@ -2018,10 +2004,9 @@ export default function PublicBusinessPage() {
               <button
                 type="button"
                 onClick={() => setLegalModal('terms')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  legalModal === 'terms' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'
-                }`}
-                style={{ 
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${legalModal === 'terms' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'
+                  }`}
+                style={{
                   backgroundColor: legalModal === 'terms' ? `${colors.accent}20` : 'transparent',
                   borderColor: legalModal === 'terms' ? colors.accent : 'transparent',
                   color: legalModal === 'terms' ? colors.accent : colors.textPrimary
@@ -2032,10 +2017,9 @@ export default function PublicBusinessPage() {
               <button
                 type="button"
                 onClick={() => setLegalModal('privacy')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  legalModal === 'privacy' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'
-                }`}
-                style={{ 
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${legalModal === 'privacy' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'
+                  }`}
+                style={{
                   backgroundColor: legalModal === 'privacy' ? `${colors.accent}20` : 'transparent',
                   borderColor: legalModal === 'privacy' ? colors.accent : 'transparent',
                   color: legalModal === 'privacy' ? colors.accent : colors.textPrimary

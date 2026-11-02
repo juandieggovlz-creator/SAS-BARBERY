@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+
+let globalOwnerSidebarScroll = 0
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -37,6 +39,45 @@ export default function OwnerSidebar() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [business, setBusiness] = useState<BusinessInfo | null>(null)
+
+  const navScrollRef = useRef<HTMLDivElement>(null)
+
+  // Guardar posición de scroll al desplazarse y al hacer clic en enlaces
+  const handleScroll = () => {
+    if (navScrollRef.current) {
+      const top = navScrollRef.current.scrollTop
+      globalOwnerSidebarScroll = top
+      try {
+        sessionStorage.setItem('owner_sidebar_scroll', String(top))
+      } catch {}
+    }
+  }
+
+  // Restaurar la posición de scroll exacta al montar o cambiar de sección
+  useEffect(() => {
+    let saved = globalOwnerSidebarScroll
+    try {
+      const fromSession = sessionStorage.getItem('owner_sidebar_scroll')
+      if (fromSession !== null) {
+        saved = Number(fromSession)
+      }
+    } catch {}
+
+    const applyScroll = () => {
+      if (navScrollRef.current && saved > 0) {
+        navScrollRef.current.scrollTop = saved
+      }
+    }
+
+    applyScroll()
+    const frameId = requestAnimationFrame(applyScroll)
+    const timer = setTimeout(applyScroll, 50)
+
+    return () => {
+      cancelAnimationFrame(frameId)
+      clearTimeout(timer)
+    }
+  }, [pathname])
 
   useEffect(() => {
     async function fetchBusinessInfo() {
@@ -165,7 +206,7 @@ export default function OwnerSidebar() {
 
         {mobileOpen && (
           <button
-            onClick={() => setMobileOpen(false)}
+            onClick={() => { handleScroll(); setMobileOpen(false); }}
             className="md:hidden text-zinc-400 hover:text-zinc-700 dark:hover:text-white p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <X className="w-4 h-4" />
@@ -174,7 +215,7 @@ export default function OwnerSidebar() {
       </div>
 
       {/* ── NAVIGATION ── */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
+      <div ref={navScrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
         {navGroups.map((group) => (
           <div key={group.title}>
             <div className="px-3 mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-400">
