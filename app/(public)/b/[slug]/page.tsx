@@ -1946,18 +1946,6 @@ export default function PublicBusinessPage() {
                 Cookies
               </Link>
               <span>•</span>
-              <button 
-                type="button" 
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('open-cookie-preferences'))
-                  }
-                }}
-                className="hover:opacity-100 transition-opacity cursor-pointer"
-              >
-                Preferencias
-              </button>
-              <span>•</span>
               <p>
                 Tecnología oficial impulsada por <span className="font-black text-white">BarberOS</span>
               </p>
