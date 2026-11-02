@@ -1,0 +1,659 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id                 String             @id @default(uuid())
+  name               String
+  slug               String             @unique
+  phone              String?
+  address            String?
+  description        String?
+  logo               String?
+  email              String?
+  status             BusinessStatus     @default(ACTIVE)
+  onboardingCompleted Boolean           @default(true)
+  planId             String?
+  plan               Plan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
+  trialEndsAt        DateTime?
+  subscriptionEndsAt DateTime?
+  maxBarbers         Int?               @default(10)
+  maxClients         Int?               @default(1000)
+  maxAppointments    Int?               @default(5000)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @default(now()) @updatedAt
+  users              User[]
+  barbers            Barber[]
+  services           Service[]
+  clients            Client[]
+  appointments       Appointment[]
+  payments           Payment[]
+  expenses           Expense[]
+  notes              Note[]
+  cashCloses         CashClose[]
+  page               BusinessPage?
+  chatMessages       ChatMessage[]
+  saasSubscriptions  SaaSSubscription[]
+  supportTickets     SupportTicket[]
+  auditLogs          AuditLog[]
+  whatsAppIntegration WhatsAppIntegration?
+  whatsAppLogs        WhatsAppMessageLog[]
+  whatsAppConversations WhatsAppConversation[]
+
+  @@index([status])
+  @@index([planId])
+}
+
+enum BusinessStatus {
+  ACTIVE
+  TRIAL
+  SUSPENDED
+  CANCELLED
+}
+
+model BusinessPage {
+  id             String   @id @default(uuid())
+  businessId     String   @unique
+
+  // Tema visual
+  theme          String   @default("ELEGANT")
+  primaryColor   String   @default("#000000")
+  secondaryColor String   @default("#ffffff")
+  accentColor    String   @default("#d4af37")
+  fontFamily     String   @default("inter")
+
+  // Redes sociales
+  whatsapp       String?
+  showWhatsapp   Boolean  @default(true)
+  instagram      String?
+  showInstagram  Boolean  @default(true)
+  facebook       String?
+  showFacebook   Boolean  @default(true)
+  tiktok         String?
+  showTiktok     Boolean  @default(true)
+  youtube        String?
+  showYoutube    Boolean  @default(false)
+  twitter        String?
+  showTwitter    Boolean  @default(false)
+
+  // Toggles de visibilidad
+  showPrices     Boolean  @default(true)
+  showTeam       Boolean  @default(true)
+  showServices   Boolean  @default(true)
+  requireBarber  Boolean  @default(false)
+
+  // Cover personalizado y contenido extendido
+  coverTitle     String?
+  coverSubtitle  String?
+  bannerUrl      String?
+  slogan         String?
+  gallery        Json?    @default("[]")
+  testimonials   Json?    @default("[]")
+  businessHours  String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  business       Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  name           String?
+  avatar         String?
+  password       String?
+  role           Role            @default(OWNER)
+  barberId       String?         @unique
+  businessId     String?
+  inviteToken    String?         @unique
+  inviteExpires  DateTime?
+  isActive       Boolean         @default(true)
+  accentColor    String?         @default("#F59E0B")
+  lastLoginAt    DateTime?
+  createdAt      DateTime        @default(now())
+  barber         Barber?         @relation(fields: [barberId], references: [id])
+  business       Business?       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  supportTickets SupportTicket[]
+  auditLogs      AuditLog[]
+
+  @@index([role, isActive])
+  @@index([businessId])
+}
+
+model Barber {
+  id           String           @id @default(uuid())
+  name         String
+  phone        String?
+  commission   Float?           @default(0)
+  hiredAt      DateTime?        @default(now())
+  businessId   String
+  status       BarberStatus     @default(PENDING)
+  specialty    String?
+  avatar       String?
+  createdAt    DateTime         @default(now())
+  appointments Appointment[]
+  business     Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  blocks       BarberBlock[]
+  schedules    BarberSchedule[]
+  user         User?
+
+  @@index([businessId])
+}
+
+enum BarberStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+}
+
+model BarberSchedule {
+  id        String  @id @default(uuid())
+  barberId  String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isWorking Boolean @default(true)
+  barber    Barber  @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  @@index([barberId, dayOfWeek])
+}
+
+model BarberBlock {
+  id        String   @id @default(uuid())
+  barberId  String
+  date      DateTime
+  startTime String
+  endTime   String
+  reason    String?
+  barber    Barber   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  @@index([barberId, date])
+}
+
+model Service {
+  id           String        @id @default(uuid())
+  name         String
+  description  String?
+  category     String?
+  duration     Int
+  price        Decimal       @db.Decimal(10, 2)
+  businessId   String
+  isActive     Boolean       @default(true)
+  appointments Appointment[]
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, isActive])
+}
+
+model Client {
+  id            String        @id @default(uuid())
+  name          String
+  phone         String
+  email         String?
+  internalNotes String?
+  businessId    String
+  createdAt     DateTime      @default(now())
+  appointments  Appointment[]
+  business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, phone])
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+  businessId      String
+  clientId        String
+  barberId        String
+  serviceId       String
+  date            DateTime
+  status          AppointmentStatus @default(PENDING)
+  paymentMethod   PaymentMethod?
+  paidAt          DateTime?
+  notes           String?
+  createdAt       DateTime          @default(now())
+  reservationCode String            @unique @default(cuid())
+  business        Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  barber          Barber            @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  client          Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  service         Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  payment         Payment?
+  whatsAppLogs    WhatsAppMessageLog[]
+
+  @@index([businessId, date])
+  @@index([barberId, date])
+  @@index([businessId, status])
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  paymentCode   String?       @unique
+  businessId    String
+  appointmentId String?       @unique
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod @default(CASH)
+  status        PaymentStatus @default(PENDING)
+  notes         String?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointment   Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+}
+
+model Expense {
+  id            String          @id @default(uuid())
+  businessId    String
+  concept       String
+  category      ExpenseCategory @default(OTHER)
+  amount        Decimal         @db.Decimal(10, 2)
+  date          DateTime        @default(now())
+  paymentMethod PaymentMethod   @default(CASH)
+  description   String?
+  createdAt     DateTime        @default(now())
+  business      Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, date])
+}
+
+model Note {
+  id            String   @id @default(uuid())
+  businessId    String
+  title         String
+  content       String
+  isPinned      Boolean  @default(false)
+  color         String?  @default("yellow")
+  category      String?  @default("GENERAL")
+  clientId      String?
+  appointmentId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, isPinned])
+}
+
+enum Role {
+  SUPER_ADMIN
+  OWNER
+  BARBER
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  COMPLETED
+  REFUNDED
+  PARTIAL
+}
+
+enum ExpenseCategory {
+  RENT
+  UTILITIES
+  SUPPLIES
+  SALARIES
+  COMMISSIONS
+  MARKETING
+  MAINTENANCE
+  EQUIPMENT
+  OTHER
+}
+
+model CashClose {
+  id               String   @id @default(uuid())
+  businessId       String
+  closedById       String
+  closedAt         DateTime @default(now())
+  periodFrom       DateTime
+  periodTo         DateTime
+  periodLabel      String
+  totalCash        Decimal  @db.Decimal(10, 2) @default(0)
+  totalTransfer    Decimal  @db.Decimal(10, 2) @default(0)
+  totalCard        Decimal  @db.Decimal(10, 2) @default(0)
+  totalOther       Decimal  @db.Decimal(10, 2) @default(0)
+  totalReceived    Decimal  @db.Decimal(10, 2) @default(0)
+  expensesCash     Decimal  @db.Decimal(10, 2) @default(0)
+  expensesDigital  Decimal  @db.Decimal(10, 2) @default(0)
+  totalExpenses    Decimal  @db.Decimal(10, 2) @default(0)
+  cashExpected     Decimal  @db.Decimal(10, 2) @default(0)
+  cashCounted      Decimal  @db.Decimal(10, 2) @default(0)
+  cashDifference   Decimal  @db.Decimal(10, 2) @default(0)
+  pendingTotal     Decimal  @db.Decimal(10, 2) @default(0)
+  pendingCount     Int      @default(0)
+  differenceReason String?
+  observations     String?
+  business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, closedAt])
+}
+
+model ChatMessage {
+  id          String   @id @default(uuid())
+  businessId  String
+  channelId   String?  @default("general")
+  senderId    String
+  senderName  String
+  senderRole  Role
+  content     String
+  isImportant Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([businessId, channelId])
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUPER ADMIN & SAAS PLATFORM MODELS
+// ═══════════════════════════════════════════════════════════════
+
+model Plan {
+  id              String             @id @default(uuid())
+  name            String             // Plan Básico, Plan Profesional, Plan Premium
+  slug            String             @unique
+  price           Decimal            @db.Decimal(10, 2)
+  billingPeriod   String             @default("MONTHLY") // MONTHLY, YEARLY
+  maxBarbers      Int                @default(3)
+  maxClients      Int                @default(500)
+  maxAppointments Int                @default(1000)
+  features        Json               @default("[]") // Lista de características
+  isPopular       Boolean            @default(false)
+  isActive        Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  businesses      Business[]
+  subscriptions   SaaSSubscription[]
+
+  @@index([slug, isActive])
+}
+
+model SaaSSubscription {
+  id                 String             @id @default(uuid())
+  businessId         String
+  planId             String
+  amount             Decimal            @db.Decimal(10, 2)
+  status             SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart DateTime           @default(now())
+  currentPeriodEnd   DateTime
+  paymentMethod      String?            @default("CARD") // CARD, TRANSFER, CASH
+  invoicePdfUrl      String?
+  notes              String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  business           Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plan               Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, status])
+  @@index([currentPeriodEnd])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+model SupportTicket {
+  id          String          @id @default(uuid())
+  ticketCode  String          @unique @default(cuid())
+  businessId  String
+  userId      String
+  subject     String
+  description String
+  status      TicketStatus    @default(OPEN)
+  priority    TicketPriority  @default(MEDIUM)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  business    Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    TicketMessage[]
+
+  @@index([businessId, status])
+  @@index([status, priority])
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model TicketMessage {
+  id          String        @id @default(uuid())
+  ticketId    String
+  senderId    String
+  senderName  String
+  senderRole  Role
+  message     String
+  attachments Json?         @default("[]")
+  createdAt   DateTime      @default(now())
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
+
+model PlatformAnnouncement {
+  id                String           @id @default(uuid())
+  title             String
+  content           String
+  type              AnnouncementType @default(ANNOUNCEMENT)
+  targetType        String           @default("ALL") // ALL, SPECIFIC
+  targetBusinessIds Json?            @default("[]") // Lista de IDs si es específico
+  isPublished       Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([type, isPublished])
+}
+
+enum AnnouncementType {
+  ANNOUNCEMENT
+  UPDATE
+  MAINTENANCE
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  userId     String?
+  userName   String?
+  userRole   Role?
+  businessId String?
+  action     String    // PLAN_CHANGED, BUSINESS_SUSPENDED, IMPERSONATE_LOGIN, USER_DELETED, etc.
+  entity     String    // Business, User, Plan, Subscription, System
+  entityId   String?
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@index([action, createdAt])
+  @@index([businessId])
+  @@index([userId])
+}
+
+model PlatformSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+// ==========================================
+// MÓDULO DE INTEGRACIÓN DE WHATSAPP
+// ==========================================
+
+enum WhatsAppProvider {
+  META
+  BAILEYS
+  NONE
+}
+
+enum WhatsAppConnectionStatus {
+  DISCONNECTED
+  CONNECTING
+  CONNECTED
+  QR_READY
+  FAILED
+}
+
+enum WhatsAppMessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum WhatsAppMessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model WhatsAppIntegration {
+  id                   String                   @id @default(uuid())
+  businessId           String                   @unique
+  isEnabled            Boolean                  @default(false)
+  provider             WhatsAppProvider         @default(NONE)
+  connectionStatus     WhatsAppConnectionStatus @default(DISCONNECTED)
+  phoneNumber          String?                  // Número para recibir/enviar (ej: +573001234567)
+  
+  // Meta Cloud API (Oficial)
+  metaPhoneNumberId    String?
+  metaWabaId           String?
+  metaAccessToken      String?                  @db.Text
+  metaWebhookSecret    String?
+  metaAppId            String?
+  metaAppSecret        String?
+
+  // Baileys (Conexión QR sin verificación de Meta)
+  baileysSessionId     String?
+  baileysQrCode        String?                  @db.Text
+  baileysEndpoint      String?                  // URL del microservicio Baileys si es externo
+
+  // Bot de bienvenida y opciones de reserva
+  botEnabled           Boolean                  @default(true)
+  bookingEnabled       Boolean                  @default(true)
+  allowBarberSelection Boolean                  @default(true)
+  welcomeMessage       String?                  @db.Text
+  advisorMessage       String?                  @db.Text
+  goodbyeMessage       String?                  @db.Text
+  notifyBusinessOnBooking Boolean               @default(true)
+
+  // Plantillas de mensajes automáticos
+  confirmTemplate      String?                  @db.Text
+  reminderTemplate     String?                  @db.Text
+  reminderHoursBefore  Int                      @default(2)
+
+  connectedAt          DateTime?
+  lastSyncedAt         DateTime?
+  errorMessage         String?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  business             Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  logs                 WhatsAppMessageLog[]
+
+  @@index([businessId, isEnabled])
+  @@index([phoneNumber])
+}
+
+model WhatsAppMessageLog {
+  id                   String                   @id @default(uuid())
+  businessId           String
+  integrationId        String?
+  appointmentId        String?
+  direction            WhatsAppMessageDirection @default(OUTBOUND)
+  status               WhatsAppMessageStatus    @default(PENDING)
+  provider             WhatsAppProvider         @default(NONE)
+  from                 String
+  to                   String
+  messageBody          String                   @db.Text
+  rawPayload           Json?
+  errorDetails         String?
+  sentAt               DateTime?
+  createdAt            DateTime                 @default(now())
+
+  business             Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  integration          WhatsAppIntegration?     @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  appointment          Appointment?             @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+  @@index([appointmentId])
+  @@index([to])
+}
+
+enum WhatsAppConversationState {
+  IDLE
+  MAIN_MENU
+  SELECTING_SERVICE
+  SELECTING_BARBER
+  SELECTING_DATE
+  SELECTING_TIME
+  CONFIRMING_BOOKING
+  VIEWING_APPOINTMENTS
+  RESCHEDULING_SELECT_DATE
+  RESCHEDULING_SELECT_TIME
+  CONFIRMING_RESCHEDULE
+  CONFIRMING_CANCEL
+  HUMAN_AGENT
+}
+
+model WhatsAppConversation {
+  id                    String                    @id @default(uuid())
+  businessId            String
+  customerPhone         String
+  state                 WhatsAppConversationState @default(IDLE)
+  isBotActive           Boolean                   @default(true)
+  isHumanAgent          Boolean                   @default(false)
+  selectedServiceId     String?
+  selectedBarberId      String?
+  selectedDate          String?                   // YYYY-MM-DD
+  selectedTime          String?                   // HH:mm
+  selectedAppointmentId String?                   // ID de cita para reprogramar o cancelar
+  metadata              Json?                     // Mapeo transitorio de opciones { "1": "serviceId", "slots": [...] }
+  lastMessageId         String?                   // Deduplicación de webhooks
+  lastActivityAt        DateTime                  @default(now())
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  business              Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, customerPhone])
+  @@index([businessId, isHumanAgent])
+  @@index([businessId, isBotActive])
+  @@index([businessId, lastActivityAt])
+}
+
