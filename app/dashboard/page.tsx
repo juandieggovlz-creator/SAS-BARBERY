@@ -902,7 +902,7 @@ export default function OwnerDashboardPage() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Rendimiento</h3>
-              <p className="text-base font-black text-zinc-950 mt-0.5">¿Quién genera más?</p>
+              <p className="text-base font-black text-zinc-950 dark:text-white mt-0.5">¿Quién genera más?</p>
             </div>
             <Link href="/barbers" className="text-xs font-black text-zinc-500 hover:text-zinc-900 flex items-center gap-1 uppercase tracking-wider">
               Equipo <ChevronRight size={13} />
@@ -914,9 +914,10 @@ export default function OwnerDashboardPage() {
               data.barberPerformance.map((b, idx) => (
                 <div key={b.id} className="flex items-center gap-3 p-4 bg-zinc-50 dark:bg-[#18181b] rounded-2xl border border-zinc-100 dark:border-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 transition-all">
                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
-                    idx === 0 ? 'bg-amber-500 text-white' :
-                    idx === 1 ? 'bg-zinc-700 text-white' :
-                    'bg-zinc-200 text-zinc-700'
+                    idx === 0 ? 'bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/20' :
+                    idx === 1 ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' :
+                    idx === 2 ? 'bg-amber-950 text-amber-300 border border-amber-800/60' :
+                    'bg-zinc-900 text-zinc-400 border border-zinc-800'
                   }`}>
                     #{idx + 1}
                   </div>
@@ -926,7 +927,7 @@ export default function OwnerDashboardPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-sm font-black text-zinc-950 dark:text-white">{formatCOP(b.revenue)}</div>
-                    <div className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                    <div className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-full inline-block mt-0.5">
                       Comisión: {formatCOP(b.estimatedCommission)}
                     </div>
                   </div>
@@ -946,7 +947,7 @@ export default function OwnerDashboardPage() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Servicios Top</h3>
-              <p className="text-base font-black text-zinc-950 mt-0.5">¿Qué vendo más?</p>
+              <p className="text-base font-black text-zinc-950 dark:text-white mt-0.5">¿Qué vendo más?</p>
             </div>
             <Link href="/services" className="text-xs font-black text-zinc-500 hover:text-zinc-900 flex items-center gap-1 uppercase tracking-wider">
               Servicios <ChevronRight size={13} />

@@ -478,7 +478,10 @@ export default function ReportsPage() {
                       <tr key={b.id} className="hover:bg-zinc-50 transition-colors">
                         <td className="px-5 py-4 flex items-center gap-3">
                           <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${
-                            idx === 0 ? 'bg-amber-400 text-amber-950' : idx === 1 ? 'bg-zinc-300 text-zinc-800' : 'bg-zinc-100 text-zinc-600'
+                            idx === 0 ? 'bg-amber-500 text-zinc-950 shadow-sm' :
+                            idx === 1 ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' :
+                            idx === 2 ? 'bg-amber-950 text-amber-300 border border-amber-800/60' :
+                            'bg-zinc-900 text-zinc-400 border border-zinc-800'
                           }`}>
                             #{idx + 1}
                           </span>
