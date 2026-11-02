@@ -34,6 +34,21 @@ export async function POST(request: Request) {
       prisma.barber.update({
         where: { id: user.barberId! },
         data: { status: 'ACTIVE' }
+      }),
+      prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          userName: user.barber?.name || user.email,
+          userRole: 'BARBER',
+          businessId: user.businessId,
+          action: 'TERMS_AND_PRIVACY_ACCEPTED',
+          entity: 'User',
+          entityId: user.id,
+          details: {
+            termsVersion: '1.0',
+            acceptedAt: new Date().toISOString()
+          }
+        }
       })
     ])
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { 
   Scissors, 
   MapPin, 
@@ -1936,6 +1937,25 @@ export default function PublicBusinessPage() {
                 className="hover:opacity-100 transition-opacity cursor-pointer"
               >
                 Privacidad
+              </button>
+              <span>•</span>
+              <Link 
+                href="/politica-de-cookies"
+                className="hover:opacity-100 transition-opacity"
+              >
+                Cookies
+              </Link>
+              <span>•</span>
+              <button 
+                type="button" 
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('open-cookie-preferences'))
+                  }
+                }}
+                className="hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                Preferencias
               </button>
               <span>•</span>
               <p>

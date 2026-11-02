@@ -55,11 +55,24 @@ export default function Footer() {
           <div className="space-y-3">
             <p className="font-black text-zinc-950 uppercase tracking-widest text-[11px]">Soporte &amp; Legal</p>
             <ul className="space-y-2">
-              <li><Link href="/terms" className="hover:text-zinc-950 transition-colors">Términos de Servicio</Link></li>
-              <li><Link href="/privacy" className="hover:text-zinc-950 transition-colors">Política de Privacidad</Link></li>
+              <li><Link href="/terminos-y-condiciones" className="hover:text-zinc-950 transition-colors">Términos y Condiciones</Link></li>
+              <li><Link href="/politica-de-privacidad" className="hover:text-zinc-950 transition-colors">Política de Privacidad</Link></li>
+              <li><Link href="/politica-de-cookies" className="hover:text-zinc-950 transition-colors">Política de Cookies</Link></li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('open-cookie-preferences'))
+                    }
+                  }}
+                  className="hover:text-zinc-950 transition-colors cursor-pointer text-left font-medium"
+                >
+                  Gestionar Cookies
+                </button>
+              </li>
               <li><a href="#faq" className="hover:text-zinc-950 transition-colors">Preguntas Frecuentes (FAQ)</a></li>
-              <li><Link href="/login" className="hover:text-zinc-950 transition-colors">Acceso de Clientes</Link></li>
-              <li><Link href="/login" className="hover:text-zinc-950 transition-colors">Portal de Barberos</Link></li>
+              <li><Link href="/login" className="hover:text-zinc-950 transition-colors">Acceso a BarberOS</Link></li>
             </ul>
           </div>
 

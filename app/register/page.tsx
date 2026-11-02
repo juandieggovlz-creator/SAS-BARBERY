@@ -69,6 +69,7 @@ export default function RegisterWizardPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   // Step 2: Business Info
   const [businessName, setBusinessName] = useState('')
@@ -209,6 +210,10 @@ export default function RegisterWizardPage() {
         toast.error('Las contraseñas no coinciden')
         return
       }
+      if (!acceptedTerms) {
+        toast.error('Debes aceptar los Términos y Condiciones y la Política de Privacidad para continuar')
+        return
+      }
       setStep(2)
       return
     }
@@ -278,6 +283,9 @@ export default function RegisterWizardPage() {
       currency,
       schedule,
       services,
+      acceptedTerms: true,
+      termsVersion: '1.0',
+      termsAcceptedAt: new Date().toISOString(),
       firstBarber: skipBarber || !barberName.trim() ? null : {
         name: barberName.trim(),
         specialty: barberSpecialty.trim(),
@@ -615,6 +623,37 @@ export default function RegisterWizardPage() {
                         className={cx.input}
                       />
                     </div>
+                  </div>
+
+                  {/* Casilla explícita de aceptación de Términos y Privacidad */}
+                  <div className="sm:col-span-2 pt-2">
+                    <label className="flex items-start gap-3 cursor-pointer select-none group">
+                      <input
+                        type="checkbox"
+                        checked={acceptedTerms}
+                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-amber-500 focus:ring-amber-500/20 cursor-pointer shrink-0"
+                      />
+                      <span className={`text-xs leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                        He leído y acepto expresamente los{' '}
+                        <Link 
+                          href="/terminos-y-condiciones" 
+                          target="_blank" 
+                          className="font-bold underline underline-offset-2 text-amber-400 hover:text-amber-300 transition-colors"
+                        >
+                          Términos y Condiciones
+                        </Link>{' '}
+                        y la{' '}
+                        <Link 
+                          href="/politica-de-privacidad" 
+                          target="_blank" 
+                          className="font-bold underline underline-offset-2 text-amber-400 hover:text-amber-300 transition-colors"
+                        >
+                          Política de Privacidad
+                        </Link>{' '}
+                        de BarberOS.
+                      </span>
+                    </label>
                   </div>
                 </div>
 

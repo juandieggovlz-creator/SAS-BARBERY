@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -11,6 +12,7 @@ export default function BarberInvitePage() {
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [validating, setValidating] = useState(true)
@@ -41,13 +43,24 @@ export default function BarberInvitePage() {
       return
     }
 
+    if (!acceptedTerms) {
+      toast.error('Debes aceptar los Términos y Condiciones y la Política de Privacidad')
+      return
+    }
+
     setLoading(true)
 
     try {
       const res = await fetch('/api/auth/register-barber', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password })
+        body: JSON.stringify({ 
+          token, 
+          password,
+          acceptedTerms: true,
+          termsVersion: '1.0',
+          termsAcceptedAt: new Date().toISOString()
+        })
       })
 
       const data = await res.json()
@@ -135,6 +148,36 @@ export default function BarberInvitePage() {
                   placeholder="••••••••"
                 />
               </div>
+            </div>
+
+            {/* Casilla explícita de aceptación */}
+            <div className="pt-2">
+              <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5 rounded border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-amber-500 focus:ring-amber-500/20 h-4 w-4 shrink-0 cursor-pointer"
+                />
+                <span className="text-xs text-zinc-600 dark:text-zinc-400 leading-snug">
+                  Acepto los{' '}
+                  <Link 
+                    href="/terminos-y-condiciones" 
+                    target="_blank" 
+                    className="font-bold underline text-black dark:text-white hover:text-amber-500 transition-colors"
+                  >
+                    Términos y Condiciones
+                  </Link>{' '}
+                  y la{' '}
+                  <Link 
+                    href="/politica-de-privacidad" 
+                    target="_blank" 
+                    className="font-bold underline text-black dark:text-white hover:text-amber-500 transition-colors"
+                  >
+                    Política de Privacidad
+                  </Link>.
+                </span>
+              </label>
             </div>
           </div>
           <div className="pt-6">

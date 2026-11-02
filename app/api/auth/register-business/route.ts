@@ -167,6 +167,24 @@ export async function POST(request: Request) {
         }
       })
 
+      // 3.1 Registrar consentimiento de Términos y Política de Privacidad
+      await tx.auditLog.create({
+        data: {
+          userId: newUser.id,
+          userName: fullName ? fullName.trim() : newUser.email,
+          userRole: 'OWNER',
+          businessId: newBusiness.id,
+          action: 'TERMS_AND_PRIVACY_ACCEPTED',
+          entity: 'User',
+          entityId: newUser.id,
+          details: {
+            termsVersion: body.termsVersion || '1.0',
+            acceptedAt: body.termsAcceptedAt || new Date().toISOString(),
+            ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'desconocida'
+          }
+        }
+      })
+
       // 4. Create Services
       const servicesToCreate = Array.isArray(services) && services.length > 0
         ? services

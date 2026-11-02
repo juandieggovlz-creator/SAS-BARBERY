@@ -17,7 +17,11 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/terms') ||
     pathname.startsWith('/privacy') ||
     pathname.startsWith('/terminos') ||
-    pathname.startsWith('/privacidad')
+    pathname.startsWith('/privacidad') ||
+    pathname.startsWith('/terminos-y-condiciones') ||
+    pathname.startsWith('/politica-de-privacidad') ||
+    pathname.startsWith('/politica-de-cookies') ||
+    pathname.startsWith('/cookies')
 
   if (isPublicPage) {
     return NextResponse.next()
