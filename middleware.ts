@@ -36,7 +36,8 @@ export async function middleware(request: NextRequest) {
     '/api/barbers/invite',
     '/api/public',
     '/api/user/accent',
-    '/api/webhooks'
+    '/api/webhooks',
+    '/api/whatsapp/webhook'
   ]
   const isPublicApi = pathname.startsWith('/api') && publicApiPaths.some(p => pathname.startsWith(p))
 

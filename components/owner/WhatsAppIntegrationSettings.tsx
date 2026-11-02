@@ -411,55 +411,133 @@ export default function WhatsAppIntegrationSettings() {
     return () => clearInterval(timer)
   }, [showQrModal, qrStep, qrExpired])
 
-  // Meta Embedded Signup (Facebook Login SDK)
+  // Auto-regenerar código QR cuando expire sin recargar la página
+  useEffect(() => {
+    if (showQrModal && qrExpired && qrStep === 1) {
+      const autoRefreshTimer = setTimeout(() => {
+        handleOpenQrModal(true)
+      }, 1000)
+      return () => clearTimeout(autoRefreshTimer)
+    }
+  }, [showQrModal, qrExpired, qrStep])
+
+  // Meta Embedded Signup Oficial (Facebook Login SDK con Config ID)
   const handleEmbeddedSignup = () => {
     setEmbeddedSignupLoading(true)
-    // Load FB SDK if not already loaded
+
+    // Variables de configuración de Meta
+    const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID || '1798187644961786'
+    const metaConfigId = process.env.NEXT_PUBLIC_META_CONFIG_ID || '2369676903865189'
+
+    // Variables capturadas del popup mediante Message Event
+    let capturedPhoneNumberId: string | null = null
+    let capturedWabaId: string | null = null
+
+    // Listener para eventos de sesión de WhatsApp Embedded Signup
+    const messageListener = (event: MessageEvent) => {
+      if (
+        event.origin !== 'https://www.facebook.com' &&
+        event.origin !== 'https://web.facebook.com'
+      ) {
+        return
+      }
+
+      try {
+        const payload = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+        if (payload && payload.type === 'WA_EMBEDDED_SIGNUP') {
+          if (payload.data?.phone_number_id) {
+            capturedPhoneNumberId = String(payload.data.phone_number_id)
+          }
+          if (payload.data?.waba_id) {
+            capturedWabaId = String(payload.data.waba_id)
+          }
+        }
+      } catch {
+        // Ignorar mensajes no compatibles
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('message', messageListener)
+    }
+
     const launchSignup = () => {
       if (typeof window !== 'undefined' && (window as any).FB) {
         ;(window as any).FB.login(
-          (response: any) => {
+          async (response: any) => {
             setEmbeddedSignupLoading(false)
+            if (typeof window !== 'undefined') {
+              window.removeEventListener('message', messageListener)
+            }
+
             if (response.authResponse?.code) {
-              toast.success('Autenticación Meta completada. Guardando credenciales...')
-              // Exchange code via our API
-              fetch('/api/owner/integrations/whatsapp/meta/embedded-signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: response.authResponse.code })
-              })
-                .then(r => r.json())
-                .then(d => {
-                  if (d.success) {
-                    toast.success('¡WhatsApp Business conectado via Meta! 🚀')
-                    fetchConfig()
-                  } else {
-                    toast.error(d.error || 'Error al vincular con Meta')
-                  }
+              const toastId = toast.loading('Sincronizando WhatsApp Business con Meta...')
+              try {
+                // Enviar el code y los IDs al endpoint oficial
+                const res = await fetch('/api/whatsapp/meta-callback', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    code: response.authResponse.code,
+                    phoneNumberId: capturedPhoneNumberId,
+                    wabaId: capturedWabaId
+                  })
                 })
-                .catch(() => toast.error('Error de red al vincular'))
+
+                const resData = await res.json()
+                if (res.ok && resData.success) {
+                  toast.success(resData.message || '¡WhatsApp Business conectado exitosamente con Meta! 🚀', { id: toastId })
+                  setData(prev => prev ? {
+                    ...prev,
+                    provider: 'META',
+                    connectionStatus: 'CONNECTED',
+                    isEnabled: true,
+                    phoneNumber: resData.phoneNumber || prev.phoneNumber,
+                    metaPhoneNumberId: resData.phoneNumberId || prev.metaPhoneNumberId,
+                    metaWabaId: resData.wabaId || prev.metaWabaId
+                  } : null)
+                  setShowMetaModal(false)
+                  await fetchConfig()
+                } else {
+                  toast.error(resData.error || 'Error al validar credenciales de Meta', { id: toastId })
+                }
+              } catch {
+                toast.error('Error de red al completar la vinculación con Meta', { id: toastId })
+              }
             } else {
-              toast.error('Autenticación cancelada o denegada')
+              toast.info('Proceso de vinculación de Meta cancelado o no completado.')
             }
           },
           {
-            config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID || '',
+            config_id: metaConfigId,
             response_type: 'code',
             override_default_response_type: true,
-            extras: { setup: {}, featureType: '', sessionInfoVersion: '3' }
+            extras: {
+              setup: {},
+              featureType: '',
+              sessionInfoVersion: '3'
+            }
           }
         )
       } else {
         setEmbeddedSignupLoading(false)
-        toast.error('SDK de Meta no disponible. Usa el método de credenciales manuales.')
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('message', messageListener)
+        }
+        toast.error('SDK de Facebook no disponible. Utiliza la configuración manual.')
       }
     }
+
+    // Inicializar SDK oficial si no está presente
     if (typeof window !== 'undefined' && !(window as any).FB) {
       const script = document.createElement('script')
+      script.id = 'facebook-jssdk'
       script.src = 'https://connect.facebook.net/es_LA/sdk.js'
+      script.async = true
+      script.defer = true
       script.onload = () => {
         ;(window as any).FB.init({
-          appId: process.env.NEXT_PUBLIC_META_APP_ID || '',
+          appId: metaAppId,
           autoLogAppEvents: true,
           xfbml: true,
           version: 'v21.0'
@@ -468,7 +546,7 @@ export default function WhatsAppIntegrationSettings() {
       }
       script.onerror = () => {
         setEmbeddedSignupLoading(false)
-        toast.error('No se pudo cargar el SDK de Meta')
+        toast.error('No se pudo cargar el SDK de Meta. Comprueba tu conexión.')
       }
       document.head.appendChild(script)
     } else {
@@ -929,24 +1007,34 @@ export default function WhatsAppIntegrationSettings() {
                   </div>
                 </div>
 
-                {/* Primary CTA Button */}
-                <div className="pt-2">
+                {/* Primary CTA Buttons */}
+                <div className="pt-2 space-y-2">
                   <button
                     type="button"
-                    onClick={() => setShowMetaModal(true)}
-                    className="w-full py-3.5 px-5 rounded-2xl text-white text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all cursor-pointer group shadow-xl hover:shadow-[0_12px_40px_-8px_rgba(0,129,251,0.6)]"
+                    onClick={handleEmbeddedSignup}
+                    disabled={embeddedSignupLoading}
+                    className="w-full py-3.5 px-5 rounded-2xl text-white text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all cursor-pointer group shadow-xl hover:shadow-[0_12px_40px_-8px_rgba(0,129,251,0.6)] disabled:opacity-60"
                     style={{
                       background: 'linear-gradient(135deg, #0056cc 0%, #0081FB 50%, #1a94ff 100%)',
                       border: '1px solid rgba(255,255,255,0.2)'
                     }}
                   >
-                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white shrink-0 group-hover:scale-110 transition-transform">
-                      <path d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"/>
-                    </svg>
-                    Conectar con WhatsApp Business
+                    {embeddedSignupLoading ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin text-white" />
+                        Iniciando Meta Embedded Signup...
+                      </>
+                    ) : (
+                      <>
+                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white shrink-0 group-hover:scale-110 transition-transform">
+                          <path d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"/>
+                        </svg>
+                        Conectar con WhatsApp Business (Meta)
+                      </>
+                    )}
                   </button>
-                  <p className="text-center text-[10px] text-zinc-500 mt-2">
-                    Configuración paso a paso de credenciales, asistente y Webhook oficial de Meta
+                  <p className="text-center text-[10px] text-zinc-400 mt-1">
+                    Vinculación oficial automática en 1 clic (Embedded Signup)
                   </p>
                 </div>
               </div>
@@ -2006,6 +2094,43 @@ export default function WhatsAppIntegrationSettings() {
                 className="text-zinc-400 hover:text-white p-1.5 rounded-xl hover:bg-zinc-800/60 transition-all cursor-pointer"
               >
                 <X size={20} />
+              </button>
+            </div>
+
+            {/* Modo 1: Meta Embedded Signup Oficial (Recomendado) */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-950/60 to-indigo-950/60 border border-blue-500/30 mb-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                  <Zap size={20} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-white">Embedded Signup Oficial</h4>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      Recomendado
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Vincula tu número de WhatsApp Business directamente en el popup oficial de Meta.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleEmbeddedSignup}
+                disabled={embeddedSignupLoading}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0081FB] hover:bg-[#0070db] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
+              >
+                {embeddedSignupLoading ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> Conectando...
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white shrink-0"><path d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"/></svg>
+                    Conectar con Meta
+                  </>
+                )}
               </button>
             </div>
 
