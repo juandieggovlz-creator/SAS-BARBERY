@@ -120,6 +120,7 @@ export default function WhatsAppIntegrationSettings() {
 
   // Modales
   const [showMetaModal, setShowMetaModal] = useState(false)
+  const [metaModalTab, setMetaModalTab] = useState<'embedded' | 'manual'>('embedded')
   const [showMetaQrModal, setShowMetaQrModal] = useState(false)
   const [metaQrData, setMetaQrData] = useState<{
     qrCodeDataUrl: string
@@ -1062,7 +1063,10 @@ export default function WhatsAppIntegrationSettings() {
               <div className="flex items-center gap-2 flex-1">
                 <button
                   type="button"
-                  onClick={() => setShowMetaModal(true)}
+                  onClick={() => {
+                    setMetaModalTab('manual')
+                    setShowMetaModal(true)
+                  }}
                   className="flex-1 py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white transition-all cursor-pointer border border-white/10 flex items-center justify-center gap-1.5 text-xs font-bold"
                 >
                   <SettingsIcon size={13} className="text-[#0081FB]" /> Manual (Token)
@@ -2093,246 +2097,298 @@ export default function WhatsAppIntegrationSettings() {
 
       </div>
 
-      {/* ───────────────────────── MODAL META WHATSAPP (EXACTO A LA ESPECIFICACIÓN) ───────────────────────── */}
+      {/* ───────────────────────── MODAL META WHATSAPP ───────────────────────── */}
       {showMetaModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#0f172a] text-white w-full max-w-xl rounded-3xl border border-zinc-800 shadow-2xl p-6 sm:p-8 animate-scaleIn relative my-8">
-            {/* Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-zinc-800/80 mb-6">
-              <div>
-                <h3 className="text-xl font-black text-white tracking-tight">Meta WhatsApp</h3>
-                <p className="text-xs text-zinc-400 mt-1">
-                  A continuación, ingrese los datos de su cuenta de Meta WhatsApp para conectarse a su proyecto.
-                </p>
+        <div 
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
+          onClick={() => setShowMetaModal(false)}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-[#0f172a] text-white w-full max-w-xl max-h-[90vh] rounded-3xl border border-zinc-800 shadow-2xl flex flex-col overflow-hidden animate-scaleIn relative"
+          >
+            {/* Header Fijo con botón X siempre visible y accesible */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-[#0f172a] shrink-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shrink-0">
+                  <Zap size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                    Meta WhatsApp Business
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    Vinculación oficial Cloud API o credenciales manuales
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowMetaModal(false)}
-                className="text-zinc-400 hover:text-white p-1.5 rounded-xl hover:bg-zinc-800/60 transition-all cursor-pointer"
+                className="w-8 h-8 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all flex items-center justify-center cursor-pointer border border-zinc-700 shrink-0"
+                title="Cerrar modal (o haz clic fuera)"
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
 
-            {/* Modo 1: Meta Embedded Signup Oficial (Recomendado) */}
-            {typeof window !== 'undefined' && window.location.protocol === 'http:' && (
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 mb-5 flex items-start gap-2.5 text-xs text-amber-200">
-                <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
-                <div className="leading-relaxed">
-                  <span className="font-bold text-amber-300">Nota para entorno local (HTTP): </span>
-                  Meta exige que Facebook Login se ejecute bajo <strong className="text-white">HTTPS</strong>. Para usar el popup en tu PC, inicia con <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono text-[10px]">npm run dev:https</code> y abre <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono text-[10px]">https://localhost:3000</code>, o ingresa el Token y Phone Number ID en el formulario manual de abajo. En producción funciona automáticamente bajo HTTPS.
-                </div>
-              </div>
-            )}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-950/60 to-indigo-950/60 border border-blue-500/30 mb-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-                  <Zap size={20} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-white">Embedded Signup Oficial</h4>
-                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                      Recomendado
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    Vincula tu número de WhatsApp Business directamente en el popup oficial de Meta.
-                  </p>
-                </div>
-              </div>
+            {/* Pestañas de Navegación Segmentada */}
+            <div className="px-6 pt-2 bg-[#0c1322] border-b border-zinc-800/80 shrink-0 flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleEmbeddedSignup}
-                disabled={embeddedSignupLoading}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0081FB] hover:bg-[#0070db] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
+                onClick={() => setMetaModalTab('embedded')}
+                className={`pb-2.5 pt-1.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                  metaModalTab === 'embedded'
+                    ? 'border-[#0081FB] text-white'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                }`}
               >
-                {embeddedSignupLoading ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" /> Conectando...
-                  </>
-                ) : (
-                  <>
-                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white shrink-0"><path d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"/></svg>
-                    Conectar con Meta
-                  </>
-                )}
+                <Zap size={13} className={metaModalTab === 'embedded' ? 'text-[#0081FB]' : ''} />
+                Conexión 1 Clic (Oficial)
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetaModalTab('manual')}
+                className={`pb-2.5 pt-1.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
+                  metaModalTab === 'manual'
+                    ? 'border-[#0081FB] text-white'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <SettingsIcon size={13} className={metaModalTab === 'manual' ? 'text-[#0081FB]' : ''} />
+                Credenciales Manuales (Tokens)
               </button>
             </div>
 
-            {/* Asistente de Configuración Banner */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#152238] border border-blue-500/20 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-                  <Wand2 size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white">Asistente de Configuración</h4>
-                  <p className="text-xs text-zinc-400 mt-0.5 leading-snug">
-                    Te guiaremos paso a paso para configurar tu WhatsApp Business API de forma sencilla.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setShowTutorialModal(true)}
-                  className="px-3.5 py-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-xs font-bold text-zinc-200 hover:text-white transition-all flex items-center gap-1.5 border border-zinc-700/60 cursor-pointer"
-                >
-                  <Play size={13} className="text-blue-400" /> Ver Tutorial
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setWizardStep(1)
-                    setShowWizardModal(true)
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-xs font-bold text-blue-300 hover:text-white transition-all flex items-center gap-1.5 border border-blue-500/40 cursor-pointer"
-                >
-                  <Wand2 size={13} className="text-blue-400" /> Iniciar Asistente
-                </button>
-              </div>
-            </div>
-
-            {/* Form Fields */}
-            <form onSubmit={handleSaveMetaOnly} className="space-y-4">
-              {/* Webhook URL */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-black text-zinc-300">Webhook URL</label>
-                  <div className="flex items-center gap-2">
-                    {webhookOnline === true && (
-                      <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> En línea
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleTestWebhook}
-                      disabled={webhookTesting}
-                      className="text-[10px] text-blue-400 hover:text-blue-300 font-bold underline cursor-pointer"
-                    >
-                      {webhookTesting ? 'Verificando...' : 'Comprobar Webhook'}
-                    </button>
-                  </div>
-                </div>
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    readOnly
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/api/webhooks/whatsapp`}
-                    className="w-full pl-3.5 pr-10 py-3 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs font-mono text-zinc-300 select-all outline-none focus:border-blue-500 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/api/webhooks/whatsapp`)
-                      toast.success('¡Webhook URL copiado al portapapeles! 📋')
-                    }}
-                    title="Copiar URL del Webhook"
-                    className="absolute right-2.5 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer"
-                  >
-                    <Copy size={14} />
-                  </button>
-                </div>
-                {/* Token de Verificación (Verify Token) para Meta */}
-                <div className="mt-2 p-2.5 bg-zinc-950/60 border border-zinc-800/80 rounded-xl flex items-center justify-between gap-2 text-[11px]">
-                  <span className="text-zinc-400">Token de Verificación Meta (Verify Token):</span>
-                  <div className="flex items-center gap-1.5">
-                    <code className="text-emerald-400 font-mono font-bold text-[10px] bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20">
-                      {metaForm.webhookSecret || data?.metaWebhookSecret || 'barberos_secure_webhook_token_2026'}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(metaForm.webhookSecret || data?.metaWebhookSecret || 'barberos_secure_webhook_token_2026')
-                        toast.success('Token de verificación copiado 📋')
-                      }}
-                      className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer"
-                    >
-                      <Copy size={12} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* App ID */}
-              <div>
-                <label className="block text-xs font-black text-zinc-300 mb-1.5">App ID</label>
-                <input
-                  type="text"
-                  placeholder="Ingrese el App ID de su aplicación de Meta"
-                  value={metaForm.appId}
-                  onChange={(e) => setMetaForm({ ...metaForm, appId: e.target.value })}
-                  className="w-full px-3.5 py-3 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-all"
-                />
-              </div>
-
-              {/* App Secret */}
-              <div>
-                <label className="block text-xs font-black text-zinc-300 mb-1.5">App Secret</label>
-                <input
-                  type="password"
-                  placeholder="Ingrese el App Secret de su aplicación de Meta"
-                  value={metaForm.appSecret}
-                  onChange={(e) => setMetaForm({ ...metaForm, appSecret: e.target.value })}
-                  className="w-full px-3.5 py-3 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-all"
-                />
-              </div>
-
-              {/* Meta Number ID */}
-              <div>
-                <label className="block text-xs font-black text-zinc-300 mb-1.5">Meta Number ID</label>
-                <input
-                  type="text"
-                  placeholder="Ingrese su Meta Number ID"
-                  value={metaForm.phoneNumberId}
-                  onChange={(e) => setMetaForm({ ...metaForm, phoneNumberId: e.target.value })}
-                  className="w-full px-3.5 py-3 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-all"
-                />
-              </div>
-
-              {/* Meta JWT Token */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-black text-zinc-300">Meta JWT Token</label>
-                  {data?.hasMetaAccessToken && (
-                    <span className="text-[10px] text-emerald-400 font-mono">
-                      Token activo: {data.metaAccessTokenMasked}
-                    </span>
+            {/* Contenido con Scroll Interno Seguro (no desborda la pantalla) */}
+            <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-4">
+              {metaModalTab === 'embedded' ? (
+                <div className="space-y-4">
+                  {/* Aviso de entorno local HTTP */}
+                  {typeof window !== 'undefined' && window.location.protocol === 'http:' && (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-200">
+                      <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                      <div className="leading-relaxed">
+                        <span className="font-bold text-amber-300">Entorno Local HTTP detectado: </span>
+                        Meta exige que Facebook Login funcione bajo <strong className="text-white">HTTPS</strong>. En desarrollo local corre <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono text-[10px]">npm run dev:https</code> y abre <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono text-[10px]">https://localhost:3000</code>, o usa la pestaña <button type="button" onClick={() => setMetaModalTab('manual')} className="underline font-bold text-white cursor-pointer">Credenciales Manuales</button>.
+                      </div>
+                    </div>
                   )}
+
+                  {/* Embedded Signup Card */}
+                  <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-950/60 to-indigo-950/60 border border-blue-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
+                        <Zap size={20} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-white">Embedded Signup Oficial</h4>
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                            Recomendado
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                          Inicia sesión con Meta para conectar automáticamente tu WhatsApp Business Account y número de teléfono.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleEmbeddedSignup}
+                      disabled={embeddedSignupLoading}
+                      className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#0081FB] hover:bg-[#0070db] text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
+                    >
+                      {embeddedSignupLoading ? (
+                        <>
+                          <Loader2 size={15} className="animate-spin" /> Conectando...
+                        </>
+                      ) : (
+                        <>
+                          <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white shrink-0"><path d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"/></svg>
+                          Conectar con Meta
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Asistente y Tutorial */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-[#152238] border border-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                        <Wand2 size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white">¿Necesitas ayuda con Meta?</h4>
+                        <p className="text-xs text-zinc-400 mt-0.5 leading-snug">
+                          Te guiamos paso a paso para crear tu aplicación y configurar WhatsApp Business.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setShowTutorialModal(true)}
+                        className="px-3.5 py-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-xs font-bold text-zinc-200 hover:text-white transition-all flex items-center gap-1.5 border border-zinc-700/60 cursor-pointer"
+                      >
+                        <Play size={13} className="text-blue-400" /> Tutorial
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWizardStep(1)
+                          setShowWizardModal(true)
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-xs font-bold text-blue-300 hover:text-white transition-all flex items-center gap-1.5 border border-blue-500/40 cursor-pointer"
+                      >
+                        <Wand2 size={13} className="text-blue-400" /> Asistente
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <input
-                  type="password"
-                  placeholder={data?.hasMetaAccessToken ? '(Mantener token actual o ingresar nuevo)' : 'Ingrese su Meta JWT Token'}
-                  value={metaForm.accessToken}
-                  onChange={(e) => setMetaForm({ ...metaForm, accessToken: e.target.value })}
-                  className="w-full px-3.5 py-3 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-all"
-                />
-              </div>
+              ) : (
+                /* Formulario Manual */
+                <form onSubmit={handleSaveMetaOnly} className="space-y-4">
+                  {/* Webhook URL */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-black text-zinc-300">Webhook URL</label>
+                      <div className="flex items-center gap-2">
+                        {webhookOnline === true && (
+                          <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> En línea
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleTestWebhook}
+                          disabled={webhookTesting}
+                          className="text-[10px] text-blue-400 hover:text-blue-300 font-bold underline cursor-pointer"
+                        >
+                          {webhookTesting ? 'Verificando...' : 'Comprobar Webhook'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/api/webhooks/whatsapp`}
+                        className="w-full pl-3.5 pr-10 py-2.5 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs font-mono text-zinc-300 select-all outline-none focus:border-blue-500 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/api/webhooks/whatsapp`)
+                          toast.success('¡Webhook URL copiado al portapapeles! 📋')
+                        }}
+                        title="Copiar URL del Webhook"
+                        className="absolute right-2.5 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer"
+                      >
+                        <Copy size={14} />
+                      </button>
+                    </div>
 
-              {/* Botones de Acción: Guardar y Probar Conexión */}
-              <div className="pt-4 flex items-center gap-3">
-                <button
-                  type="submit"
-                  disabled={metaSavingOnly}
-                  className="px-5 py-3 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-100 hover:text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-zinc-700/80 cursor-pointer disabled:opacity-50"
-                >
-                  {metaSavingOnly ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                  Guardar
-                </button>
+                    {/* Token de Verificación (Verify Token) para Meta */}
+                    <div className="mt-2 p-2 bg-zinc-950/60 border border-zinc-800/80 rounded-xl flex items-center justify-between gap-2 text-[11px]">
+                      <span className="text-zinc-400">Token de Verificación (Verify Token):</span>
+                      <div className="flex items-center gap-1.5">
+                        <code className="text-emerald-400 font-mono font-bold text-[10px] bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20">
+                          {metaForm.webhookSecret || data?.metaWebhookSecret || 'barberos_secure_webhook_token_2026'}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(metaForm.webhookSecret || data?.metaWebhookSecret || 'barberos_secure_webhook_token_2026')
+                            toast.success('Token de verificación copiado 📋')
+                          }}
+                          className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer"
+                        >
+                          <Copy size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
-                <button
-                  type="button"
-                  disabled={metaVerifying}
-                  onClick={() => handleSaveMetaCredentials(undefined, false)}
-                  className="px-5 py-3 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-100 hover:text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-zinc-700/80 cursor-pointer disabled:opacity-50"
-                >
-                  {metaVerifying ? <Loader2 size={15} className="animate-spin" /> : <Wifi size={15} />}
-                  Probar Conexión
-                </button>
-              </div>
-            </form>
+                  {/* App ID & Secret en fila responsive */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-black text-zinc-300 mb-1">App ID</label>
+                      <input
+                        type="text"
+                        placeholder="ID de la App de Meta"
+                        value={metaForm.appId}
+                        onChange={(e) => setMetaForm({ ...metaForm, appId: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black text-zinc-300 mb-1">App Secret</label>
+                      <input
+                        type="password"
+                        placeholder="Clave secreta de la App"
+                        value={metaForm.appSecret}
+                        onChange={(e) => setMetaForm({ ...metaForm, appSecret: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Meta Number ID */}
+                  <div>
+                    <label className="block text-xs font-black text-zinc-300 mb-1">Meta Number ID (Phone Number ID)</label>
+                    <input
+                      type="text"
+                      placeholder="Identificador del número de teléfono"
+                      value={metaForm.phoneNumberId}
+                      onChange={(e) => setMetaForm({ ...metaForm, phoneNumberId: e.target.value })}
+                      className="w-full px-3 py-2.5 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-all"
+                    />
+                  </div>
+
+                  {/* Meta JWT Token */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-black text-zinc-300">Token de Acceso Permanente (System Token)</label>
+                      {data?.hasMetaAccessToken && (
+                        <span className="text-[10px] text-emerald-400 font-mono">
+                          Token activo: {data.metaAccessTokenMasked}
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="password"
+                      placeholder={data?.hasMetaAccessToken ? '(Mantener token actual o ingresar nuevo)' : 'Ingrese su Token de Acceso de Meta'}
+                      value={metaForm.accessToken}
+                      onChange={(e) => setMetaForm({ ...metaForm, accessToken: e.target.value })}
+                      className="w-full px-3 py-2.5 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-all"
+                    />
+                  </div>
+
+                  {/* Botones de Acción */}
+                  <div className="pt-2 flex items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={metaSavingOnly}
+                      className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md shadow-blue-900/30"
+                    >
+                      {metaSavingOnly ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                      Guardar Credenciales
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={metaVerifying}
+                      onClick={() => handleSaveMetaCredentials(undefined, false)}
+                      className="py-2.5 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-zinc-700 cursor-pointer disabled:opacity-50"
+                    >
+                      {metaVerifying ? <Loader2 size={15} className="animate-spin" /> : <Wifi size={15} />}
+                      Probar Conexión
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       )}
