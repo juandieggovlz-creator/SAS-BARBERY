@@ -423,6 +423,15 @@ export default function WhatsAppIntegrationSettings() {
 
   // Meta Embedded Signup Oficial (Facebook Login SDK con Config ID)
   const handleEmbeddedSignup = () => {
+    // Meta exige HTTPS para Facebook Login (FB.login)
+    if (typeof window !== 'undefined' && window.location.protocol !== 'https:') {
+      toast.error(
+        'Meta exige HTTPS para iniciar el Embedded Signup. En desarrollo local, corre "npm run dev:https" para abrir https://localhost:3000 o ingresa los datos en Configuración Manual.',
+        { duration: 8000 }
+      )
+      return
+    }
+
     setEmbeddedSignupLoading(true)
 
     // Variables de configuración de Meta
@@ -463,62 +472,70 @@ export default function WhatsAppIntegrationSettings() {
 
     const launchSignup = () => {
       if (typeof window !== 'undefined' && (window as any).FB) {
-        ;(window as any).FB.login(
-          async (response: any) => {
-            setEmbeddedSignupLoading(false)
-            if (typeof window !== 'undefined') {
-              window.removeEventListener('message', messageListener)
-            }
-
-            if (response.authResponse?.code) {
-              const toastId = toast.loading('Sincronizando WhatsApp Business con Meta...')
-              try {
-                // Enviar el code y los IDs al endpoint oficial
-                const res = await fetch('/api/whatsapp/meta-callback', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    code: response.authResponse.code,
-                    phoneNumberId: capturedPhoneNumberId,
-                    wabaId: capturedWabaId
-                  })
-                })
-
-                const resData = await res.json()
-                if (res.ok && resData.success) {
-                  toast.success(resData.message || '¡WhatsApp Business conectado exitosamente con Meta! 🚀', { id: toastId })
-                  setData(prev => prev ? {
-                    ...prev,
-                    provider: 'META',
-                    connectionStatus: 'CONNECTED',
-                    isEnabled: true,
-                    phoneNumber: resData.phoneNumber || prev.phoneNumber,
-                    metaPhoneNumberId: resData.phoneNumberId || prev.metaPhoneNumberId,
-                    metaWabaId: resData.wabaId || prev.metaWabaId
-                  } : null)
-                  setShowMetaModal(false)
-                  await fetchConfig()
-                } else {
-                  toast.error(resData.error || 'Error al validar credenciales de Meta', { id: toastId })
-                }
-              } catch {
-                toast.error('Error de red al completar la vinculación con Meta', { id: toastId })
+        try {
+          ;(window as any).FB.login(
+            async (response: any) => {
+              setEmbeddedSignupLoading(false)
+              if (typeof window !== 'undefined') {
+                window.removeEventListener('message', messageListener)
               }
-            } else {
-              toast.info('Proceso de vinculación de Meta cancelado o no completado.')
+
+              if (response.authResponse?.code) {
+                const toastId = toast.loading('Sincronizando WhatsApp Business con Meta...')
+                try {
+                  // Enviar el code y los IDs al endpoint oficial
+                  const res = await fetch('/api/whatsapp/meta-callback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      code: response.authResponse.code,
+                      phoneNumberId: capturedPhoneNumberId,
+                      wabaId: capturedWabaId
+                    })
+                  })
+
+                  const resData = await res.json()
+                  if (res.ok && resData.success) {
+                    toast.success(resData.message || '¡WhatsApp Business conectado exitosamente con Meta! 🚀', { id: toastId })
+                    setData(prev => prev ? {
+                      ...prev,
+                      provider: 'META',
+                      connectionStatus: 'CONNECTED',
+                      isEnabled: true,
+                      phoneNumber: resData.phoneNumber || prev.phoneNumber,
+                      metaPhoneNumberId: resData.phoneNumberId || prev.metaPhoneNumberId,
+                      metaWabaId: resData.wabaId || prev.metaWabaId
+                    } : null)
+                    setShowMetaModal(false)
+                    await fetchConfig()
+                  } else {
+                    toast.error(resData.error || 'Error al validar credenciales de Meta', { id: toastId })
+                  }
+                } catch {
+                  toast.error('Error de red al completar la vinculación con Meta', { id: toastId })
+                }
+              } else {
+                toast.info('Proceso de vinculación de Meta cancelado o no completado.')
+              }
+            },
+            {
+              config_id: metaConfigId,
+              response_type: 'code',
+              override_default_response_type: true,
+              extras: {
+                setup: {},
+                featureType: '',
+                sessionInfoVersion: '3'
+              }
             }
-          },
-          {
-            config_id: metaConfigId,
-            response_type: 'code',
-            override_default_response_type: true,
-            extras: {
-              setup: {},
-              featureType: '',
-              sessionInfoVersion: '3'
-            }
+          )
+        } catch (err: any) {
+          setEmbeddedSignupLoading(false)
+          if (typeof window !== 'undefined') {
+            window.removeEventListener('message', messageListener)
           }
-        )
+          toast.error(err?.message || 'Error al llamar a FB.login. Verifica que la página esté bajo HTTPS.', { duration: 7000 })
+        }
       } else {
         setEmbeddedSignupLoading(false)
         if (typeof window !== 'undefined') {
@@ -2098,6 +2115,15 @@ export default function WhatsAppIntegrationSettings() {
             </div>
 
             {/* Modo 1: Meta Embedded Signup Oficial (Recomendado) */}
+            {typeof window !== 'undefined' && window.location.protocol === 'http:' && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 mb-5 flex items-start gap-2.5 text-xs text-amber-200">
+                <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <span className="font-bold text-amber-300">Nota para entorno local (HTTP): </span>
+                  Meta exige que Facebook Login se ejecute bajo <strong className="text-white">HTTPS</strong>. Para usar el popup en tu PC, inicia con <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono text-[10px]">npm run dev:https</code> y abre <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono text-[10px]">https://localhost:3000</code>, o ingresa el Token y Phone Number ID en el formulario manual de abajo. En producción funciona automáticamente bajo HTTPS.
+                </div>
+              </div>
+            )}
             <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-950/60 to-indigo-950/60 border border-blue-500/30 mb-5 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
