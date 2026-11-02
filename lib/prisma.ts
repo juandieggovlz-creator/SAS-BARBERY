@@ -9,11 +9,12 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
+  const url = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres'
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url,
       },
     },
   })
