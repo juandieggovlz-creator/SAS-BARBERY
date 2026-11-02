@@ -384,7 +384,7 @@ export default function PublicBusinessPage() {
   })
 
   // Google Maps location resolution & security validation
-  const locationInfo = parseLocation(data.address, data.name)
+  const locationInfo = parseLocation(data.mapsUrl || data.address, data.name, data.address)
 
   return (
     <div 
@@ -419,13 +419,13 @@ export default function PublicBusinessPage() {
           <div className="flex items-center gap-2.5 min-w-0">
             {data.logo ? (
               <div 
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden flex items-center justify-center p-1 bg-black/40 backdrop-blur-md border shrink-0 shadow-md transition-transform hover:scale-105"
-                style={{ borderColor: `${colors.accent}60`, boxShadow: `0 2px 10px ${colors.accent}25` }}
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-md transition-transform hover:scale-105"
+                style={{ borderColor: `${colors.accent}60`, boxShadow: `0 2px 10px ${colors.accent}25`, border: `1.5px solid ${colors.accent}50` }}
               >
                 <img 
                   src={data.logo} 
                   alt={data.name} 
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                   loading="eager"
                 />
               </div>
@@ -990,23 +990,35 @@ export default function PublicBusinessPage() {
                     Nuestra Ubicación
                   </h3>
                   <p className="text-sm font-medium opacity-80 mb-4 leading-relaxed" style={{ color: colors.textSecondary }}>
-                    {locationInfo.displayText}
+                    {data.address || locationInfo.displayText}
                   </p>
 
-                  {/* Mapa incrustado sin requerir API key de pago */}
-                  <div 
-                    className="w-full h-44 rounded-2xl overflow-hidden border shadow-xs mb-5 relative bg-zinc-100 dark:bg-zinc-900"
-                    style={{ borderColor: colors.border }}
-                  >
-                    <iframe
-                      src={locationInfo.embedUrl}
-                      title={`Ubicación de ${data.name}`}
-                      className="w-full h-full border-0"
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      aria-label={`Mapa interactivo de ${data.name}`}
-                    />
-                  </div>
+                  {/* Mapa incrustado o tarjeta visual limpia */}
+                  {locationInfo.embedUrl ? (
+                    <div 
+                      className="w-full h-44 rounded-2xl overflow-hidden border shadow-xs mb-5 relative bg-zinc-100 dark:bg-zinc-900"
+                      style={{ borderColor: colors.border }}
+                    >
+                      <iframe
+                        src={locationInfo.embedUrl}
+                        title={`Ubicación de ${data.name}`}
+                        className="w-full h-full border-0"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        aria-label={`Mapa interactivo de ${data.name}`}
+                      />
+                    </div>
+                  ) : (
+                    <div 
+                      className="w-full p-4 rounded-2xl border shadow-xs mb-5 flex items-center gap-3 bg-zinc-50/60 dark:bg-zinc-900/60"
+                      style={{ borderColor: colors.border }}
+                    >
+                      <MapPin className="w-5 h-5 shrink-0" style={{ color: colors.accent }} />
+                      <span className="text-xs font-bold leading-tight" style={{ color: colors.textPrimary }}>
+                        {data.address || 'Consulta la ruta directa en Google Maps'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Botón Cómo llegar */}
@@ -1752,13 +1764,13 @@ export default function PublicBusinessPage() {
               <div className="flex items-center gap-3">
                 {data.logo ? (
                   <div 
-                    className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center p-1 bg-black/40 border shrink-0 shadow-md"
-                    style={{ borderColor: `${colors.accent}60`, boxShadow: `0 2px 10px ${colors.accent}25` }}
+                    className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-md"
+                    style={{ border: `1.5px solid ${colors.accent}50`, boxShadow: `0 2px 10px ${colors.accent}25` }}
                   >
                     <img 
                       src={data.logo} 
                       alt={data.name} 
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                       loading="lazy"
                     />
                   </div>
@@ -1872,7 +1884,13 @@ export default function PublicBusinessPage() {
                 {data.address && (
                   <div className="flex items-start gap-2.5">
                     <MapPin className="w-4 h-4 shrink-0 mt-0.5" style={{ color: colors.accent }} />
-                    <span className="leading-snug">{data.address}</span>
+                    {locationInfo ? (
+                      <a href={locationInfo.directionsUrl} target="_blank" rel="noopener noreferrer" className="leading-snug hover:underline">
+                        {data.address.startsWith('http') ? 'Ver ubicación en Google Maps ↗' : data.address}
+                      </a>
+                    ) : (
+                      <span className="leading-snug">{data.address}</span>
+                    )}
                   </div>
                 )}
 

@@ -187,6 +187,36 @@ export default function WhatsAppIntegrationSettings() {
     fetchConfig()
   }, [])
 
+  // Pre-cargar SDK de Meta (Facebook Login for Business) anticipadamente para que esté listo al hacer clic
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if ((window as any).FB) return
+
+    const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID || '1798187644961786'
+
+    ;(window as any).fbAsyncInit = function () {
+      try {
+        ;(window as any).FB.init({
+          appId: metaAppId,
+          autoLogAppEvents: true,
+          xfbml: true,
+          version: 'v21.0'
+        })
+      } catch (e) {
+        console.warn('Error inicializando FB SDK:', e)
+      }
+    }
+
+    if (!document.getElementById('facebook-jssdk')) {
+      const script = document.createElement('script')
+      script.id = 'facebook-jssdk'
+      script.src = 'https://connect.facebook.net/es_LA/sdk.js'
+      script.async = true
+      script.defer = true
+      document.head.appendChild(script)
+    }
+  }, [])
+
   // Guardar cambios generales
   const handleSave = async (partialUpdates?: Partial<WhatsAppData>) => {
     if (!data) return
@@ -442,6 +472,7 @@ export default function WhatsAppIntegrationSettings() {
     // Variables capturadas del popup mediante Message Event
     let capturedPhoneNumberId: string | null = null
     let capturedWabaId: string | null = null
+    let hasCompleted = false
 
     // Listener para eventos de sesión de WhatsApp Embedded Signup
     const messageListener = (event: MessageEvent) => {
@@ -454,7 +485,7 @@ export default function WhatsAppIntegrationSettings() {
 
       try {
         const payload = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
-        if (payload && payload.type === 'WA_EMBEDDED_SIGNUP') {
+        if (payload && (payload.type === 'WA_EMBEDDED_SIGNUP' || payload.event === 'FINISH')) {
           if (payload.data?.phone_number_id) {
             capturedPhoneNumberId = String(payload.data.phone_number_id)
           }
@@ -471,20 +502,41 @@ export default function WhatsAppIntegrationSettings() {
       window.addEventListener('message', messageListener)
     }
 
+    // Temporizador de seguridad (Watchdog timeout): evita que la interfaz quede cargando indefinidamente
+    const watchdogTimer = setTimeout(() => {
+      if (!hasCompleted) {
+        hasCompleted = true
+        setEmbeddedSignupLoading(false)
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('message', messageListener)
+        }
+        toast.error(
+          'La ventana de conexión de Meta tardó demasiado o fue cerrada. Si tu navegador bloqueó las ventanas emergentes (pop-ups), permítelas e intenta de nuevo. También puedes conectar ingresando tus credenciales en la pestaña "Credenciales Manuales".',
+          { duration: 9000 }
+        )
+      }
+    }, 30000)
+
+    const cleanup = () => {
+      hasCompleted = true
+      clearTimeout(watchdogTimer)
+      setEmbeddedSignupLoading(false)
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('message', messageListener)
+      }
+    }
+
     const launchSignup = () => {
       if (typeof window !== 'undefined' && (window as any).FB) {
         try {
           ;(window as any).FB.login(
             async (response: any) => {
-              setEmbeddedSignupLoading(false)
-              if (typeof window !== 'undefined') {
-                window.removeEventListener('message', messageListener)
-              }
+              if (hasCompleted) return
+              clearTimeout(watchdogTimer)
 
               if (response.authResponse?.code) {
                 const toastId = toast.loading('Sincronizando WhatsApp Business con Meta...')
                 try {
-                  // Enviar el code y los IDs al endpoint oficial
                   const res = await fetch('/api/whatsapp/meta-callback', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -510,13 +562,16 @@ export default function WhatsAppIntegrationSettings() {
                     setShowMetaModal(false)
                     await fetchConfig()
                   } else {
-                    toast.error(resData.error || 'Error al validar credenciales de Meta', { id: toastId })
+                    toast.error(resData.error || 'Error al validar credenciales de Meta con la Graph API', { id: toastId, duration: 8000 })
                   }
                 } catch {
                   toast.error('Error de red al completar la vinculación con Meta', { id: toastId })
+                } finally {
+                  cleanup()
                 }
               } else {
-                toast.info('Proceso de vinculación de Meta cancelado o no completado.')
+                cleanup()
+                toast.info('Proceso de vinculación de Meta cancelado o ventana cerrada.')
               }
             },
             {
@@ -525,53 +580,52 @@ export default function WhatsAppIntegrationSettings() {
               override_default_response_type: true,
               extras: {
                 setup: {},
-                featureType: '',
                 sessionInfoVersion: '3'
               }
             }
           )
         } catch (err: any) {
-          setEmbeddedSignupLoading(false)
-          if (typeof window !== 'undefined') {
-            window.removeEventListener('message', messageListener)
-          }
-          toast.error(err?.message || 'Error al llamar a FB.login. Verifica que la página esté bajo HTTPS.', { duration: 7000 })
+          cleanup()
+          toast.error(err?.message || 'Error al invocar FB.login. Verifica que no tengas bloqueador de popups.', { duration: 7000 })
         }
       } else {
-        setEmbeddedSignupLoading(false)
-        if (typeof window !== 'undefined') {
-          window.removeEventListener('message', messageListener)
-        }
-        toast.error('SDK de Facebook no disponible. Utiliza la configuración manual.')
+        cleanup()
+        toast.error('El SDK de Meta no está disponible todavía en tu navegador. Puedes intentar de nuevo en unos segundos o usar la pestaña "Credenciales Manuales".', { duration: 7000 })
       }
     }
 
-    // Inicializar SDK oficial si no está presente
-    if (typeof window !== 'undefined' && !(window as any).FB) {
-      const script = document.createElement('script')
-      script.id = 'facebook-jssdk'
-      script.src = 'https://connect.facebook.net/es_LA/sdk.js'
-      script.async = true
-      script.defer = true
+    // Si FB ya está listo, lanzar inmediatamente
+    if (typeof window !== 'undefined' && (window as any).FB) {
+      launchSignup()
+    } else {
+      const script = (document.getElementById('facebook-jssdk') as HTMLScriptElement) || document.createElement('script')
+      if (!script.id) {
+        script.id = 'facebook-jssdk'
+        script.src = 'https://connect.facebook.net/es_LA/sdk.js'
+        script.async = true
+        script.defer = true
+        document.head.appendChild(script)
+      }
       script.onload = () => {
-        ;(window as any).FB.init({
-          appId: metaAppId,
-          autoLogAppEvents: true,
-          xfbml: true,
-          version: 'v21.0'
-        })
-        launchSignup()
+        try {
+          ;(window as any).FB.init({
+            appId: metaAppId,
+            autoLogAppEvents: true,
+            xfbml: true,
+            version: 'v21.0'
+          })
+          launchSignup()
+        } catch {
+          cleanup()
+          toast.error('No se pudo inicializar el SDK de Meta. Revisa tu conexión o usa la configuración manual.')
+        }
       }
       script.onerror = () => {
-        setEmbeddedSignupLoading(false)
-        toast.error('No se pudo cargar el SDK de Meta. Comprueba tu conexión.')
+        cleanup()
+        toast.error('No se pudo cargar el SDK de Meta. Comprueba tu conexión a internet.')
       }
-      document.head.appendChild(script)
-    } else {
-      launchSignup()
     }
   }
-
 
   // Simular conexión exitosa del QR (para pruebas directas)
   const handleConfirmQrScan = async () => {

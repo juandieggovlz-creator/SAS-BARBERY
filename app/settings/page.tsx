@@ -4,10 +4,11 @@ import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Store, Save, Copy, ExternalLink, Upload, Trash2, Loader2, ImageIcon, Monitor, Palette, Sliders, MessageCircle } from 'lucide-react'
+import { Store, Save, Copy, ExternalLink, Upload, Trash2, Loader2, ImageIcon, Monitor, Palette, Sliders, MessageCircle, MapPin, Navigation, Info, CheckCircle2, AlertCircle } from 'lucide-react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import { ConfirmImageDeleteModal } from '@/components/ui/ConfirmImageDeleteModal'
 import AccentColorPicker from '@/components/ui/AccentColorPicker'
+import { validateGoogleMapsUrl, parseLocation } from '@/lib/maps'
 
 interface BusinessData {
   id: string
@@ -15,6 +16,7 @@ interface BusinessData {
   slug: string
   phone?: string | null
   address?: string | null
+  mapsUrl?: string | null
   description?: string | null
   email?: string | null
   logo?: string | null
@@ -53,6 +55,15 @@ export default function SettingsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!business) return
+
+    // Validar enlace de Google Maps si se ingresó
+    if (business.mapsUrl && business.mapsUrl.trim()) {
+      const validation = validateGoogleMapsUrl(business.mapsUrl)
+      if (!validation.isValid) {
+        toast.error(validation.error || 'Por favor ingresa un enlace de Google Maps válido antes de guardar.')
+        return
+      }
+    }
 
     setSaving(true)
     try {
@@ -350,7 +361,7 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label className="block text-xs font-black uppercase text-zinc-500 dark:text-zinc-400 mb-2">Dirección Física</label>
+                <label className="block text-xs font-black uppercase text-zinc-500 dark:text-zinc-400 mb-2">Dirección Física (Texto)</label>
                 <input
                   type="text"
                   value={business.address || ''}
@@ -358,6 +369,7 @@ export default function SettingsPage() {
                   placeholder="Ej. Calle 85 # 14-20, Bogotá"
                   className="w-full p-3.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl text-xs font-bold text-zinc-950 dark:text-zinc-100 outline-none focus:border-amber-500 transition-all"
                 />
+                <p className="text-[10px] text-zinc-400 mt-1 font-medium">Dirección legible que verán tus clientes en el pie de página y confirmaciones.</p>
               </div>
 
               <div>
@@ -369,7 +381,116 @@ export default function SettingsPage() {
                   placeholder="contacto@tuberberia.com"
                   className="w-full p-3.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl text-xs font-bold text-zinc-950 dark:text-zinc-100 outline-none focus:border-amber-500 transition-all"
                 />
+                <p className="text-[10px] text-zinc-400 mt-1 font-medium">Correo oficial de atención y soporte para tus clientes.</p>
               </div>
+            </div>
+
+            {/* Ubicación mediante Google Maps */}
+            <div className="p-5 sm:p-6 bg-zinc-50 dark:bg-zinc-900/60 rounded-3xl border border-zinc-200 dark:border-zinc-800 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                    <MapPin size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-950 dark:text-white">
+                      Enlace de ubicación de Google Maps
+                    </h3>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                      Permite que tus clientes vean el mapa interactivo y la ruta directa hacia tu barbería.
+                    </p>
+                  </div>
+                </div>
+
+                {business.mapsUrl && (
+                  <div className="shrink-0">
+                    {validateGoogleMapsUrl(business.mapsUrl).isValid ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                        <CheckCircle2 size={12} /> Válido
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                        <AlertCircle size={12} /> No válido
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <input
+                  type="url"
+                  value={business.mapsUrl || ''}
+                  onChange={(e) => setBusiness({ ...business, mapsUrl: e.target.value })}
+                  placeholder="https://maps.app.goo.gl/... o https://www.google.com/maps/place/..."
+                  className={`w-full p-3.5 bg-white dark:bg-zinc-950 border rounded-2xl text-xs font-mono text-zinc-950 dark:text-zinc-100 outline-none transition-all ${
+                    business.mapsUrl && !validateGoogleMapsUrl(business.mapsUrl).isValid
+                      ? 'border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                      : 'border-zinc-200 dark:border-zinc-800 focus:border-amber-500'
+                  }`}
+                />
+
+                {business.mapsUrl && !validateGoogleMapsUrl(business.mapsUrl).isValid && (
+                  <p className="mt-1.5 text-xs font-bold text-rose-500 flex items-center gap-1.5">
+                    <AlertCircle size={13} className="shrink-0" />
+                    <span>{validateGoogleMapsUrl(business.mapsUrl).error}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="p-3 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl flex items-start gap-2.5 text-xs text-zinc-600 dark:text-zinc-400">
+                <Info size={14} className="shrink-0 mt-0.5 text-amber-500" />
+                <p className="text-[11px] leading-relaxed">
+                  <strong>¿Cómo obtener tu enlace?</strong> Abre Google Maps en tu móvil o PC, busca el nombre o dirección exacta de tu barbería, haz clic en el botón <strong>Compartir</strong>, selecciona <strong>Copiar enlace</strong> y pégalo en este campo.
+                </p>
+              </div>
+
+              {/* Vista previa del mapa interactivo si el enlace es válido */}
+              {business.mapsUrl && validateGoogleMapsUrl(business.mapsUrl).isValid && (() => {
+                const previewLocation = parseLocation(business.mapsUrl, business.name, business.address)
+                return previewLocation ? (
+                  <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                        Vista previa en tu página pública:
+                      </span>
+                      <a
+                        href={previewLocation.directionsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-black uppercase tracking-wider text-amber-500 hover:text-amber-400 flex items-center gap-1"
+                      >
+                        <Navigation size={11} /> Probar Cómo llegar ↗
+                      </a>
+                    </div>
+                    {previewLocation.embedUrl ? (
+                      <div className="w-full h-44 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950 relative">
+                        <iframe
+                          src={previewLocation.embedUrl}
+                          title="Vista previa de Google Maps"
+                          className="w-full h-full border-0 pointer-events-auto"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <MapPin size={16} className="text-amber-500" />
+                          <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{business.address || business.name}</span>
+                        </div>
+                        <a
+                          href={previewLocation.directionsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-xs font-black uppercase tracking-wider flex items-center gap-1.5"
+                        >
+                          <Navigation size={12} /> Cómo llegar
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ) : null
+              })()}
             </div>
 
             <div>

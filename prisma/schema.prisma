@@ -13,6 +13,7 @@ model Business {
   slug               String             @unique
   phone              String?
   address            String?
+  mapsUrl            String?
   description        String?
   logo               String?
   email              String?
