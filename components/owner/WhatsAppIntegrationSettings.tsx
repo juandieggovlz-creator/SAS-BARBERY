@@ -42,6 +42,7 @@ import {
   PauseCircle,
   PlayCircle
 } from 'lucide-react'
+import { getWhatsAppWebhookUrl } from '@/lib/url'
 
 interface WhatsAppData {
   id?: string
@@ -1138,7 +1139,7 @@ export default function WhatsAppIntegrationSettings() {
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/api/webhooks/whatsapp`)
+                    navigator.clipboard.writeText(getWhatsAppWebhookUrl())
                     toast.success('Webhook copiado al portapapeles 📋')
                   }}
                   title="Copiar URL del Webhook para Meta"
@@ -2327,13 +2328,13 @@ export default function WhatsAppIntegrationSettings() {
                       <input
                         type="text"
                         readOnly
-                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/api/webhooks/whatsapp`}
+                        value={getWhatsAppWebhookUrl()}
                         className="w-full pl-3.5 pr-10 py-2.5 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs font-mono text-zinc-300 select-all outline-none focus:border-blue-500 transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/api/webhooks/whatsapp`)
+                          navigator.clipboard.writeText(getWhatsAppWebhookUrl())
                           toast.success('¡Webhook URL copiado al portapapeles! 📋')
                         }}
                         title="Copiar URL del Webhook"
@@ -2614,12 +2615,12 @@ export default function WhatsAppIntegrationSettings() {
                   <span className="text-[10px] font-bold text-zinc-400">Webhook URL:</span>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-mono text-zinc-200 select-all truncate">
-                      {typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/whatsapp` : ''}
+                      {typeof window !== 'undefined' ? getWhatsAppWebhookUrl() : ''}
                     </span>
                     <button
                       type="button"
                       onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/api/webhooks/whatsapp`)
+                        navigator.clipboard.writeText(getWhatsAppWebhookUrl())
                         toast.success('Webhook copiado 📋')
                       }}
                       className="p-1.5 bg-zinc-800 hover:bg-zinc-700 rounded text-white cursor-pointer"

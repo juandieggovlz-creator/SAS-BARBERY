@@ -139,8 +139,8 @@ export default function LoginPage() {
             <div>
               {/* Logo BarberOS */}
               <div className="flex items-center gap-2.5 mb-8">
-                <div className="w-9 h-9 rounded-xl bg-zinc-950 dark:bg-zinc-800 flex items-center justify-center shadow-md border border-transparent dark:border-zinc-700 overflow-hidden">
-                  <Image src="/logo.png" alt="BarberOS" width={36} height={36} className="object-contain" />
+                <div className="w-9 h-9 rounded-xl bg-zinc-950 dark:bg-zinc-800 flex items-center justify-center shadow-md border border-transparent dark:border-zinc-700 overflow-hidden relative">
+                  <Image src="/logo.png" alt="BarberOS" fill sizes="36px" className="object-cover" />
                 </div>
                 <span className="text-xl font-black tracking-tight text-zinc-950 dark:text-white uppercase">
                   Barber<span className="font-light text-zinc-400 dark:text-zinc-500">OS</span>
@@ -369,8 +369,8 @@ export default function LoginPage() {
               {/* Header card preview */}
               <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-zinc-950 dark:bg-zinc-800 flex items-center justify-center border border-transparent dark:border-zinc-700 overflow-hidden">
-                    <Image src="/logo.png" alt="BarberOS" width={32} height={32} className="object-contain" />
+                  <div className="w-8 h-8 rounded-lg bg-zinc-950 dark:bg-zinc-800 flex items-center justify-center border border-transparent dark:border-zinc-700 overflow-hidden relative">
+                    <Image src="/logo.png" alt="BarberOS" fill sizes="32px" className="object-cover" />
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-zinc-950 dark:text-white">Barbería Elite SAS</h3>

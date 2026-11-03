@@ -1,3 +1,4 @@
+import { getPublicPageUrl } from '@/lib/url'
 import { prisma } from '../prisma'
 import { MetaCloudProvider } from './meta-provider'
 import { BaileysProvider } from './baileys-provider'

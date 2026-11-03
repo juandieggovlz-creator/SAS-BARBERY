@@ -38,6 +38,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { PRESET_THEMES, FONT_OPTIONS, VisualTheme } from '@/lib/themes'
+import { getPublicPageUrl } from '@/lib/url'
 import { ConfirmImageDeleteModal } from '@/components/ui/ConfirmImageDeleteModal'
 import { BANNER_PRESETS, DEFAULT_HERO_BANNER } from '@/components/public/BannerPresets'
 import { DayScheduleItem, DEFAULT_SCHEDULE, parseSchedule, formatTime12h, formatDayHours } from '@/lib/schedule'
@@ -664,7 +665,7 @@ export default function WebpageEditor() {
   const bizName = businessData?.name || 'Barbería Elite SAS'
   const bizSlug = businessData?.slug || 'barberia-elite'
   const bizPath = `/b/${bizSlug}`
-  const bizUrl = origin ? `${origin}${bizPath}` : (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}${bizPath}` : bizPath)
+  const bizUrl = getPublicPageUrl(bizSlug)
 
   const currentTheme = PRESET_THEMES.find(t => t.id === pageConfig.theme) || PRESET_THEMES[0]
   const currentFont = FONT_OPTIONS.find(f => f.id === pageConfig.fontFamily) || FONT_OPTIONS[0]
@@ -883,7 +884,7 @@ export default function WebpageEditor() {
                 <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3.5 rounded-xl border border-zinc-200">
                   <div className="w-16 h-16 rounded-2xl bg-zinc-950 text-white relative overflow-hidden flex items-center justify-center shrink-0 border border-zinc-200 shadow-xs">
                     {logoUrl ? (
-                      <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+                      <img src={logoUrl} alt="Logo" className="w-full h-full object-cover object-center" />
                     ) : (
                       <span className="text-sm font-black text-zinc-400">
                         {bizName.substring(0, 2).toUpperCase()}

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { toast } from 'sonner'
 import { Scissors, UserPlus, X, Trash2, Link as LinkIcon, Copy, Check, Search, RefreshCw, Pencil, Image as ImageIcon, ExternalLink, Zap, Lock, Upload, Camera, Loader2 } from 'lucide-react'
 import { ConfirmImageDeleteModal } from '@/components/ui/ConfirmImageDeleteModal'
+import { getBarberInviteUrl } from '@/lib/url'
 
 interface Barber {
   id: string
@@ -585,7 +586,7 @@ export default function BarbersPage() {
                               // fallback
                             }
                           }
-                          const link = `${window.location.origin}/barber/access/${token || barber.id}`
+                          const link = getBarberInviteUrl(token || barber.id)
                           setLastInviteLink(link)
                           copyLink(link)
                         }}

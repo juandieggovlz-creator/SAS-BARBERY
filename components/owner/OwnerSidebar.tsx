@@ -49,7 +49,7 @@ export default function OwnerSidebar() {
       globalOwnerSidebarScroll = top
       try {
         sessionStorage.setItem('owner_sidebar_scroll', String(top))
-      } catch {}
+      } catch { }
     }
   }
 
@@ -61,7 +61,7 @@ export default function OwnerSidebar() {
       if (fromSession !== null) {
         saved = Number(fromSession)
       }
-    } catch {}
+    } catch { }
 
     const applyScroll = () => {
       if (navScrollRef.current) {
@@ -187,7 +187,7 @@ export default function OwnerSidebar() {
                 alt="BarberOS"
                 fill
                 sizes="36px"
-                className="object-contain p-1"
+                className="object-cover"
               />
             )}
           </div>
@@ -289,7 +289,7 @@ export default function OwnerSidebar() {
                 alt="BarberOS"
                 fill
                 sizes="28px"
-                className="object-contain p-0.5"
+                className="object-cover"
               />
             )}
           </div>

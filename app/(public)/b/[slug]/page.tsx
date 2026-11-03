@@ -419,13 +419,13 @@ export default function PublicBusinessPage() {
           <div className="flex items-center gap-2.5 min-w-0">
             {data.logo ? (
               <div
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-md transition-transform hover:scale-105"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-md transition-transform hover:scale-105 bg-black"
                 style={{ borderColor: `${colors.accent}60`, boxShadow: `0 2px 10px ${colors.accent}25`, border: `1.5px solid ${colors.accent}50` }}
               >
                 <img
                   src={data.logo}
                   alt={data.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-center"
                   loading="eager"
                 />
               </div>
@@ -1750,13 +1750,13 @@ export default function PublicBusinessPage() {
               <div className="flex items-center gap-3">
                 {data.logo ? (
                   <div
-                    className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-md"
+                    className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-md bg-black"
                     style={{ border: `1.5px solid ${colors.accent}50`, boxShadow: `0 2px 10px ${colors.accent}25` }}
                   >
                     <img
                       src={data.logo}
                       alt={data.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-center"
                       loading="lazy"
                     />
                   </div>

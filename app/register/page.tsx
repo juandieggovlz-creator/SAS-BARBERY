@@ -34,6 +34,7 @@ import {
 import { DEFAULT_SCHEDULE, DayScheduleItem } from '@/lib/schedule'
 import LocationSelector from '@/components/ui/LocationSelector'
 import Image from 'next/image'
+import { getPublicPageUrl } from '@/lib/url'
 
 type PresetColor = {
   id: string
@@ -321,7 +322,7 @@ export default function RegisterWizardPage() {
 
   const copyPublicUrl = () => {
     if (!createdBusiness) return
-    const url = `${window.location.origin}/b/${createdBusiness.slug}`
+    const url = getPublicPageUrl(createdBusiness.slug)
     navigator.clipboard.writeText(url)
     setCopiedUrl(true)
     toast.success('Enlace copiado al portapapeles')
@@ -382,10 +383,10 @@ export default function RegisterWizardPage() {
       }`}>
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform overflow-hidden ${
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform overflow-hidden relative ${
               isDark ? 'bg-white' : 'bg-zinc-950'
             }`}>
-              <Image src="/logo.png" alt="BarberOS" width={32} height={32} className="object-contain" />
+              <Image src="/logo.png" alt="BarberOS" fill sizes="32px" className="object-cover" />
             </div>
             <span className={`text-xl font-black tracking-tight uppercase ${
               isDark ? 'text-white' : 'text-zinc-950'

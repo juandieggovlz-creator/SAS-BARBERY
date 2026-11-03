@@ -1,3 +1,4 @@
+import { getPublicPageUrl } from '@/lib/url'
 import { prisma } from '../prisma'
 import { WhatsAppAvailabilityHelper } from './availability-helper'
 import { WhatsAppService } from './whatsapp-service'

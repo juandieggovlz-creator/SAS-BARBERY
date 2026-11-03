@@ -1,3 +1,4 @@
+import { getCanonicalAppUrl } from '@/lib/url'
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Outfit, Playfair_Display, Cinzel, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";

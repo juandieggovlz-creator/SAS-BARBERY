@@ -1,3 +1,4 @@
+import { getGoogleOAuthRedirectUri } from '@/lib/url'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {

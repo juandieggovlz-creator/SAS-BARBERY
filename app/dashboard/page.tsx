@@ -31,6 +31,7 @@ import {
   CalendarPlus,
   Crown
 } from 'lucide-react'
+import { getPublicPageUrl, getBookingUrl } from '@/lib/url'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -338,10 +339,9 @@ export default function OwnerDashboardPage() {
 
   const copyPublicLink = (type: 'page' | 'reserve') => {
     if (!businessSlug) return
-    const origin = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     const link = type === 'page'
-      ? `${origin}/b/${businessSlug}`
-      : `${origin}/reserve/${businessSlug}`
+      ? getPublicPageUrl(businessSlug)
+      : getBookingUrl(businessSlug)
     navigator.clipboard.writeText(link)
     toast.success('Enlace copiado al portapapeles 🚀')
   }

@@ -9,6 +9,7 @@ import ThemeToggle from '@/components/ui/ThemeToggle'
 import { ConfirmImageDeleteModal } from '@/components/ui/ConfirmImageDeleteModal'
 import AccentColorPicker from '@/components/ui/AccentColorPicker'
 import { validateGoogleMapsUrl, parseLocation } from '@/lib/maps'
+import { getBookingUrl } from '@/lib/url'
 
 interface BusinessData {
   id: string
@@ -167,7 +168,7 @@ export default function SettingsPage() {
 
   const copyBookingLink = () => {
     if (!business) return
-    const link = `${window.location.origin}/reserve/${business.slug}`
+    const link = getBookingUrl(business.slug)
     navigator.clipboard.writeText(link)
     toast.success('Enlace de reserva copiado al portapapeles 🚀')
   }

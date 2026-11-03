@@ -1,3 +1,4 @@
+import { getBarberInviteUrl } from '@/lib/url'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'crypto'
