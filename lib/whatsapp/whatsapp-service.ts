@@ -188,8 +188,7 @@ export class WhatsAppService {
       }
 
       const { formattedDate, formattedTime } = this.formatDateTime(new Date(appt.date))
-      const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://barberos.site'
-      const reservationUrl = `${appBaseUrl}/b/${appt.business.slug}`
+      const reservationUrl = getPublicPageUrl(appt.business.slug)
 
       const templateToUse = integration.confirmTemplate || DEFAULT_CONFIRM_TEMPLATE
 
@@ -253,8 +252,7 @@ export class WhatsAppService {
       }
 
       const { formattedDate, formattedTime } = this.formatDateTime(new Date(appt.date))
-      const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://barberos.site'
-      const reservationUrl = `${appBaseUrl}/b/${appt.business.slug}`
+      const reservationUrl = getPublicPageUrl(appt.business.slug)
 
       const templateToUse = integration.reminderTemplate || DEFAULT_REMINDER_TEMPLATE
 
@@ -328,8 +326,7 @@ export class WhatsAppService {
       }
 
       const business = integration.business
-      const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://barberos.site'
-      const reservationUrl = `${appBaseUrl}/b/${business.slug}`
+      const reservationUrl = getPublicPageUrl(business.slug)
 
       // Registrar mensaje entrante en logs
       await prisma.whatsAppMessageLog.create({

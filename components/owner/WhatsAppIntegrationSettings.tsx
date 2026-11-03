@@ -831,7 +831,7 @@ export default function WhatsAppIntegrationSettings() {
     .replace(/\{fecha\}/g, 'Viernes, 24 de Octubre 2026')
     .replace(/\{hora\}/g, '04:30 PM')
     .replace(/\{codigo\}/g, 'RES-8942')
-    .replace(/\{enlace_agenda\}/g, 'https://barberos.site/b/elite')
+    .replace(/\{enlace_agenda\}/g, 'https://sas-barbery.vercel.app/b/elite')
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -1602,7 +1602,7 @@ export default function WhatsAppIntegrationSettings() {
                       <p className="mt-1 font-medium">1️⃣ 📅 Reservar cita</p>
                       <p>2️⃣ 📋 Mis citas (Consultar / Reprogramar)</p>
                       <p>3️⃣ 👤 Hablar con un asesor</p>
-                      <p className="mt-1.5 opacity-80 text-[10px]">📲 Agenda en segundos: barberos.site/b/{data.businessSlug || 'tu-barberia'}</p>
+                      <p className="mt-1.5 opacity-80 text-[10px]">📲 Agenda en segundos: sas-barbery.vercel.app/b/{data.businessSlug || 'tu-barberia'}</p>
                       <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-emerald-200/80">
                         <span>10:42 AM</span>
                         <CheckCheck size={12} className="text-[#53bdeb]" />

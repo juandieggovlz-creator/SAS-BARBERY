@@ -146,7 +146,7 @@ export class WhatsAppConversationEngine {
         // Opción 1: Reservar cita
         if (rawText === '1' || lowerText.includes('reservar') || lowerText.includes('agendar') || lowerText.includes('cita')) {
           if (!integration.bookingEnabled) {
-            const reply = `ℹ️ En este momento las reservas directas por WhatsApp están en mantenimiento o deshabilitadas temporalmente.\n\nPuedes reservar a través de nuestra web oficial:\n${process.env.NEXT_PUBLIC_APP_URL || 'https://barberos.site'}/b/${integration.business.slug}\n\nO responde *3* para hablar con un asesor.`
+            const reply = `ℹ️ En este momento las reservas directas por WhatsApp están en mantenimiento o deshabilitadas temporalmente.\n\nPuedes reservar a través de nuestra web oficial:\n${getPublicPageUrl(integration.business.slug)}\n\nO responde *3* para hablar con un asesor.`
             await this.sendReply(businessId, cleanFrom, reply)
             return { handled: true, replyText: reply }
           }
