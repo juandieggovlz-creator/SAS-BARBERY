@@ -64,18 +64,22 @@ export default function OwnerSidebar() {
     } catch {}
 
     const applyScroll = () => {
-      if (navScrollRef.current && saved > 0) {
-        navScrollRef.current.scrollTop = saved
+      if (navScrollRef.current) {
+        if (saved > 0) {
+          navScrollRef.current.scrollTop = saved
+        }
       }
     }
 
     applyScroll()
     const frameId = requestAnimationFrame(applyScroll)
-    const timer = setTimeout(applyScroll, 50)
+    const t1 = setTimeout(applyScroll, 40)
+    const t2 = setTimeout(applyScroll, 120)
 
     return () => {
       cancelAnimationFrame(frameId)
-      clearTimeout(timer)
+      clearTimeout(t1)
+      clearTimeout(t2)
     }
   }, [pathname])
 
@@ -230,8 +234,12 @@ export default function OwnerSidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    scroll={false}
                     target={item.external ? '_blank' : undefined}
-                    onClick={() => setMobileOpen(false)}
+                    onClick={() => {
+                      handleScroll()
+                      setMobileOpen(false)
+                    }}
                     className={`
                       flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 group
                       ${active
