@@ -4,12 +4,23 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Building2, Store } from 'lucide-react'
 
-export default function BarberInvitePage() {
+interface InviteData {
+  valid: boolean
+  type?: 'BRANCH_ADMIN' | 'BARBER'
+  email?: string
+  branchName?: string
+  companyName?: string
+  branchAddress?: string
+  branchLogo?: string
+}
+
+export default function InviteAcceptPage() {
   const params = useParams()
   const token = params.token as string
 
+  const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [acceptedTerms, setAcceptedTerms] = useState(false)
@@ -17,6 +28,7 @@ export default function BarberInvitePage() {
   const [loading, setLoading] = useState(false)
   const [validating, setValidating] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [inviteData, setInviteData] = useState<InviteData | null>(null)
 
   useEffect(() => {
     const validateToken = async () => {
@@ -24,10 +36,12 @@ export default function BarberInvitePage() {
         const res = await fetch(`/api/auth/validate-invite?token=${token}`)
         const data = await res.json()
         if (!res.ok) {
-          setError(data.error || 'Este enlace de invitación no es válido')
+          setError(data.error || 'Este enlace de invitación no es válido o ya fue utilizado')
+        } else {
+          setInviteData(data)
         }
       } catch {
-        setError('Error al validar la invitación')
+        setError('Error al conectar con el servidor para validar la invitación')
       } finally {
         setValidating(false)
       }
@@ -43,34 +57,59 @@ export default function BarberInvitePage() {
       return
     }
 
+    if (password.length < 6) {
+      toast.error('La contraseña debe tener al menos 6 caracteres')
+      return
+    }
+
     if (!acceptedTerms) {
       toast.error('Debes aceptar los Términos y Condiciones y la Política de Privacidad')
+      return
+    }
+
+    const isBranchAdmin = inviteData?.type === 'BRANCH_ADMIN'
+    if (isBranchAdmin && !name.trim()) {
+      toast.error('Por favor ingresa tu nombre completo')
       return
     }
 
     setLoading(true)
 
     try {
-      const res = await fetch('/api/auth/register-barber', {
+      const endpoint = isBranchAdmin ? '/api/auth/register-branch-admin' : '/api/auth/register-barber'
+      const payload = isBranchAdmin 
+        ? {
+            token,
+            name: name.trim(),
+            password,
+            acceptedTerms: true
+          }
+        : {
+            token,
+            password,
+            acceptedTerms: true,
+            termsVersion: '1.0',
+            termsAcceptedAt: new Date().toISOString()
+          }
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          token, 
-          password,
-          acceptedTerms: true,
-          termsVersion: '1.0',
-          termsAcceptedAt: new Date().toISOString()
-        })
+        body: JSON.stringify(payload)
       })
 
       const data = await res.json()
 
       if (res.ok) {
-        toast.success('Cuenta configurada con éxito. ¡Bienvenido!')
-        // El API ya crea la sesión, así que redirigimos directamente
-        window.location.href = '/barber'
+        toast.success('¡Cuenta activada con éxito! Bienvenido a BarberOS.')
+        // Redirigir según el rol
+        if (isBranchAdmin) {
+          window.location.href = '/dashboard'
+        } else {
+          window.location.href = '/barber'
+        }
       } else {
-        toast.error(data.error || 'Error al configurar cuenta')
+        toast.error(data.error || 'Error al configurar la cuenta')
       }
     } catch {
       toast.error('Error de red al conectar con el servidor')
@@ -99,29 +138,73 @@ export default function BarberInvitePage() {
     )
   }
 
+  const isBranchAdmin = inviteData?.type === 'BRANCH_ADMIN'
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-black px-4 font-sans selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black">
-      <div className="max-w-md w-full p-12 bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-black px-4 font-sans selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black py-10">
+      <div className="max-w-md w-full p-8 sm:p-10 bg-white dark:bg-zinc-950 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 relative overflow-hidden">
         
-        <div className="text-center mb-12 relative">
-          <h1 className="text-4xl font-extrabold tracking-tighter text-black dark:text-white uppercase mb-1">
+        {/* Encabezado */}
+        <div className="text-center mb-8 relative">
+          <h1 className="text-3xl font-extrabold tracking-tighter text-black dark:text-white uppercase mb-1">
              Barber<span className="font-light text-zinc-500">OS</span>
           </h1>
-          <p className="text-[10px] tracking-[0.3em] text-zinc-500 dark:text-zinc-400 uppercase mt-4 font-black">
-             Acceso Profesional
+          <p className="text-[10px] tracking-[0.3em] text-zinc-500 dark:text-zinc-400 uppercase mt-2 font-black">
+             {isBranchAdmin ? 'Acceso Corporativo Multisedes' : 'Acceso Profesional'}
           </p>
         </div>
+
+        {/* Tarjeta de Sede o Barbero */}
+        {isBranchAdmin && inviteData && (
+          <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left">
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider mb-1">
+              <Store className="w-4 h-4 shrink-0" />
+              <span>Invitación de Administrador de Sede</span>
+            </div>
+            <p className="text-sm font-semibold text-zinc-900 dark:text-white">
+              Sede: {inviteData.branchName}
+            </p>
+            {inviteData.companyName && (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mt-0.5">
+                <Building2 className="w-3.5 h-3.5" />
+                Empresa: {inviteData.companyName}
+              </p>
+            )}
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 font-mono">
+              Correo asignado: {inviteData.email}
+            </p>
+          </div>
+        )}
         
-        <form onSubmit={handleRegister} className="space-y-6">
+        <form onSubmit={handleRegister} className="space-y-5">
+          {/* Campo de Nombre solo si es Branch Admin */}
+          {isBranchAdmin && (
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 mb-2 block ml-1">
+                Tu Nombre Completo
+              </label>
+              <input
+                type="text"
+                required
+                className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-black dark:text-white placeholder:text-zinc-400 font-medium text-sm"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ej. Carlos Mendoza"
+              />
+            </div>
+          )}
+
           <div className="space-y-4">
             <div>
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 mb-3 block ml-1">Nueva Contraseña</label>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 mb-2 block ml-1">
+                {isBranchAdmin ? 'Crear Contraseña de Acceso' : 'Nueva Contraseña'}
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   minLength={6}
-                  className="w-full px-5 py-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-black dark:text-white placeholder:text-zinc-300 dark:placeholder:text-zinc-600 font-medium pr-12"
+                  className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-black dark:text-white placeholder:text-zinc-300 dark:placeholder:text-zinc-600 font-medium pr-12 text-sm"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -131,18 +214,20 @@ export default function BarberInvitePage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black dark:hover:text-white transition-colors"
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 mb-3 block ml-1">Confirmar Contraseña</label>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 mb-2 block ml-1">
+                Confirmar Contraseña
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   minLength={6}
-                  className="w-full px-5 py-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-black dark:text-white placeholder:text-zinc-300 dark:placeholder:text-zinc-600 font-medium pr-12"
+                  className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all text-black dark:text-white placeholder:text-zinc-300 dark:placeholder:text-zinc-600 font-medium pr-12 text-sm"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
@@ -180,13 +265,14 @@ export default function BarberInvitePage() {
               </label>
             </div>
           </div>
-          <div className="pt-6">
+
+          <div className="pt-4">
             <button
               type="submit"
               disabled={loading}
-              className="w-full relative flex justify-center items-center py-4 px-4 rounded-xl text-[10px] font-black text-white bg-black hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl uppercase tracking-[0.3em]"
+              className="w-full relative flex justify-center items-center py-3.5 px-4 rounded-xl text-[10px] font-black text-white bg-black hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl uppercase tracking-[0.3em]"
             >
-              {loading ? 'Activando...' : 'Activar y Entrar'}
+              {loading ? 'Configurando acceso...' : (isBranchAdmin ? 'Aceptar y Gestionar Sede' : 'Activar y Entrar')}
             </button>
           </div>
 

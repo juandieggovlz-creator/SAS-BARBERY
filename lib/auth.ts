@@ -121,7 +121,7 @@ export async function getSession(preferRole?: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_
     // Default: Check owner_session first
     if (ownerCookie) {
       const dec = await decrypt(ownerCookie)
-      if (dec && (dec.role === 'OWNER' || dec.role === 'SUPER_ADMIN')) return dec
+      if (dec && (dec.role === 'OWNER' || dec.role === 'BRANCH_ADMIN' || dec.role === 'SUPER_ADMIN')) return dec
     }
 
     // Then check barber_session

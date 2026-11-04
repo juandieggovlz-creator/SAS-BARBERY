@@ -24,6 +24,7 @@ import {
   Menu,
   X,
   Store,
+  Building2,
   ChevronRight,
   LifeBuoy,
   Crown
@@ -146,6 +147,7 @@ export default function OwnerSidebar() {
         { label: 'Servicios', href: '/services', icon: Scissors },
         { label: 'Finanzas', href: '/finances', icon: DollarSign },
         { label: 'Reportes', href: '/reports', icon: TrendingUp },
+        { label: 'Sedes', href: '/branches', icon: Building2 },
       ]
     },
     {

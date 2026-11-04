@@ -19,6 +19,7 @@ const routeTitles: Record<string, { title: string; subtitle: string }> = {
   '/notes': { title: 'Notas & Recordatorios', subtitle: 'Avisos internos e instrucciones del equipo' },
   '/chat': { title: 'Chat Interno', subtitle: 'Comunicación en tiempo real con barberos' },
   '/webpage': { title: 'Editor de Página Web', subtitle: 'Personalización de tema, catálogo y reservas en vivo' },
+  '/branches': { title: 'Sedes & Sucursales', subtitle: 'Administración corporativa y control de sedes' },
   '/settings': { title: 'Configuración del Negocio', subtitle: 'Perfil público, horarios y preferencias' },
 }
 
