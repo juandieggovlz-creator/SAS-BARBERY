@@ -1,11 +1,12 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Search, Plus } from 'lucide-react'
 
 import NotificationBell from '@/components/notifications/NotificationBell'
+import BranchSelector from '@/components/owner/BranchSelector'
 
 const routeTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'Centro de Operaciones', subtitle: 'Resumen ejecutivo y control del negocio' },
@@ -21,6 +22,9 @@ const routeTitles: Record<string, { title: string; subtitle: string }> = {
   '/webpage': { title: 'Editor de Página Web', subtitle: 'Personalización de tema, catálogo y reservas en vivo' },
   '/branches': { title: 'Sedes & Sucursales', subtitle: 'Administración corporativa y control de sedes' },
   '/settings': { title: 'Configuración del Negocio', subtitle: 'Perfil público, horarios y preferencias' },
+  '/integrations': { title: 'Conexión WhatsApp', subtitle: 'Automatización de reservas vía WhatsApp' },
+  '/subscription': { title: 'Membresía & Plan', subtitle: 'Gestión de suscripción y funciones habilitadas' },
+  '/support': { title: 'Soporte BarberOS', subtitle: 'Ayuda, tickets y documentación' },
 }
 
 interface TopBarProps {
@@ -29,9 +33,30 @@ interface TopBarProps {
 
 export default function TopBar({ onOpenSearch }: TopBarProps) {
   const pathname = usePathname()
+  const [showBranchSelector, setShowBranchSelector] = useState(false)
 
   const matchedKey = Object.keys(routeTitles).find(k => pathname === k || (k !== '/dashboard' && pathname.startsWith(k)))
   const currentRoute = matchedKey ? routeTitles[matchedKey] : { title: 'BarberOS Panel', subtitle: 'Gestión integral de barbería' }
+
+  // Detectar si el usuario tiene multisedes habilitadas
+  useEffect(() => {
+    const checkMultiBranch = async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (!res.ok) return
+        const data = await res.json()
+        // Habilitar selector si tiene companyId y el plan permite multisedes
+        const business = data?.user?.business
+        const plan = business?.plan
+        if (data?.user?.companyId && plan?.allowsMultiBranch) {
+          setShowBranchSelector(true)
+        }
+      } catch {
+        // ignore
+      }
+    }
+    checkMultiBranch()
+  }, [])
 
   return (
     <header
@@ -39,17 +64,20 @@ export default function TopBar({ onOpenSearch }: TopBarProps) {
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {/* Title & Subtitle */}
-      <div>
-        <h1 className="text-base sm:text-lg font-black tracking-tight text-zinc-950 dark:text-white flex items-center gap-2" style={{ letterSpacing: '-0.02em' }}>
+      <div className="min-w-0 flex-1">
+        <h1 className="text-base sm:text-lg font-black tracking-tight text-zinc-950 dark:text-white flex items-center gap-2 truncate" style={{ letterSpacing: '-0.02em' }}>
           {currentRoute.title}
         </h1>
-        <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 hidden sm:block">
+        <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 hidden sm:block truncate">
           {currentRoute.subtitle}
         </p>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2.5 ml-auto">
+      <div className="flex items-center gap-2 sm:gap-2.5 ml-auto shrink-0">
+        {/* Branch Selector (only shown for multi-branch VIP accounts) */}
+        <BranchSelector visible={showBranchSelector} />
+
         {/* Global Search Button */}
         <button
           onClick={onOpenSearch}
