@@ -7,8 +7,9 @@ import {
   DollarSign, Users, Scissors, CheckCircle2,
   Receipt, RefreshCw, Search, Clock, BarChart3,
   PieChart, UserCheck, UserPlus, AlertTriangle,
-  FileSpreadsheet, Sparkles, Ban
+  FileSpreadsheet, Sparkles, Ban, Building2
 } from 'lucide-react'
+import ConsolidatedReport from '@/components/owner/ConsolidatedReport'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ interface ReportsData {
 }
 
 type DatePreset = 'TODAY' | 'YESTERDAY' | 'EXACT_DAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_MONTH' | 'THIS_YEAR' | 'CUSTOM'
-type ReportTab = 'barbers' | 'services' | 'peak_hours' | 'clients' | 'payments' | 'cancellations' | 'trends'
+type ReportTab = 'consolidated' | 'barbers' | 'services' | 'peak_hours' | 'clients' | 'payments' | 'cancellations' | 'trends'
 
 const formatCOP = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n || 0)
@@ -195,9 +196,26 @@ function getReportDateRange(preset: DatePreset, exactDay: string, customFrom: st
 export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<ReportsData | null>(null)
+  const [showConsolidated, setShowConsolidated] = useState(false)
 
   // Active Tab
   const [tab, setTab] = useState<ReportTab>('barbers')
+
+  // Detect if this user has multi-branch enabled
+  useEffect(() => {
+    const checkMultiBranch = async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (!res.ok) return
+        const data = await res.json()
+        const plan = data?.user?.business?.plan
+        if (data?.user?.companyId && plan?.allowsMultiBranch) {
+          setShowConsolidated(true)
+        }
+      } catch { /* ignore */ }
+    }
+    checkMultiBranch()
+  }, [])
 
   // Date selection states
   const [datePreset, setDatePreset] = useState<DatePreset>('TODAY')
@@ -306,6 +324,7 @@ export default function ReportsPage() {
   }, [data?.serviceStats, searchQuery])
 
   const TABS: { id: ReportTab; label: string; icon: React.ReactNode }[] = [
+    ...(showConsolidated ? [{ id: 'consolidated' as ReportTab, label: 'Consolidado Sedes', icon: <Building2 className="w-3.5 h-3.5 text-amber-500" /> }] : []),
     { id: 'barbers',       label: 'Rendimiento Barberos', icon: <Users className="w-3.5 h-3.5" /> },
     { id: 'services',      label: 'Análisis Servicios',    icon: <Scissors className="w-3.5 h-3.5" /> },
     { id: 'peak_hours',    label: 'Horas Pico & Días',     icon: <Clock className="w-3.5 h-3.5" /> },
@@ -432,6 +451,13 @@ export default function ReportsPage() {
       ) : (
 
       <>
+      {/* ════════════════════════════════════════
+          TAB 0 — CONSOLIDADO CORPORATIVO (MULTI-SEDES)
+      ════════════════════════════════════════ */}
+      {tab === 'consolidated' && (
+        <ConsolidatedReport />
+      )}
+
       {/* ════════════════════════════════════════
           TAB 1 — BARBEROS (PRODUCCIÓN & COMISIONES)
       ════════════════════════════════════════ */}
