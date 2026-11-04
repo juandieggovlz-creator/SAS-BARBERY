@@ -15,6 +15,12 @@ export async function GET(
       where: { slug },
       include: {
         page: true,
+        company: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         barbers: {
           where: { status: 'ACTIVE' },
           select: {
@@ -44,11 +50,46 @@ export async function GET(
       return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json(business, {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+    // Sedes hermanas de la misma empresa para navegación cruzada
+    let siblingBranches: {
+      id: string
+      name: string
+      slug: string
+      address: string | null
+      phone: string | null
+      isMainBranch: boolean
+    }[] = []
+
+    if (business.companyId) {
+      siblingBranches = await prisma.business.findMany({
+        where: {
+          companyId: business.companyId,
+          status: 'ACTIVE',
+          id: { not: business.id }
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          address: true,
+          phone: true,
+          isMainBranch: true
+        },
+        orderBy: [{ isMainBranch: 'desc' }, { name: 'asc' }]
+      })
+    }
+
+    return NextResponse.json(
+      {
+        ...business,
+        siblingBranches
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+        }
       }
-    })
+    )
   } catch (error) {
     console.error('Error fetching public business config:', error)
     return NextResponse.json({ error: 'Error al obtener la configuración' }, { status: 500 })

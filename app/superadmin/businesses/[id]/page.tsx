@@ -68,6 +68,21 @@ interface BusinessDetail {
     clients: number
     appointments: number
   }
+  company?: {
+    id: string
+    name: string
+    maxBranches: number
+    additionalBranchPrice: number
+    branches: Array<{
+      id: string
+      name: string
+      slug: string
+      status: string
+      isMainBranch: boolean
+      createdAt: string
+      _count: { barbers: number; appointments: number }
+    }>
+  } | null
 }
 
 interface FeaturePermissions {
@@ -108,6 +123,11 @@ export default function BusinessDetailPage() {
   const [editPlanId, setEditPlanId] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
 
+  // Multisedes state
+  const [maxBranchesInput, setMaxBranchesInput] = useState<number>(1)
+  const [additionalPriceInput, setAdditionalPriceInput] = useState<number>(50000)
+  const [savingMultiBranch, setSavingMultiBranch] = useState(false)
+
   // Subscription action modals
   const [customDaysModal, setCustomDaysModal] = useState(false)
   const [customDays, setCustomDays] = useState(30)
@@ -131,6 +151,10 @@ export default function BusinessDetailPage() {
         setEditEmail(bJson.business.email || '')
         setEditAddress(bJson.business.address || '')
         setEditPlanId(bJson.business.planId || '')
+        if (bJson.business?.company) {
+          setMaxBranchesInput(bJson.business.company.maxBranches || 1)
+          setAdditionalPriceInput(Number(bJson.business.company.additionalBranchPrice) || 50000)
+        }
       } else {
         toast.error('Barbería no encontrada')
         router.push('/superadmin/businesses')
@@ -265,6 +289,50 @@ export default function BusinessDetailPage() {
       toast.error('Error de conexión')
     } finally {
       setSavingEdit(false)
+    }
+  }
+
+  const handleSaveMultiBranchSettings = async () => {
+    if (!business) return
+    setSavingMultiBranch(true)
+    try {
+      const res = await fetch(`/api/superadmin/businesses/${business.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          maxBranches: maxBranchesInput,
+          additionalBranchPrice: additionalPriceInput
+        })
+      })
+      if (res.ok) {
+        toast.success('Configuración corporativa multisedes actualizada')
+        fetchBusiness()
+      } else {
+        toast.error('Error al actualizar configuración multisedes')
+      }
+    } catch {
+      toast.error('Error de conexión')
+    } finally {
+      setSavingMultiBranch(false)
+    }
+  }
+
+  const handleToggleBranchStatus = async (branchId: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
+      const res = await fetch(`/api/superadmin/businesses/${branchId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      })
+      if (res.ok) {
+        toast.success(`Sede ${newStatus === 'ACTIVE' ? 'reactivada' : 'suspendida'} correctamente`)
+        fetchBusiness()
+      } else {
+        toast.error('Error al modificar estado de la sede')
+      }
+    } catch {
+      toast.error('Error de conexión')
     }
   }
 
@@ -798,6 +866,138 @@ export default function BusinessDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* ── 6. ESTRUCTURA CORPORATIVA MULTISEDES ── */}
+      {business.company && (
+        <div className="p-6 bg-white border border-zinc-200 rounded-3xl shadow-xs space-y-6">
+          <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-black uppercase tracking-tight text-zinc-950 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-amber-500" /> Multisedes Corporativo
+              </h3>
+              <p className="text-xs text-zinc-400">
+                Empresa matriz: <strong className="text-zinc-900">{business.company.name}</strong> • Control de cupos y sucursales
+              </p>
+            </div>
+            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 uppercase">
+              {business.company.branches.length} sedes registradas
+            </span>
+          </div>
+
+          {/* Formulario de cupos y tarifas */}
+          <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-200 space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-zinc-800">Parámetros Comerciales Corporativos</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block mb-1">
+                  Cupo Máximo de Sedes (maxBranches)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={maxBranchesInput}
+                  onChange={e => setMaxBranchesInput(parseInt(e.target.value, 10) || 1)}
+                  className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-black"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block mb-1">
+                  Precio por Sede Adicional (COP / mes)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={5000}
+                  value={additionalPriceInput}
+                  onChange={e => setAdditionalPriceInput(parseInt(e.target.value, 10) || 0)}
+                  className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-black"
+                />
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  onClick={handleSaveMultiBranchSettings}
+                  disabled={savingMultiBranch}
+                  className="w-full py-2.5 bg-zinc-950 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-zinc-800 transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {savingMultiBranch ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  <span>Guardar Cupos</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabla de sucursales */}
+          <div className="border border-zinc-200 rounded-2xl overflow-hidden">
+            <div className="px-4 py-3 bg-zinc-50 border-b border-zinc-200 text-xs font-bold text-zinc-700">
+              Listado de Sedes de la Empresa
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-100 bg-zinc-50/50 text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                    <th className="px-4 py-2.5 text-left">Sede</th>
+                    <th className="px-3 py-2.5 text-left">Slug</th>
+                    <th className="px-3 py-2.5 text-center">Barberos</th>
+                    <th className="px-3 py-2.5 text-center">Citas</th>
+                    <th className="px-3 py-2.5 text-center">Estado</th>
+                    <th className="px-4 py-2.5 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {business.company.branches.map(br => (
+                    <tr key={br.id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/60 transition-colors">
+                      <td className="px-4 py-3 font-bold text-zinc-900">
+                        {br.name}
+                        {br.isMainBranch && (
+                          <span className="ml-2 text-[9px] font-black uppercase text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                            Principal
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 font-mono text-zinc-500 text-[11px]">/{br.slug}</td>
+                      <td className="px-3 py-3 text-center text-zinc-700">{br._count.barbers}</td>
+                      <td className="px-3 py-3 text-center text-zinc-700">{br._count.appointments}</td>
+                      <td className="px-3 py-3 text-center">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          br.status === 'ACTIVE'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        }`}>
+                          {br.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleToggleBranchStatus(br.id, br.status)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                              br.status === 'ACTIVE'
+                                ? 'bg-zinc-100 hover:bg-rose-50 text-zinc-600 hover:text-rose-600'
+                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
+                            }`}
+                          >
+                            {br.status === 'ACTIVE' ? 'Suspender' : 'Reactivar'}
+                          </button>
+                          <Link
+                            href={`/superadmin/businesses/${br.id}`}
+                            className="p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors"
+                            title="Ver ficha de sede"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── MODAL SUSPENDER ACCESO CON MOTIVOS ── */}
       {suspendModalOpen && (

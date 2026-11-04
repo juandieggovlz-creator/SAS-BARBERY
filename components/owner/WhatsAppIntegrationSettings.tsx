@@ -164,7 +164,9 @@ export default function WhatsAppIntegrationSettings() {
   const fetchConfig = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/owner/integrations/whatsapp')
+      const activeBranch = typeof window !== 'undefined' ? sessionStorage.getItem('active_branch_id') : null
+      const url = activeBranch ? `/api/owner/integrations/whatsapp?branchId=${activeBranch}` : '/api/owner/integrations/whatsapp'
+      const res = await fetch(url)
       if (res.ok) {
         const json = await res.json()
         setData(json)
@@ -186,6 +188,9 @@ export default function WhatsAppIntegrationSettings() {
 
   useEffect(() => {
     fetchConfig()
+    const handleBranchChange = () => fetchConfig()
+    window.addEventListener('branch-changed', handleBranchChange)
+    return () => window.removeEventListener('branch-changed', handleBranchChange)
   }, [])
 
   // Pre-cargar SDK de Meta (Facebook Login for Business) anticipadamente para que esté listo al hacer clic

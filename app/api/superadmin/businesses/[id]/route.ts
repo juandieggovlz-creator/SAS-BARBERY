@@ -18,10 +18,33 @@ export async function GET(
       where: { id },
       include: {
         plan: true,
+        company: {
+          include: {
+            branches: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                status: true,
+                isMainBranch: true,
+                createdAt: true,
+                managerId: true,
+                _count: {
+                  select: {
+                    barbers: true,
+                    appointments: true
+                  }
+                }
+              },
+              orderBy: [{ isMainBranch: 'desc' }, { createdAt: 'asc' }]
+            }
+          }
+        },
         users: {
           select: {
             id: true,
             email: true,
+            name: true,
             role: true,
             isActive: true,
             lastLoginAt: true,
@@ -75,7 +98,7 @@ export async function GET(
 
     // Aggregate financial totals from payment
     const totalPayments = await prisma.payment.aggregate({
-      where: { businessId: id, status: 'PAID' },
+      where: { businessId: id, status: 'COMPLETED' },
       _sum: { amount: true }
     })
 
@@ -107,15 +130,33 @@ export async function PATCH(
       address,
       email,
       description,
+      status,
       planId,
       maxBarbers,
       maxClients,
-      maxAppointments
+      maxAppointments,
+      maxBranches,
+      additionalBranchPrice
     } = body
 
-    const existing = await prisma.business.findUnique({ where: { id } })
+    const existing = await prisma.business.findUnique({
+      where: { id },
+      include: { company: true }
+    })
+
     if (!existing) {
       return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
+    }
+
+    // Actualizar configuración corporativa de la empresa si se modifican cupos o tarifas
+    if (existing.companyId && (maxBranches !== undefined || additionalBranchPrice !== undefined)) {
+      await prisma.company.update({
+        where: { id: existing.companyId },
+        data: {
+          ...(maxBranches !== undefined && { maxBranches: Number(maxBranches) }),
+          ...(additionalBranchPrice !== undefined && { additionalBranchPrice: Number(additionalBranchPrice) })
+        }
+      })
     }
 
     const updated = await prisma.business.update({
@@ -126,6 +167,7 @@ export async function PATCH(
         ...(address !== undefined ? { address: address?.trim() || null } : {}),
         ...(email !== undefined ? { email: email?.trim() || null } : {}),
         ...(description !== undefined ? { description: description?.trim() || null } : {}),
+        ...(status !== undefined ? { status } : {}),
         ...(planId !== undefined ? { planId } : {}),
         ...(maxBarbers !== undefined ? { maxBarbers: Number(maxBarbers) } : {}),
         ...(maxClients !== undefined ? { maxClients: Number(maxClients) } : {}),

@@ -8,21 +8,59 @@ import {
   WhatsAppService
 } from '@/lib/whatsapp/whatsapp-service'
 
-export async function GET() {
-  const session = await getSession()
-  if (!session || !session.businessId || (session.role !== 'OWNER' && session.role !== 'SUPER_ADMIN')) {
+async function resolveTargetBusinessId(
+  request: Request,
+  session: { role: string; businessId: string | null; companyId?: string | null; userId: string },
+  bodyBranchId?: string
+) {
+  if (session.role === 'BRANCH_ADMIN') {
+    return session.businessId
+  }
+
+  const url = new URL(request.url)
+  const branchId = bodyBranchId || url.searchParams.get('branchId')
+
+  if (branchId) {
+    if (session.role === 'SUPER_ADMIN') return branchId
+    const branch = await prisma.business.findUnique({
+      where: { id: branchId },
+      select: { companyId: true, company: { select: { ownerId: true } } }
+    })
+    if (
+      branch &&
+      (branch.companyId === session.companyId || branch.company?.ownerId === session.userId)
+    ) {
+      return branchId
+    }
+  }
+
+  return session.businessId
+}
+
+export async function GET(request: Request) {
+  const session = await getSession('OWNER')
+  if (
+    !session ||
+    !session.businessId ||
+    (session.role !== 'OWNER' && session.role !== 'BRANCH_ADMIN' && session.role !== 'SUPER_ADMIN')
+  ) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
+  const businessId = await resolveTargetBusinessId(request, session)
+  if (!businessId) {
+    return NextResponse.json({ error: 'Sede no identificada' }, { status: 400 })
   }
 
   try {
     let integration = await prisma.whatsAppIntegration.findUnique({
-      where: { businessId: session.businessId }
+      where: { businessId }
     })
 
     if (!integration) {
       integration = await prisma.whatsAppIntegration.create({
         data: {
-          businessId: session.businessId,
+          businessId,
           isEnabled: false,
           provider: 'NONE',
           connectionStatus: 'DISCONNECTED',
@@ -40,7 +78,7 @@ export async function GET() {
     // Consultar chats de WhatsApp (con estado de bot activo y atención humana)
     const conversations = await prisma.whatsAppConversation.findMany({
       where: {
-        businessId: session.businessId
+        businessId
       },
       orderBy: { lastActivityAt: 'desc' },
       take: 20
@@ -48,27 +86,25 @@ export async function GET() {
 
     const humanConversations = conversations.filter(c => !c.isBotActive || c.isHumanAgent)
 
-    // Consultar últimos logs de mensajes
+    // Logs recientes de mensajería para auditoría de entrega
     const recentLogs = await prisma.whatsAppMessageLog.findMany({
-      where: { businessId: session.businessId },
+      where: { businessId },
       orderBy: { createdAt: 'desc' },
-      take: 8,
+      take: 15,
       select: {
         id: true,
-        direction: true,
-        status: true,
-        provider: true,
-        from: true,
         to: true,
+        status: true,
         messageBody: true,
         errorDetails: true,
+        direction: true,
         createdAt: true
       }
     })
 
     // Consultar datos de la barbería
     const business = await prisma.business.findUnique({
-      where: { id: session.businessId },
+      where: { id: businessId },
       select: { name: true, slug: true }
     })
 
@@ -107,14 +143,19 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const session = await getSession()
-  if (!session || !session.businessId || (session.role !== 'OWNER' && session.role !== 'SUPER_ADMIN')) {
+  const session = await getSession('OWNER')
+  if (
+    !session ||
+    !session.businessId ||
+    (session.role !== 'OWNER' && session.role !== 'BRANCH_ADMIN' && session.role !== 'SUPER_ADMIN')
+  ) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
   try {
     const body = await request.json()
     const {
+      branchId: explicitBranchId,
       isEnabled,
       provider,
       connectionStatus,
@@ -136,18 +177,23 @@ export async function PATCH(request: Request) {
       confirmTemplate,
       reminderTemplate,
       reminderHoursBefore,
-      resumePhone, // Reanudar bot para un cliente específico
-      pausePhone, // Pausar bot / tomar chat para un cliente específico
-      manualMessage, // Mensaje manual enviado por humano
+      resumePhone,
+      pausePhone,
+      manualMessage,
       customerPhone
     } = body
+
+    const businessId = await resolveTargetBusinessId(request, session, explicitBranchId)
+    if (!businessId) {
+      return NextResponse.json({ error: 'Sede no identificada' }, { status: 400 })
+    }
 
     // 1. Pausar bot para un cliente específico (Tomar chat manual)
     if (pausePhone) {
       const cleanPhone = String(pausePhone).replace(/\D/g, '')
       await prisma.whatsAppConversation.updateMany({
         where: {
-          businessId: session.businessId,
+          businessId,
           customerPhone: cleanPhone
         },
         data: {
@@ -165,7 +211,7 @@ export async function PATCH(request: Request) {
       const cleanPhone = String(resumePhone).replace(/\D/g, '')
       await prisma.whatsAppConversation.updateMany({
         where: {
-          businessId: session.businessId,
+          businessId,
           customerPhone: cleanPhone
         },
         data: {
@@ -182,7 +228,7 @@ export async function PATCH(request: Request) {
     if (manualMessage && customerPhone) {
       const cleanPhone = String(customerPhone).replace(/\D/g, '')
       const sendRes = await WhatsAppService.sendDirectMessage({
-        businessId: session.businessId,
+        businessId,
         to: cleanPhone,
         text: manualMessage
       })
@@ -194,7 +240,7 @@ export async function PATCH(request: Request) {
       await prisma.whatsAppConversation.upsert({
         where: {
           businessId_customerPhone: {
-            businessId: session.businessId,
+            businessId,
             customerPhone: cleanPhone
           }
         },
@@ -205,7 +251,7 @@ export async function PATCH(request: Request) {
           lastActivityAt: new Date()
         },
         create: {
-          businessId: session.businessId,
+          businessId,
           customerPhone: cleanPhone,
           isBotActive: false,
           isHumanAgent: true,
@@ -218,7 +264,7 @@ export async function PATCH(request: Request) {
     }
 
     const updated = await prisma.whatsAppIntegration.upsert({
-      where: { businessId: session.businessId },
+      where: { businessId },
       update: {
         ...(isEnabled !== undefined && { isEnabled }),
         ...(provider !== undefined && { provider }),
@@ -245,7 +291,7 @@ export async function PATCH(request: Request) {
         lastSyncedAt: new Date()
       },
       create: {
-        businessId: session.businessId,
+        businessId,
         isEnabled: isEnabled ?? false,
         provider: provider ?? 'NONE',
         connectionStatus: connectionStatus ?? 'DISCONNECTED',
