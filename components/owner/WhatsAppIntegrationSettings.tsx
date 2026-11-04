@@ -531,45 +531,46 @@ export default function WhatsAppIntegrationSettings() {
       if (typeof window !== 'undefined' && (window as any).FB) {
         try {
           ;(window as any).FB.login(
-            async (response: any) => {
+            function (response: any) {
               if (hasCompleted) return
               clearTimeout(watchdogTimer)
 
               if (response.authResponse?.code) {
                 const toastId = toast.loading('Sincronizando WhatsApp Business con Meta...')
-                try {
-                  const res = await fetch('/api/whatsapp/meta-callback', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      code: response.authResponse.code,
-                      phoneNumberId: capturedPhoneNumberId,
-                      wabaId: capturedWabaId
-                    })
+                fetch('/api/whatsapp/meta-callback', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    code: response.authResponse.code,
+                    phoneNumberId: capturedPhoneNumberId,
+                    wabaId: capturedWabaId
                   })
-
-                  const resData = await res.json()
-                  if (res.ok && resData.success) {
-                    toast.success(resData.message || '¡WhatsApp Business conectado exitosamente con Meta! 🚀', { id: toastId })
-                    setData(prev => prev ? {
-                      ...prev,
-                      provider: 'META',
-                      connectionStatus: 'CONNECTED',
-                      isEnabled: true,
-                      phoneNumber: resData.phoneNumber || prev.phoneNumber,
-                      metaPhoneNumberId: resData.phoneNumberId || prev.metaPhoneNumberId,
-                      metaWabaId: resData.wabaId || prev.metaWabaId
-                    } : null)
-                    setShowMetaModal(false)
-                    await fetchConfig()
-                  } else {
-                    toast.error(resData.error || 'Error al validar credenciales de Meta con la Graph API', { id: toastId, duration: 8000 })
-                  }
-                } catch {
-                  toast.error('Error de red al completar la vinculación con Meta', { id: toastId })
-                } finally {
-                  cleanup()
-                }
+                })
+                  .then(function (res: Response) { return res.json().then(function (d: any) { return { ok: res.ok, data: d } }) })
+                  .then(function (result: { ok: boolean; data: any }) {
+                    if (result.ok && result.data.success) {
+                      toast.success(result.data.message || '¡WhatsApp Business conectado exitosamente con Meta! 🚀', { id: toastId })
+                      setData(function (prev: any) { return prev ? {
+                        ...prev,
+                        provider: 'META',
+                        connectionStatus: 'CONNECTED',
+                        isEnabled: true,
+                        phoneNumber: result.data.phoneNumber || prev.phoneNumber,
+                        metaPhoneNumberId: result.data.phoneNumberId || prev.metaPhoneNumberId,
+                        metaWabaId: result.data.wabaId || prev.metaWabaId
+                      } : null })
+                      setShowMetaModal(false)
+                      fetchConfig()
+                    } else {
+                      toast.error(result.data.error || 'Error al validar credenciales de Meta con la Graph API', { id: toastId, duration: 8000 })
+                    }
+                  })
+                  .catch(function () {
+                    toast.error('Error de red al completar la vinculación con Meta', { id: toastId })
+                  })
+                  .finally(function () {
+                    cleanup()
+                  })
               } else {
                 cleanup()
                 toast.info('Proceso de vinculación de Meta cancelado o ventana cerrada.')
