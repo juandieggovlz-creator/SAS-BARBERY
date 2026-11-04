@@ -21,6 +21,10 @@ model Business {
   onboardingCompleted Boolean           @default(true)
   planId             String?
   plan               Plan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
+  companyId          String?
+  company            Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  isMainBranch       Boolean            @default(false)
+  managerId          String?
   trialEndsAt        DateTime?
   subscriptionEndsAt DateTime?
   maxBarbers         Int?               @default(10)
@@ -45,9 +49,11 @@ model Business {
   whatsAppIntegration WhatsAppIntegration?
   whatsAppLogs        WhatsAppMessageLog[]
   whatsAppConversations WhatsAppConversation[]
+  invitations        BranchInvitation[]
 
   @@index([status])
   @@index([planId])
+  @@index([companyId])
 }
 
 enum BusinessStatus {
@@ -111,6 +117,7 @@ model User {
   role           Role            @default(OWNER)
   barberId       String?         @unique
   businessId     String?
+  companyId      String?
   inviteToken    String?         @unique
   inviteExpires  DateTime?
   isActive       Boolean         @default(true)
@@ -119,11 +126,13 @@ model User {
   createdAt      DateTime        @default(now())
   barber         Barber?         @relation(fields: [barberId], references: [id])
   business       Business?       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  company        Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
   supportTickets SupportTicket[]
   auditLogs      AuditLog[]
 
   @@index([role, isActive])
   @@index([businessId])
+  @@index([companyId])
 }
 
 model Barber {
@@ -282,6 +291,7 @@ model Note {
 enum Role {
   SUPER_ADMIN
   OWNER
+  BRANCH_ADMIN
   BARBER
 }
 
@@ -366,6 +376,62 @@ model ChatMessage {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// EMPRESA CORPORATIVA & MULTISEDES
+// ═══════════════════════════════════════════════════════════════
+
+model Company {
+  id                    String             @id @default(uuid())
+  name                  String             // Razón social o nombre corporativo
+  nit                   String?            // Identificación fiscal opcional
+  ownerId               String             // Usuario propietario empresarial (Role = OWNER)
+  planId                String?
+  plan                  Plan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
+  status                BusinessStatus     @default(ACTIVE)
+  trialEndsAt           DateTime?
+  subscriptionEndsAt    DateTime?
+  maxBranches           Int                @default(1)
+  additionalBranchPrice Decimal            @default(50000) @db.Decimal(10, 2)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  branches              Business[]         // Sedes vinculadas a esta empresa
+  invitations           BranchInvitation[] // Invitaciones a administradores de sede
+  users                 User[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([planId])
+}
+
+model BranchInvitation {
+  id          String           @id @default(uuid())
+  companyId   String
+  businessId  String           // Sede específica a administrar
+  email       String
+  token       String           @unique
+  role        Role             @default(BRANCH_ADMIN)
+  status      InvitationStatus @default(PENDING)
+  invitedById String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime         @default(now())
+
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch      Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status])
+  @@index([email])
+  @@index([token])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  CANCELLED
+  EXPIRED
+}
+
+// ═══════════════════════════════════════════════════════════════
 // SUPER ADMIN & SAAS PLATFORM MODELS
 // ═══════════════════════════════════════════════════════════════
 
@@ -379,11 +445,15 @@ model Plan {
   maxClients      Int                @default(500)
   maxAppointments Int                @default(1000)
   features        Json               @default("[]") // Lista de características
+  allowsMultiBranch Boolean            @default(false)
+  includedBranches  Int                @default(1)
+  defaultAdditionalBranchPrice Decimal @default(50000) @db.Decimal(10, 2)
   isPopular       Boolean            @default(false)
   isActive        Boolean            @default(true)
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   businesses      Business[]
+  companies       Company[]
   subscriptions   SaaSSubscription[]
 
   @@index([slug, isActive])

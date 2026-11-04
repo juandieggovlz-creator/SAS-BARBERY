@@ -5,7 +5,7 @@ import { getSession } from '@/lib/auth'
 export interface ChatMember {
   id: string
   name: string
-  role: 'OWNER' | 'BARBER' | 'SUPER_ADMIN'
+  role: 'OWNER' | 'BRANCH_ADMIN' | 'BARBER' | 'SUPER_ADMIN'
   avatar: string | null
   specialty?: string | null
   phone?: string | null
@@ -28,7 +28,7 @@ export async function GET() {
       where: { id: businessId },
       include: {
         users: {
-          where: { role: { in: ['OWNER', 'SUPER_ADMIN'] } },
+          where: { role: { in: ['OWNER', 'BRANCH_ADMIN', 'SUPER_ADMIN'] } },
           select: { id: true, email: true, role: true }
         }
       }

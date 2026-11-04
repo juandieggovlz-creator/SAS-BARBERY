@@ -17,7 +17,28 @@ export async function GET() {
         role: true,
         isActive: true,
         businessId: true,
+        companyId: true,
         barberId: true,
+        company: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            maxBranches: true,
+            additionalBranchPrice: true,
+            plan: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                allowsMultiBranch: true
+              }
+            },
+            _count: {
+              select: { branches: true }
+            }
+          }
+        },
         business: {
           select: {
             id: true,
@@ -25,6 +46,8 @@ export async function GET() {
             slug: true,
             status: true,
             logo: true,
+            isMainBranch: true,
+            companyId: true,
             plan: {
               select: {
                 id: true,
@@ -51,6 +74,7 @@ export async function GET() {
       session: {
         role: session.role,
         businessId: session.businessId,
+        companyId: session.companyId || user?.companyId || null,
         barberId: session.barberId,
         isSupportMode: Boolean(session.superAdminId),
         superAdminId: session.superAdminId || null

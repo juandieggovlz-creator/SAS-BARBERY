@@ -10,8 +10,9 @@ const key = getJwtSecretKey()
 
 export interface SessionPayload {
   userId: string
-  role: 'SUPER_ADMIN' | 'OWNER' | 'BARBER'
+  role: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_ADMIN' | 'BARBER'
   businessId: string | null
+  companyId?: string | null
   barberId: string | null
   needsOnboarding?: boolean
   originalOwnerId?: string | null
@@ -34,8 +35,9 @@ export async function decrypt(token: string): Promise<SessionPayload | null> {
     })
     return {
       userId: payload.userId as string,
-      role: payload.role as 'SUPER_ADMIN' | 'OWNER' | 'BARBER',
+      role: payload.role as 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_ADMIN' | 'BARBER',
       businessId: (payload.businessId || payload.barbershopId || null) as string | null,
+      companyId: (payload.companyId || null) as string | null,
       barberId: (payload.barberId || null) as string | null,
       needsOnboarding: Boolean(payload.needsOnboarding),
       originalOwnerId: (payload.originalOwnerId || null) as string | null,
@@ -51,7 +53,7 @@ export async function decrypt(token: string): Promise<SessionPayload | null> {
  * Get active session.
  * Supports isolated owner_session, barber_session and superadmin checks.
  */
-export async function getSession(preferRole?: 'SUPER_ADMIN' | 'OWNER' | 'BARBER'): Promise<SessionPayload | null> {
+export async function getSession(preferRole?: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_ADMIN' | 'BARBER'): Promise<SessionPayload | null> {
   try {
     const cookieStore = await cookies()
 
@@ -85,15 +87,15 @@ export async function getSession(preferRole?: 'SUPER_ADMIN' | 'OWNER' | 'BARBER'
       return null
     }
 
-    // 3. Explicit preference for OWNER
-    if (preferRole === 'OWNER') {
+    // 3. Explicit preference for OWNER or BRANCH_ADMIN
+    if (preferRole === 'OWNER' || preferRole === 'BRANCH_ADMIN') {
       if (ownerCookie) {
         const dec = await decrypt(ownerCookie)
-        if (dec && (dec.role === 'OWNER' || dec.role === 'SUPER_ADMIN')) return dec
+        if (dec && (dec.role === 'OWNER' || dec.role === 'BRANCH_ADMIN' || dec.role === 'SUPER_ADMIN')) return dec
       }
       if (genericCookie) {
         const dec = await decrypt(genericCookie)
-        if (dec && (dec.role === 'OWNER' || dec.role === 'SUPER_ADMIN')) return dec
+        if (dec && (dec.role === 'OWNER' || dec.role === 'BRANCH_ADMIN' || dec.role === 'SUPER_ADMIN')) return dec
       }
       return null
     }
@@ -147,18 +149,20 @@ export async function getSession(preferRole?: 'SUPER_ADMIN' | 'OWNER' | 'BARBER'
  */
 export async function createSession(
   userId: string, 
-  role: 'SUPER_ADMIN' | 'OWNER' | 'BARBER', 
+  role: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_ADMIN' | 'BARBER', 
   barberId?: string | null, 
   businessId?: string | null,
   originalOwnerId?: string | null,
   superAdminId?: string | null,
-  needsOnboarding?: boolean
+  needsOnboarding?: boolean,
+  companyId?: string | null
 ) {
   const session = await encrypt({ 
     userId, 
     role, 
     barberId: barberId || null, 
     businessId: businessId || null,
+    companyId: companyId || null,
     needsOnboarding: Boolean(needsOnboarding),
     originalOwnerId: originalOwnerId || null,
     superAdminId: superAdminId || null
@@ -186,7 +190,7 @@ export async function createSession(
  * Delete session.
  * If onlyRole is specified, only that role's cookie is cleared.
  */
-export async function deleteSession(onlyRole?: 'OWNER' | 'BARBER' | 'SUPER_ADMIN') {
+export async function deleteSession(onlyRole?: 'OWNER' | 'BRANCH_ADMIN' | 'BARBER' | 'SUPER_ADMIN') {
   try {
     const cookieStore = await cookies()
     const clearOpts = {
@@ -204,7 +208,7 @@ export async function deleteSession(onlyRole?: 'OWNER' | 'BARBER' | 'SUPER_ADMIN
       return
     }
 
-    if (onlyRole === 'OWNER' || onlyRole === 'SUPER_ADMIN') {
+    if (onlyRole === 'OWNER' || onlyRole === 'BRANCH_ADMIN' || onlyRole === 'SUPER_ADMIN') {
       cookieStore.set('owner_session', '', clearOpts)
       cookieStore.delete('owner_session')
       cookieStore.set('session', '', clearOpts)

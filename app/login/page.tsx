@@ -78,7 +78,7 @@ export default function LoginPage() {
         
         if (data.user.role === 'SUPER_ADMIN') {
           window.location.href = '/superadmin/dashboard'
-        } else if (data.user.role === 'OWNER') {
+        } else if (data.user.role === 'OWNER' || data.user.role === 'BRANCH_ADMIN') {
           window.location.href = '/dashboard'
         } else {
           window.location.href = '/barber/dashboard'

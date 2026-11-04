@@ -142,7 +142,7 @@ export async function POST(request: Request) {
     }
 
     const isMatch = await bcrypt.compare(password, user.password)
-    
+
     if (!isMatch) {
       recordFailedAttempt(rateLimitKey)
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
@@ -161,7 +161,7 @@ export async function POST(request: Request) {
       await prisma.barber.update({
         where: { id: user.barberId },
         data: { status: 'ACTIVE' }
-      }).catch(() => {})
+      }).catch(() => { })
 
       // Ensure default schedules exist
       const existingSchedCount = await prisma.barberSchedule.count({
@@ -180,13 +180,22 @@ export async function POST(request: Request) {
         for (const s of defaultSchedules) {
           await prisma.barberSchedule.create({
             data: { barberId: user.barberId, ...s }
-          }).catch(() => {})
+          }).catch(() => { })
         }
       }
     }
 
     // Set JWT cookie session
-    const sessionJwt = await createSession(user.id, user.role, user.barberId || null, user.businessId || null)
+    const sessionJwt = await createSession(
+      user.id,
+      user.role,
+      user.barberId || null,
+      user.businessId || null,
+      null,
+      null,
+      false,
+      user.companyId || null
+    )
 
     const cookieOpts = {
       httpOnly: true,
@@ -197,12 +206,13 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       success: true,
-      user: { 
-        id: user.id, 
-        email: user.email, 
-        role: user.role, 
-        barberId: user.barberId, 
-        businessId: user.businessId 
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        barberId: user.barberId,
+        businessId: user.businessId,
+        companyId: user.companyId
       }
     })
 
