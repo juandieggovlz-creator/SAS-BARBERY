@@ -12,7 +12,7 @@ const steps = [
     title: 'Registra tu barbería',
     desc: 'Crea tu cuenta en menos de 2 minutos con el nombre de tu barbería, ciudad y contacto. No requieres tarjeta de crédito para iniciar.',
     badge: '2 minutos',
-    color: 'bg-blue-50 text-blue-600 border-blue-200'
+    color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
   },
   {
     step: '02',
@@ -20,7 +20,7 @@ const steps = [
     title: 'Configura servicios y barberos',
     desc: 'Ingresa los cortes y combos con sus precios, y añade a tu equipo de barberos con sus porcentajes de comisión acordados.',
     badge: 'Personalizable',
-    color: 'bg-purple-50 text-purple-600 border-purple-200'
+    color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
   },
   {
     step: '03',
@@ -28,7 +28,7 @@ const steps = [
     title: 'Comparte tu link de reservas',
     desc: 'Copia tu enlace web oficial y colócalo en tu bio de Instagram, estados de WhatsApp y Google Maps para que tus clientes agenden solos.',
     badge: '24/7 Autónomo',
-    color: 'bg-emerald-50 text-emerald-600 border-emerald-200'
+    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
   },
   {
     step: '04',
@@ -36,33 +36,39 @@ const steps = [
     title: 'Gestiona y haz crecer tu negocio',
     desc: 'Monitorea las citas en vivo, haz el cierre de caja diario sin descuadres y liquida comisiones transparentes con un solo clic.',
     badge: 'Control Total',
-    color: 'bg-amber-50 text-amber-600 border-amber-200'
+    color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
   }
 ]
 
 export default function HowItWorks() {
   return (
-    <section id="como-funciona" className="py-24 md:py-32 bg-zinc-50/70 border-t border-zinc-200/80 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+    <section id="como-funciona" className="py-20 md:py-28 relative overflow-hidden bg-zinc-50/50 dark:bg-[#070709] transition-colors duration-300" aria-labelledby="how-title">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-zinc-200/90 text-xs font-bold text-zinc-800 shadow-2xs">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center max-w-3xl mx-auto space-y-4 mb-14"
+        >
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-500" aria-hidden="true" />
             <span className="uppercase tracking-wider">Implementación Inmediata</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-zinc-950 tracking-tight">
+          <h2 id="how-title" className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-zinc-950 dark:text-white leading-[1.1]">
             Comienza a operar como una franquicia moderna en 4 pasos
           </h2>
 
-          <p className="text-base sm:text-lg text-zinc-600 font-normal leading-relaxed">
+          <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed">
             Sin instalaciones complejas ni capacitaciones interminables. BarberOS está listo para usar desde el primer día.
           </p>
-        </div>
+        </motion.div>
 
         {/* 4 Steps Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {steps.map((item, idx) => {
             const Icon = item.icon
             return (
@@ -70,53 +76,46 @@ export default function HowItWorks() {
                 key={idx}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-40px' }}
-                transition={{ duration: 0.5, delay: idx * 0.1 }}
-                className="bg-white rounded-3xl p-7 border border-zinc-200/90 shadow-sm hover:shadow-xl hover:border-zinc-300 transition-all flex flex-col justify-between space-y-6 relative group"
+                viewport={{ once: true, margin: '-50px' }}
+                transition={{ duration: 0.4, delay: idx * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ y: -4 }}
+                className="p-6 rounded-3xl bg-white dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
               >
                 <div className="space-y-4">
-                  {/* Step Number & Badge */}
                   <div className="flex items-center justify-between">
-                    <span className="text-3xl font-black text-zinc-300 font-mono group-hover:text-zinc-950 transition-colors">
+                    <span className="text-2xl font-black text-zinc-300 dark:text-zinc-700">
                       {item.step}
                     </span>
-                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200/80">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80">
                       {item.badge}
                     </span>
                   </div>
 
-                  {/* Icon */}
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${item.color}`}>
-                    <Icon className="w-6 h-6" />
+                    <Icon className="w-6 h-6" aria-hidden="true" />
                   </div>
 
-                  {/* Title & Description */}
-                  <h3 className="text-lg font-black text-zinc-950 tracking-tight">
+                  <h3 className="text-base sm:text-lg font-bold text-zinc-950 dark:text-white">
                     {item.title}
                   </h3>
 
-                  <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed font-normal">
+                  <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
                     {item.desc}
                   </p>
-                </div>
-
-                <div className="pt-2 flex items-center gap-1.5 text-xs font-bold text-emerald-600">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Configuración guiada</span>
                 </div>
               </motion.div>
             )
           })}
         </div>
 
-        {/* Quick CTA Banner */}
-        <div className="mt-14 text-center">
+        {/* Bottom CTA */}
+        <div className="mt-12 text-center">
           <Link
             href="/register"
-            className="inline-flex items-center gap-2.5 bg-zinc-950 hover:bg-zinc-800 text-white text-xs font-black uppercase tracking-wider px-8 py-4 rounded-2xl shadow-xl shadow-zinc-950/15 transition-all active:scale-95 group"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-zinc-950 text-xs sm:text-sm font-black uppercase tracking-wider shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all"
           >
-            <span>Crear mi Barbería en 2 Minutos</span>
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            <span>Crear Mi Cuenta Gratis Ahora</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 

@@ -17,11 +17,18 @@ interface Props {
 }
 
 const ALL_BRANCHES_ID = '__all__'
+const COOKIE_NAME = 'active_branch_id'
 
 export function getActiveBranchId(): string | null {
   if (typeof window === 'undefined') return null
   try {
-    return sessionStorage.getItem('active_branch_id') || null
+    const fromSession = sessionStorage.getItem('active_branch_id')
+    if (fromSession && fromSession !== ALL_BRANCHES_ID) return fromSession
+
+    // Fallback: leer de document.cookie
+    const match = document.cookie.match(new RegExp('(^|;\\s*)' + COOKIE_NAME + '=([^;]*)'))
+    const val = match ? decodeURIComponent(match[2]) : null
+    return val && val !== ALL_BRANCHES_ID ? val : null
   } catch {
     return null
   }
@@ -32,10 +39,14 @@ export function setActiveBranchId(id: string | null) {
   try {
     if (!id || id === ALL_BRANCHES_ID) {
       sessionStorage.removeItem('active_branch_id')
+      // Expirar cookie
+      document.cookie = `${COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax`
     } else {
       sessionStorage.setItem('active_branch_id', id)
+      // Guardar cookie por 30 días para que Next.js Server Components y API Routes la reciban
+      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(id)}; path=/; max-age=2592000; SameSite=Lax`
     }
-    // Disparar evento para que el resto del layout reaccione
+    // Disparar evento para que el resto del layout y componentes reaccionen
     window.dispatchEvent(new CustomEvent('branch-changed', { detail: { branchId: id } }))
   } catch {
     // ignore
@@ -49,14 +60,14 @@ export default function BranchSelector({ visible }: Props) {
   const [activeBranchId, setActiveBranchIdState] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Cargar desde sessionStorage al montar
+  // Cargar sede activa al montar
   useEffect(() => {
     setActiveBranchIdState(getActiveBranchId())
   }, [])
 
   // Cargar lista de sedes cuando el dropdown se abre
   const fetchBranches = useCallback(async () => {
-    if (branches.length > 0) return // ya cargadas
+    if (branches.length > 0) return
     try {
       setLoading(true)
       const res = await fetch('/api/owner/branches')
@@ -169,4 +180,3 @@ export default function BranchSelector({ visible }: Props) {
     </div>
   )
 }
-

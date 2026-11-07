@@ -4,7 +4,7 @@ import React from 'react'
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
 import TrustedBy from '@/components/landing/TrustedBy'
-import SystemCarousel from '@/components/landing/SystemCarousel'
+import ScrollExpandShowcase from '@/components/landing/ScrollExpandShowcase'
 import ProblemSolution from '@/components/landing/ProblemSolution'
 import FeatureBento from '@/components/landing/FeatureBento'
 import WebpageShowcase from '@/components/landing/WebpageShowcase'
@@ -18,7 +18,7 @@ import Footer from '@/components/landing/Footer'
 
 export default function LandingPage() {
   return (
-    <div className="landing-page-root min-h-screen bg-white text-zinc-900 font-sans selection:bg-zinc-950 selection:text-white antialiased overflow-x-hidden transition-colors duration-200">
+    <div className="landing-page-root min-h-screen bg-white dark:bg-[#070709] text-zinc-900 dark:text-zinc-100 font-sans selection:bg-amber-500 selection:text-zinc-950 antialiased overflow-x-hidden transition-colors duration-200">
       {/* 1. Floating Glassmorphism Navbar */}
       <Navbar />
 
@@ -28,8 +28,8 @@ export default function LandingPage() {
       {/* 2.5 Social Proof: Stats & Integrations Banner */}
       <TrustedBy />
 
-      {/* 3. System Carousel: Todo tu negocio en una sola plataforma */}
-      <SystemCarousel />
+      {/* 3. GSAP ScrollTrigger Showcase: Expansión interactiva en scroll */}
+      <ScrollExpandShowcase />
 
       {/* 4. Problem vs Solution: Traditional chaos vs BarberOS order */}
       <ProblemSolution />

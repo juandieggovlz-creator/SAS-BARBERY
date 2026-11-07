@@ -5,28 +5,28 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
-import { 
-  ArrowRight, 
-  ArrowLeft, 
-  Check, 
-  CheckCircle2, 
-  Building2, 
-  Mail, 
-  Lock, 
-  Sparkles, 
-  User, 
-  Phone, 
-  MapPin, 
-  Upload, 
-  X, 
-  Palette, 
-  Clock, 
-  Copy, 
-  Plus, 
-  Trash2, 
-  Sun, 
-  Moon, 
-  DollarSign, 
+import {
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  CheckCircle2,
+  Building2,
+  Mail,
+  Lock,
+  Sparkles,
+  User,
+  Phone,
+  MapPin,
+  Upload,
+  X,
+  Palette,
+  Clock,
+  Copy,
+  Plus,
+  Trash2,
+  Sun,
+  Moon,
+  DollarSign,
   ExternalLink,
   ShieldCheck,
   Scissors
@@ -330,154 +330,167 @@ export default function RegisterWizardPage() {
   }
 
   const stepsList = [
-    { num: 1, title: 'Cuenta' },
-    { num: 2, title: 'Negocio' },
-    { num: 3, title: 'Estilo' },
-    { num: 4, title: 'Horarios' },
-    { num: 5, title: 'Servicios' },
-    { num: 6, title: 'Barbero' },
-    { num: 7, title: '¡Listo!' },
+    { num: 1, title: 'Cuenta', icon: User },
+    { num: 2, title: 'Negocio', icon: Building2 },
+    { num: 3, title: 'Estilo', icon: Palette },
+    { num: 4, title: 'Horarios', icon: Clock },
+    { num: 5, title: 'Servicios', icon: Scissors },
+    { num: 6, title: 'Barbero', icon: User },
+    { num: 7, title: '¡Listo!', icon: CheckCircle2 },
   ]
 
-  // ── Design tokens for dark/light theming ──────────────────────────────────
-  const cx = {
-    label:        isDark ? 'block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2' : 'block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-2',
-    input:        isDark
-      ? 'w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-sm font-medium text-zinc-100 placeholder:text-zinc-500 focus:bg-zinc-750 focus:outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 transition-all'
-      : 'w-full pl-10 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:bg-white focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/5 transition-all',
-    select:       isDark
-      ? 'w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-sm font-medium text-zinc-100 focus:outline-none focus:border-zinc-500 transition-all'
-      : 'w-full pl-10 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium text-zinc-900 focus:outline-none focus:border-zinc-900 transition-all',
-    badge:        isDark ? 'inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-[10px] font-black uppercase tracking-wider text-zinc-400' : 'inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-[10px] font-black uppercase tracking-wider text-zinc-700',
-    heading:      isDark ? 'text-2xl sm:text-3xl font-black text-white tracking-tight' : 'text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight',
-    subtext:      isDark ? 'text-sm text-zinc-400' : 'text-sm text-zinc-500',
-    card:         isDark ? 'rounded-2xl border border-zinc-700/80 bg-zinc-800/60 p-5' : 'rounded-2xl border border-zinc-200 bg-zinc-50 p-5',
-    divider:      isDark ? 'border-zinc-700/60' : 'border-zinc-200',
-    btnPrimary:   isDark
-      ? 'bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs uppercase tracking-wider px-8 py-3.5 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer'
-      : 'bg-zinc-950 hover:bg-zinc-800 text-white font-bold text-xs uppercase tracking-wider px-8 py-3.5 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer',
-    btnSecondary: isDark
-      ? 'flex items-center gap-2 text-zinc-400 hover:text-zinc-200 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer'
-      : 'flex items-center gap-2 text-zinc-500 hover:text-zinc-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer',
-    sectionTitle: isDark ? 'text-xs font-black uppercase tracking-wider text-zinc-400' : 'text-xs font-black uppercase tracking-wider text-zinc-500',
-    itemCard:     isDark ? 'flex items-center justify-between p-3 rounded-xl bg-zinc-800 border border-zinc-700' : 'flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-200',
-    textPrimary:  isDark ? 'text-white' : 'text-zinc-950',
-    textMuted:    isDark ? 'text-zinc-400' : 'text-zinc-500',
-    inputBase:    isDark
-      ? 'py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-sm font-medium text-zinc-100 placeholder:text-zinc-500 focus:bg-zinc-750 focus:outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 transition-all'
-      : 'py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:bg-white focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/5 transition-all',
-  }
-
   return (
-    <div className={`min-h-screen flex flex-col justify-between font-sans transition-colors duration-300 ${
-      isDark
-        ? 'bg-zinc-950 selection:bg-white selection:text-zinc-950'
-        : 'bg-zinc-50 selection:bg-zinc-900 selection:text-white'
-    }`}>
+    <div className="auth-page min-h-screen flex flex-col justify-between">
+      {/* Animated background gradient orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-accent/10 dark:bg-accent/15 rounded-full blur-3xl"
+          style={{ filter: 'blur(120px)' }}
+        />
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 1.4, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-primary/10 dark:bg-primary/15 rounded-full blur-3xl"
+          style={{ filter: 'blur(120px)' }}
+        />
+      </div>
 
       {/* Top Navbar */}
-      <header className={`border-b sticky top-0 z-30 px-6 py-4 backdrop-blur-md transition-colors duration-300 ${
-        isDark
-          ? 'border-zinc-800/80 bg-zinc-950/90'
-          : 'border-zinc-200/80 bg-white/80'
-      }`}>
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform overflow-hidden relative ${
-              isDark ? 'bg-white' : 'bg-zinc-950'
-            }`}>
-              <Image src="/logo.png" alt="BarberOS" fill sizes="32px" className="object-cover" />
-            </div>
-            <span className={`text-xl font-black tracking-tight uppercase ${
-              isDark ? 'text-white' : 'text-zinc-950'
-            }`}>
-              Barber<span className={`font-light ${ isDark ? 'text-zinc-500' : 'text-zinc-400' }`}>OS</span>
-            </span>
-          </Link>
+      <motion.header
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="relative z-10 border-b sticky top-0 backdrop-blur-md transition-colors duration-300 border-border-subtle bg-bg-canvas/80"
+      >
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            whileHover={{ scale: 1.02 }}
+          >
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <motion.div
+                whileHover={{ scale: 1.05, rotate: 3 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                className="w-9 h-9 rounded-xl overflow-hidden shadow-md shrink-0 bg-gradient-to-br from-accent to-primary"
+              >
+                <Image src="/logo.png" alt="BarberOS" fill sizes="36px" className="object-cover" />
+              </motion.div>
+              <span className="text-xl font-black tracking-tight text-text-primary uppercase">
+                Barber<span className="font-light text-text-tertiary">OS</span>
+              </span>
+            </Link>
+          </motion.div>
 
-          <div className="flex items-center gap-4">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="flex items-center gap-4"
+          >
             {/* Theme Toggle */}
-            <button
+            <motion.button
               onClick={() => setPageTheme(isDark ? 'light' : 'dark')}
               title={isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 ${
-                isDark
-                  ? 'bg-zinc-800 text-amber-400 hover:bg-zinc-700 border border-zinc-700'
-                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border border-zinc-200'
-              }`}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-10 h-10 rounded-xl glass border-border-subtle flex items-center justify-center text-text-tertiary hover:text-accent transition-colors"
             >
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </motion.button>
 
-            <div className={`text-xs ${ isDark ? 'text-zinc-400' : 'text-zinc-500' }`}>
+            <motion.div className="text-xs text-text-tertiary">
               ¿Ya tienes cuenta?{' '}
-              <Link href="/login" className={`font-bold hover:underline ${
-                isDark ? 'text-white' : 'text-zinc-950'
-              }`}>
+              <motion.a
+                href="/login"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="font-black text-text-primary hover:underline transition-colors"
+              >
                 Iniciar sesión
-              </Link>
-            </div>
-          </div>
+              </motion.a>
+            </motion.div>
+          </motion.div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Wizard Progress Bar */}
-      <div className={`w-full border-b py-4 px-4 sm:px-6 transition-colors duration-300 ${
-        isDark ? 'bg-zinc-900/80 border-zinc-800/80' : 'bg-white border-zinc-200/80'
-      }`}>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.25 }}
+        className="relative z-10 border-b py-4 px-4 sm:px-6 transition-colors duration-300 border-border-subtle bg-bg-canvas/80 backdrop-blur-md"
+      >
         <div className="max-w-3xl mx-auto">
           {/* Steps Breadcrumbs */}
           <div className="flex items-center justify-between mb-3">
-            {stepsList.map((s) => (
-              <div key={s.num} className="flex flex-col items-center">
-                <div 
-                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+            {stepsList.map((s, idx) => (
+              <motion.div
+                key={s.num}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.3 + idx * 0.05 }}
+                className="flex flex-col items-center"
+              >
+                <motion.div
+                  layout
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                     step > s.num
-                      ? 'bg-emerald-600 text-white shadow-xs'
+                      ? 'bg-success text-text-inverse shadow-sm'
                       : step === s.num
-                      ? isDark
-                        ? 'bg-white text-zinc-950 ring-4 ring-white/10 shadow-sm'
-                        : 'bg-zinc-950 text-white ring-4 ring-zinc-950/10 shadow-sm'
-                      : isDark
-                        ? 'bg-zinc-800 text-zinc-500 border border-zinc-700'
-                        : 'bg-zinc-100 text-zinc-400 border border-zinc-200'
+                      ? 'bg-accent text-text-inverse ring-4 ring-accent/20 shadow-md'
+                      : 'bg-bg-subtle text-text-muted border border-border-subtle'
                   }`}
                 >
-                  {step > s.num ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : s.num}
-                </div>
-                <span className={`text-[10px] font-bold mt-1 hidden sm:block ${
-                  step === s.num
-                    ? isDark ? 'text-white' : 'text-zinc-950'
-                    : 'text-zinc-500'
-                }`}>
+                  {step > s.num ? <Check className="w-4 h-4 stroke-[3]" /> : <s.icon className="w-4 h-4" aria-hidden="true" />}
+                </motion.div>
+                <motion.span
+                  className={`text-[10px] font-bold mt-1 hidden sm:block ${
+                    step === s.num
+                      ? 'text-text-primary'
+                      : step > s.num
+                      ? 'text-success'
+                      : 'text-text-muted'
+                  }`}
+                >
                   {s.title}
-                </span>
-              </div>
+                </motion.span>
+              </motion.div>
             ))}
           </div>
 
           {/* Progress bar line */}
-          <div className={`w-full h-1.5 rounded-full overflow-hidden ${ isDark ? 'bg-zinc-800' : 'bg-zinc-100' }`}>
-            <motion.div 
-              className={`h-full rounded-full ${ isDark ? 'bg-white' : 'bg-zinc-950' }`}
+          <div className="w-full h-1.5 rounded-full overflow-hidden bg-bg-subtle">
+            <motion.div
+              layout
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className="h-full rounded-full bg-accent"
               initial={{ width: '0%' }}
               animate={{ width: `${((step - 1) / (stepsList.length - 1)) * 100}%` }}
-              transition={{ duration: 0.35, ease: 'easeOut' }}
             />
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Wizard Card */}
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12 flex items-center justify-center">
-        <div className={`w-full rounded-3xl border shadow-xl p-6 sm:p-10 relative overflow-hidden transition-colors duration-300 ${
-          isDark
-            ? 'bg-zinc-900 border-zinc-800/80 shadow-black/40'
-            : 'bg-white border-zinc-200/90'
-        }`}>
+      <main className="relative z-10 flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full card-elevated rounded-[36px] p-6 sm:p-10 relative overflow-hidden"
+        >
+          {/* Decorative accent line at top */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent via-primary to-accent" />
 
           <AnimatePresence mode="wait">
-            
             {/* ══════════════════════════════════════════════════════
                 PASO 1: CREAR CUENTA DE PROPIETARIO
             ══════════════════════════════════════════════════════ */}
@@ -490,188 +503,237 @@ export default function RegisterWizardPage() {
                 transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="space-y-2">
-                  <div className={cx.badge}>
-                    <Sparkles className="w-3 h-3 text-amber-500" />
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                  className="space-y-2"
+                >
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass border-border-subtle text-[10px] font-black uppercase tracking-wider text-text-secondary"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden="true" />
                     <span>Paso 1 de 6 · Cuenta de Administrador</span>
-                  </div>
-                  <h2 className={cx.heading}>
+                  </motion.div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-text-primary tracking-tight">
                     Crea tu cuenta y comienza a gestionar tu barbería
                   </h2>
-                  <p className={cx.subtext}>
+                  <p className="text-sm text-text-secondary">
                     Configura tu negocio en pocos minutos. Tendrás control absoluto de tus ingresos y equipo.
                   </p>
-                </div>
+                </motion.div>
 
                 {/* Google Quick Registration */}
-                <div className="space-y-3">
-                  <a
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
+                  className="space-y-3"
+                >
+                  <motion.a
                     href="/api/auth/google"
-                    className={`group relative overflow-hidden w-full py-3.5 px-5 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.01] active:scale-[0.98] border shadow-xs cursor-pointer ${
-                      isDark
-                        ? 'bg-zinc-900/90 hover:bg-zinc-850 text-white border-zinc-800 hover:border-zinc-700 hover:shadow-[0_0_25px_rgba(255,255,255,0.06)]'
-                        : 'bg-white hover:bg-zinc-50 text-zinc-900 border-zinc-200 hover:border-zinc-300 hover:shadow-md'
-                    }`}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group relative overflow-hidden w-full py-4 px-5 rounded-2xl btn-secondary flex items-center justify-center gap-3 cursor-pointer"
                   >
                     {/* Sweep light effect on hover */}
-                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+                    <motion.div
+                      initial={{ x: '-100%' }}
+                      whileHover={{ x: '100%' }}
+                      transition={{ duration: 1 }}
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 dark:via-white/5 to-transparent pointer-events-none"
+                    />
 
-                    <div className="w-5 h-5 flex items-center justify-center shrink-0 group-hover:scale-115 transition-transform duration-300 ease-out">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24">
-                        <path
-                          fill="#4285F4"
-                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                        />
+                    <motion.div
+                      whileHover={{ scale: 1.15 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                      className="w-5 h-5 flex items-center justify-center shrink-0"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                       </svg>
-                    </div>
+                    </motion.div>
 
-                    <span className="tracking-wider group-hover:text-amber-400 dark:group-hover:text-amber-300 transition-colors duration-200">
+                    <motion.span
+                      whileHover={{ color: 'var(--accent)' }}
+                      transition={{ duration: 0.2 }}
+                      className="group-hover:text-accent transition-colors duration-200 font-bold text-xs uppercase tracking-wider"
+                    >
                       Crear cuenta con Google
-                    </span>
+                    </motion.span>
 
-                    <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-zinc-400 group-hover:text-amber-300" />
-                  </a>
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      whileHover={{ opacity: 1, x: 0 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                      className="text-text-muted group-hover:text-accent transition-colors duration-300"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </motion.div>
+                  </motion.a>
 
                   <div className="relative flex items-center justify-center my-3">
-                    <div className={`w-full border-t ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`} />
-                    <span className={`px-3 text-[10px] font-bold uppercase tracking-wider absolute ${
-                      isDark ? 'bg-zinc-900 text-zinc-500' : 'bg-white text-zinc-400'
-                    }`}>
+                    <div className="w-full border-t border-border-subtle" />
+                    <span className="px-3 text-[10px] font-black uppercase tracking-wider bg-bg-canvas text-text-muted absolute">
                       o completa tus datos
                     </span>
                   </div>
-                </div>
+                </motion.div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                >
                   {/* Nombre Completo */}
-                  <div className="sm:col-span-2">
-                    <label className={cx.label}>
+                  <motion.div className="sm:col-span-2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.25 }}>
+                    <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-2">
                       Nombre Completo *
                     </label>
                     <div className="relative">
-                      <User className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <motion.div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                        <User className="w-4.5 h-4.5" aria-hidden="true" />
+                      </motion.div>
                       <input
                         type="text"
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="Ej. Juan Pérez"
-                        className={cx.input}
+                        className="input-base pl-11 pr-4"
+                        autoComplete="name"
                       />
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Correo Electrónico */}
-                  <div className="sm:col-span-2">
-                    <label className={cx.label}>
+                  <motion.div className="sm:col-span-2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.3 }}>
+                    <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-2">
                       Correo Electrónico *
                     </label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <motion.div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                        <Mail className="w-4.5 h-4.5" aria-hidden="true" />
+                      </motion.div>
                       <input
                         type="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="juan@barberia.com"
-                        className={cx.input}
+                        className="input-base pl-11 pr-4"
+                        autoComplete="email"
                       />
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Contraseña */}
-                  <div>
-                    <label className={cx.label}>
+                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.35 }}>
+                    <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-2">
                       Contraseña * (mínimo 6 car.)
                     </label>
                     <div className="relative">
-                      <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <motion.div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                        <Lock className="w-4.5 h-4.5" aria-hidden="true" />
+                      </motion.div>
                       <input
                         type="password"
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className={cx.input}
+                        className="input-base pl-11 pr-4"
+                        autoComplete="new-password"
                       />
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Confirmar Contraseña */}
-                  <div>
-                    <label className={cx.label}>
+                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.4 }}>
+                    <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-2">
                       Confirmar Contraseña *
                     </label>
                     <div className="relative">
-                      <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <motion.div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                        <Lock className="w-4.5 h-4.5" aria-hidden="true" />
+                      </motion.div>
                       <input
                         type="password"
                         required
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className={cx.input}
+                        className="input-base pl-11 pr-4"
+                        autoComplete="new-password"
                       />
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Casilla explícita de aceptación de Términos y Privacidad */}
-                  <div className="sm:col-span-2 pt-2">
+                  <motion.div className="sm:col-span-2 pt-2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.45 }}>
                     <label className="flex items-start gap-3 cursor-pointer select-none group">
-                      <input
+                      <motion.input
                         type="checkbox"
                         checked={acceptedTerms}
                         onChange={(e) => setAcceptedTerms(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-amber-500 focus:ring-amber-500/20 cursor-pointer shrink-0"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="mt-0.5 w-4 h-4 rounded border-border-default bg-bg-subtle text-accent focus:ring-2 focus:ring-accent/20 accent-accent cursor-pointer shrink-0"
                       />
-                      <span className={`text-xs leading-relaxed ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                      <span className="text-xs leading-relaxed text-text-secondary">
                         He leído y acepto expresamente los{' '}
-                        <Link 
-                          href="/terminos-y-condiciones" 
-                          target="_blank" 
-                          className="font-bold underline underline-offset-2 text-amber-400 hover:text-amber-300 transition-colors"
+                        <Link
+                          href="/terminos-y-condiciones"
+                          target="_blank"
+                          className="font-bold underline underline-offset-2 text-accent hover:text-accent/80 transition-colors"
                         >
                           Términos y Condiciones
                         </Link>{' '}
                         y la{' '}
-                        <Link 
-                          href="/politica-de-privacidad" 
-                          target="_blank" 
-                          className="font-bold underline underline-offset-2 text-amber-400 hover:text-amber-300 transition-colors"
+                        <Link
+                          href="/politica-de-privacidad"
+                          target="_blank"
+                          className="font-bold underline underline-offset-2 text-accent hover:text-accent/80 transition-colors"
                         >
                           Política de Privacidad
                         </Link>{' '}
                         de BarberOS.
                       </span>
                     </label>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
 
-                <div className="pt-4 flex justify-end">
-                  <button
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.5 }}
+                  className="pt-4 flex justify-end"
+                >
+                  <motion.button
                     type="button"
                     onClick={handleNext}
-                    className={cx.btnPrimary}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Continuar</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
+                    <motion.span
+                      whileHover={{ x: 4 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                    >
+                      <ArrowRight className="w-4.5 h-4.5" aria-hidden="true" />
+                    </motion.span>
+                  </motion.button>
+                </motion.div>
               </motion.div>
             )}
-
 
             {/* ══════════════════════════════════════════════════════
                 PASO 2: INFORMACIÓN DE LA BARBERÍA & LOGO
@@ -685,41 +747,58 @@ export default function RegisterWizardPage() {
                 transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="space-y-2">
-                  <div className={cx.badge}>
-                    <Building2 className="w-3 h-3 text-blue-600" />
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                  className="space-y-2"
+                >
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass border-border-subtle text-[10px] font-black uppercase tracking-wider text-text-secondary"
+                  >
+                    <Building2 className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
                     <span>Paso 2 de 6 · Información del Negocio</span>
-                  </div>
-                  <h2 className={cx.heading}>
+                  </motion.div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-text-primary tracking-tight">
                     Cuéntanos sobre tu barbería
                   </h2>
-                  <p className={cx.subtext}>
+                  <p className="text-sm text-text-secondary">
                     Estos datos aparecerán en tu portal de reservas online y en los comprobantes de tus clientes.
                   </p>
-                </div>
+                </motion.div>
 
                 {/* Subir Logo (File Upload Only) */}
-                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-center gap-4 transition-colors ${
-                  isDark
-                    ? 'border-zinc-800 bg-zinc-900/90'
-                    : 'border-zinc-200 bg-zinc-50/70'
-                }`}>
-                  <div className={`relative w-20 h-20 rounded-2xl border flex items-center justify-center overflow-hidden shrink-0 shadow-sm ${
-                    isDark
-                      ? 'bg-zinc-800 border-zinc-700'
-                      : 'bg-white border-zinc-200'
-                  }`}>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
+                  className="p-4 rounded-2xl glass border-border-subtle flex flex-col sm:flex-row items-center gap-4"
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.05, rotate: 2 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                    className="relative w-20 h-20 rounded-2xl border border-border-subtle flex items-center justify-center overflow-hidden shrink-0 shadow-sm bg-bg-subtle"
+                  >
                     {logoPreview ? (
                       <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
                     ) : (
-                      <Scissors className={`w-8 h-8 ${isDark ? 'text-zinc-600' : 'text-zinc-300'}`} />
+                      <Scissors className="w-8 h-8 text-text-muted" aria-hidden="true" />
                     )}
-                  </div>
-                  <div className="flex-1 text-center sm:text-left">
-                    <p className={`text-xs font-black mb-1 ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                    className="flex-1 text-center sm:text-left"
+                  >
+                    <p className="text-sm font-black mb-1 text-text-primary">
                       Logo Oficial de la Barbería
                     </p>
-                    <p className={`text-[11px] mb-3 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    <p className="text-xs mb-3 text-text-tertiary">
                       Sube un archivo PNG, JPG o SVG (máximo 5MB). Se verá en tu página web.
                     </p>
                     <div className="flex items-center justify-center sm:justify-start gap-2">
@@ -730,94 +809,108 @@ export default function RegisterWizardPage() {
                         accept="image/*"
                         className="hidden"
                       />
-                      <button
+                      <motion.button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer border ${
-                          isDark
-                            ? 'bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-100'
-                            : 'bg-white hover:bg-zinc-100 border-zinc-300 text-zinc-800'
-                        }`}
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer border border-border-subtle bg-surface-2 hover:bg-surface-3 text-text-primary"
                       >
-                        <Upload className="w-3.5 h-3.5" />
+                        <Upload className="w-3.5 h-3.5" aria-hidden="true" />
                         <span>{logoPreview ? 'Cambiar logo' : 'Subir archivo de logo'}</span>
-                      </button>
+                      </motion.button>
                       {logoPreview && (
-                        <button
+                        <motion.button
                           type="button"
                           onClick={() => setLogoPreview(null)}
-                          className={`p-2 rounded-xl text-rose-500 transition-colors ${
-                            isDark ? 'hover:bg-rose-500/10' : 'hover:bg-rose-50'
-                          }`}
+                          whileHover={{ scale: 1.1, rotate: 180 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 rounded-xl text-error hover:bg-error-bg transition-colors"
                           title="Eliminar logo"
                         >
-                          <X className="w-4 h-4" />
-                        </button>
+                          <X className="w-4 h-4" aria-hidden="true" />
+                        </motion.button>
                       )}
                     </div>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                >
                   {/* Nombre Barbería */}
-                  <div className="sm:col-span-2">
-                    <label className={cx.label}>
+                  <motion.div className="sm:col-span-2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.25 }}>
+                    <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-2">
                       Nombre de la Barbería *
                     </label>
                     <div className="relative">
-                      <Building2 className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <motion.div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                        <Building2 className="w-4.5 h-4.5" aria-hidden="true" />
+                      </motion.div>
                       <input
                         type="text"
                         required
                         value={businessName}
                         onChange={(e) => handleBusinessNameChange(e.target.value)}
                         placeholder="Ej. Barbería Elite SAS"
-                        className={cx.input}
+                        className="input-base pl-11 pr-4"
                       />
                     </div>
                     {slug && (
-                      <p className="mt-1 text-[11px] font-mono text-zinc-500">
-                        Tu enlace web: <span className="font-bold text-zinc-900">barberos.app/b/{slug}</span>
-                      </p>
+                      <motion.p
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.1 }}
+                        className="mt-1 text-xs font-mono text-text-muted"
+                      >
+                        Tu enlace web: <span className="font-bold text-text-primary">barberos.app/b/{slug}</span>
+                      </motion.p>
                     )}
-                  </div>
+                  </motion.div>
 
                   {/* Teléfono */}
-                  <div>
-                    <label className={cx.label}>
+                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.3 }}>
+                    <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-2">
                       Teléfono de Contacto
                     </label>
                     <div className="relative">
-                      <Phone className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <motion.div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                        <Phone className="w-4.5 h-4.5" aria-hidden="true" />
+                      </motion.div>
                       <input
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="+57 300 123 4567"
-                        className={cx.input}
+                        className="input-base pl-11 pr-4"
                       />
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* WhatsApp */}
-                  <div>
-                    <label className={cx.label}>
+                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.35 }}>
+                    <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-2">
                       WhatsApp para Reservas
                     </label>
                     <div className="relative">
-                      <Phone className="w-4 h-4 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <motion.div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                        <Phone className="w-4.5 h-4.5" aria-hidden="true" />
+                      </motion.div>
                       <input
                         type="tel"
                         value={whatsapp}
                         onChange={(e) => setWhatsapp(e.target.value)}
                         placeholder="+57 324 206 3393"
-                        className={cx.input}
+                        className="input-base pl-11 pr-4"
                       />
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Selector Inteligente de Ubicación (Departamento y Ciudad) */}
-                  <div className="sm:col-span-2">
+                  <motion.div className="sm:col-span-2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.4 }}>
                     <LocationSelector
                       department={department}
                       city={city}
@@ -826,45 +919,63 @@ export default function RegisterWizardPage() {
                       isDark={isDark}
                       required={true}
                     />
-                  </div>
+                  </motion.div>
 
                   {/* Dirección */}
-                  <div className="sm:col-span-2">
-                    <label className={cx.label}>
+                  <motion.div className="sm:col-span-2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.45 }}>
+                    <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-2">
                       Dirección Física
                     </label>
                     <div className="relative">
-                      <MapPin className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <motion.div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                        <MapPin className="w-4.5 h-4.5" aria-hidden="true" />
+                      </motion.div>
                       <input
                         type="text"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         placeholder="Ej. Calle 85 # 14-20, Local 102"
-                        className={cx.input}
+                        className="input-base pl-11 pr-4"
                       />
                     </div>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
 
-                <div className="pt-4 flex items-center justify-between">
-                  <button
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.5 }}
+                  className="pt-4 flex items-center justify-between"
+                >
+                  <motion.button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="px-6 py-3 rounded-xl border border-zinc-200 text-zinc-700 font-bold text-xs uppercase tracking-wider hover:bg-zinc-100 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="px-6 py-3 rounded-xl border border-border-default text-text-secondary font-bold text-xs uppercase tracking-wider hover:bg-bg-subtle transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <motion.span whileHover={{ x: -4 }} transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
+                      <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                    </motion.span>
                     <span>Atrás</span>
-                  </button>
+                  </motion.button>
 
-                  <button
+                  <motion.button
                     type="button"
                     onClick={handleNext}
-                    className={cx.btnPrimary}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Continuar</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
+                    <motion.span
+                      whileHover={{ x: 4 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                    >
+                      <ArrowRight className="w-4.5 h-4.5" aria-hidden="true" />
+                    </motion.span>
+                  </motion.button>
+                </motion.div>
               </motion.div>
             )}
 
@@ -880,102 +991,178 @@ export default function RegisterWizardPage() {
                 transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="space-y-2">
-                  <div className={cx.badge}>
-                    <Palette className="w-3 h-3 text-purple-600" />
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                  className="space-y-2"
+                >
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass border-border-subtle text-[10px] font-black uppercase tracking-wider text-text-secondary"
+                  >
+                    <Palette className="w-3.5 h-3.5 text-purple-500" aria-hidden="true" />
                     <span>Paso 3 de 6 · Personalización Inicial</span>
-                  </div>
-                  <h2 className={cx.heading}>
+                  </motion.div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-text-primary tracking-tight">
                     Personaliza tu espacio
                   </h2>
-                  <p className={cx.subtext}>
+                  <p className="text-sm text-text-secondary">
                     Ajusta la paleta de colores de tu sistema y la moneda para facturación.
                   </p>
-                </div>
+                </motion.div>
 
                 {/* Dashboard Theme Toggle */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
+                >
+                  <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-3">
                     Tema del Dashboard
                   </label>
                   <div className="grid grid-cols-2 gap-4">
-                    <button
+                    <motion.button
                       type="button"
                       onClick={() => setDashboardTheme('light')}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      layout
                       className={`p-4 rounded-2xl border-2 text-left flex items-center justify-between transition-all cursor-pointer ${
                         dashboardTheme === 'light'
-                          ? 'border-zinc-950 bg-zinc-50/80 shadow-xs'
-                          : 'border-zinc-200 hover:border-zinc-300 bg-white'
+                          ? 'border-accent bg-accent/5 shadow-sm'
+                          : 'border-border-subtle hover:border-border-strong bg-surface-1'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200/60">
-                          <Sun className="w-5 h-5" />
-                        </div>
+                      <motion.div className="flex items-center gap-3">
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center border border-accent/20"
+                        >
+                          <Sun className="w-5 h-5" aria-hidden="true" />
+                        </motion.div>
                         <div>
-                          <p className="text-xs font-black text-zinc-900">Modo Claro</p>
-                          <p className="text-[10px] text-zinc-500">Fondo blanco profesional</p>
+                          <p className="text-xs font-black text-text-primary">Modo Claro</p>
+                          <p className="text-[10px] text-text-tertiary">Fondo blanco profesional</p>
                         </div>
-                      </div>
-                      {dashboardTheme === 'light' && <CheckCircle2 className="w-5 h-5 text-zinc-950" />}
-                    </button>
+                      </motion.div>
+                      <AnimatePresence>
+                        {dashboardTheme === 'light' && (
+                          <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            exit={{ scale: 0, rotate: 180 }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          >
+                            <CheckCircle2 className="w-5 h-5 text-accent" aria-hidden="true" />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
 
-                    <button
+                    <motion.button
                       type="button"
                       onClick={() => setDashboardTheme('dark')}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      layout
                       className={`p-4 rounded-2xl border-2 text-left flex items-center justify-between transition-all cursor-pointer ${
                         dashboardTheme === 'dark'
-                          ? 'border-zinc-950 bg-zinc-900 text-white shadow-xs'
-                          : 'border-zinc-200 hover:border-zinc-300 bg-white'
+                          ? 'border-accent bg-accent/5 shadow-sm'
+                          : 'border-border-subtle hover:border-border-strong bg-surface-1'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-zinc-800 text-white flex items-center justify-center border border-zinc-700">
-                          <Moon className="w-5 h-5" />
-                        </div>
+                      <motion.div className="flex items-center gap-3">
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          className="w-9 h-9 rounded-xl bg-text-primary/10 text-text-primary flex items-center justify-center border border-border-subtle"
+                        >
+                          <Moon className="w-5 h-5" aria-hidden="true" />
+                        </motion.div>
                         <div>
-                          <p className={`text-xs font-black ${dashboardTheme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Modo Oscuro</p>
-                          <p className={`text-[10px] ${dashboardTheme === 'dark' ? 'text-zinc-400' : 'text-zinc-500'}`}>Estilo oscuro nocturno</p>
+                          <p className={`text-xs font-black ${dashboardTheme === 'dark' ? 'text-text-primary' : 'text-text-secondary'}`}>Modo Oscuro</p>
+                          <p className={`text-[10px] ${dashboardTheme === 'dark' ? 'text-text-tertiary' : 'text-text-muted'}`}>Estilo oscuro nocturno</p>
                         </div>
-                      </div>
-                      {dashboardTheme === 'dark' && <CheckCircle2 className="w-5 h-5 text-white" />}
-                    </button>
+                      </motion.div>
+                      <AnimatePresence>
+                        {dashboardTheme === 'dark' && (
+                          <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            exit={{ scale: 0, rotate: 180 }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          >
+                            <CheckCircle2 className="w-5 h-5 text-accent" aria-hidden="true" />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Color Principal */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                >
+                  <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-3">
                     Color Principal de Marca
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {PRESET_COLORS.map(c => {
                       const isSelected = primaryColor === c.hex
                       return (
-                        <button
+                        <motion.button
                           key={c.id}
                           type="button"
                           onClick={() => setPrimaryColor(c.hex)}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          layout
                           className={`p-3 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all cursor-pointer ${
-                            isSelected ? 'border-zinc-950 bg-zinc-50 shadow-xs' : 'border-zinc-200 hover:border-zinc-300 bg-white'
+                            isSelected ? 'border-accent bg-accent/5 shadow-sm' : 'border-border-subtle hover:border-border-strong bg-surface-1'
                           }`}
                         >
-                          <div 
+                          <motion.div
+                            layout
+                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                             className="w-8 h-8 rounded-full border border-black/10 shadow-sm flex items-center justify-center text-white"
                             style={{ backgroundColor: c.hex }}
                           >
-                            {isSelected && <Check className="w-4 h-4 stroke-[3]" />}
-                          </div>
-                          <span className="text-[11px] font-bold text-zinc-800 text-center">{c.name}</span>
-                        </button>
+                            <AnimatePresence>
+                              {isSelected && (
+                                <motion.div
+                                  initial={{ scale: 0, rotate: -180 }}
+                                  animate={{ scale: 1, rotate: 0 }}
+                                  exit={{ scale: 0, rotate: 180 }}
+                                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                >
+                                  <Check className="w-4 h-4 stroke-[3]" aria-hidden="true" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.div>
+                          <span className="text-[10px] font-bold text-text-secondary text-center">{c.name}</span>
+                        </motion.button>
                       )
                     })}
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Moneda */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.25 }}
+                >
+                  <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-3">
                     Moneda de Facturación
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -985,41 +1172,60 @@ export default function RegisterWizardPage() {
                       { code: 'MXN', label: 'MXN - Peso Mexicano ($)' },
                       { code: 'EUR', label: 'EUR - Euro (€)' },
                     ].map(cur => (
-                      <button
+                      <motion.button
                         key={cur.code}
                         type="button"
                         onClick={() => setCurrency(cur.code)}
-                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        layout
+                        className={`p-3 rounded-xl text-center transition-all cursor-pointer ${
                           currency === cur.code
-                            ? 'border-zinc-950 bg-zinc-950 text-white font-black shadow-xs'
-                            : 'border-zinc-200 hover:border-zinc-300 text-zinc-700 font-bold bg-white text-xs'
+                            ? 'bg-text-primary text-text-inverse font-black shadow-sm'
+                            : 'bg-surface-1 text-text-secondary font-bold border border-border-subtle hover:border-border-strong text-xs'
                         }`}
                       >
                         <span className="text-xs">{cur.label}</span>
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
-                </div>
+                </motion.div>
 
-                <div className="pt-4 flex items-center justify-between">
-                  <button
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 }}
+                  className="pt-4 flex items-center justify-between"
+                >
+                  <motion.button
                     type="button"
                     onClick={() => setStep(2)}
-                    className="px-6 py-3 rounded-xl border border-zinc-200 text-zinc-700 font-bold text-xs uppercase tracking-wider hover:bg-zinc-100 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="px-6 py-3 rounded-xl border border-border-default text-text-secondary font-bold text-xs uppercase tracking-wider hover:bg-bg-subtle transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <motion.span whileHover={{ x: -4 }} transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
+                      <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                    </motion.span>
                     <span>Atrás</span>
-                  </button>
+                  </motion.button>
 
-                  <button
+                  <motion.button
                     type="button"
                     onClick={handleNext}
-                    className={cx.btnPrimary}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Continuar</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
+                    <motion.span
+                      whileHover={{ x: 4 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                    >
+                      <ArrowRight className="w-4.5 h-4.5" aria-hidden="true" />
+                    </motion.span>
+                  </motion.button>
+                </motion.div>
               </motion.div>
             )}
 
@@ -1035,75 +1241,84 @@ export default function RegisterWizardPage() {
                 transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
                   <div className="space-y-1">
-                    <div className={cx.badge}>
-                      <Clock className="w-3 h-3 text-emerald-600" />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass border-border-subtle text-[10px] font-black uppercase tracking-wider text-text-secondary"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-success" aria-hidden="true" />
                       <span>Paso 4 de 6 · Horarios de Atención</span>
-                    </div>
-                    <h2 className={cx.heading}>
+                    </motion.div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-text-primary tracking-tight">
                       ¿Cuáles son tus horarios?
                     </h2>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-text-tertiary">
                       Tus clientes solo podrán agendar en los turnos que tengas habilitados.
                     </p>
                   </div>
 
                   {/* Copy schedule button */}
-                  <button
+                  <motion.button
                     type="button"
                     onClick={handleCopyScheduleToAll}
-                    className={`self-start sm:self-auto px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer ${
-                      isDark
-                        ? 'bg-zinc-800 hover:bg-zinc-750 text-zinc-100 border-zinc-700'
-                        : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border-zinc-200'
-                    }`}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="self-start sm:self-auto px-3.5 py-2 rounded-xl text-xs font-bold border border-border-subtle transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer bg-surface-2 hover:bg-surface-3 text-text-primary"
                   >
-                    <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                    <Copy className="w-3.5 h-3.5 text-text-tertiary" aria-hidden="true" />
                     <span>Copiar horario a todos los días</span>
-                  </button>
-                </div>
+                  </motion.button>
+                </motion.div>
 
                 {/* Days Table */}
-                <div className={`border rounded-2xl overflow-hidden divide-y ${
-                  isDark
-                    ? 'border-zinc-800 divide-zinc-800/80'
-                    : 'border-zinc-200 divide-zinc-200'
-                }`}>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
+                  className="border border-border-subtle rounded-2xl overflow-hidden divide-y divide-border-subtle"
+                >
                   {schedule.map((item, idx) => (
-                    <div
+                    <motion.div
                       key={item.dayIndex}
-                      className={`p-3.5 flex items-center justify-between transition-colors ${
-                        isDark
-                          ? 'bg-zinc-900/90 hover:bg-zinc-850'
-                          : 'bg-white hover:bg-zinc-50'
-                      }`}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: 0.2 + idx * 0.04 }}
+                      className="p-3.5 flex items-center justify-between transition-colors bg-surface-1 hover:bg-surface-2"
                     >
                       <div className="flex items-center gap-3 w-32">
-                        <input
+                        <motion.input
                           type="checkbox"
                           checked={item.isOpen}
                           onChange={(e) => {
                             const val = e.target.checked
                             setSchedule(prev => prev.map((s, i) => i === idx ? { ...s, isOpen: val } : s))
                           }}
-                          className={`w-4 h-4 rounded cursor-pointer ${
-                            isDark
-                              ? 'border-zinc-700 text-amber-500 focus:ring-0 bg-zinc-800'
-                              : 'border-zinc-300 text-zinc-950 focus:ring-zinc-950'
-                          }`}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="w-4.5 h-4.5 rounded cursor-pointer accent-success border-border-default bg-bg-subtle"
                         />
                         <span className={`text-xs font-bold ${
-                          item.isOpen
-                            ? isDark ? 'text-white' : 'text-zinc-950'
-                            : 'text-zinc-500 line-through'
+                          item.isOpen ? 'text-text-primary' : 'text-text-muted line-through'
                         }`}>
                           {item.day}
                         </span>
                       </div>
 
                       {item.isOpen ? (
-                        <div className="flex items-center gap-2">
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: 0.1 }}
+                          className="flex items-center gap-2"
+                        >
                           <input
                             type="time"
                             value={item.openTime}
@@ -1111,13 +1326,9 @@ export default function RegisterWizardPage() {
                               const val = e.target.value
                               setSchedule(prev => prev.map((s, i) => i === idx ? { ...s, openTime: val } : s))
                             }}
-                            className={`px-2.5 py-1.5 border rounded-lg text-xs font-medium outline-none ${
-                              isDark
-                                ? 'bg-zinc-800 border-zinc-700 text-white focus:border-zinc-500'
-                                : 'bg-zinc-50 border-zinc-200 text-zinc-800 focus:border-zinc-900'
-                            }`}
+                            className="px-2.5 py-1.5 border border-border-default rounded-lg text-xs font-medium outline-none bg-surface-2 text-text-primary focus:border-accent focus:ring-2 focus:ring-accent/20"
                           />
-                          <span className="text-zinc-500 text-xs">a</span>
+                          <span className="text-text-muted text-xs">a</span>
                           <input
                             type="time"
                             value={item.closeTime}
@@ -1125,45 +1336,58 @@ export default function RegisterWizardPage() {
                               const val = e.target.value
                               setSchedule(prev => prev.map((s, i) => i === idx ? { ...s, closeTime: val } : s))
                             }}
-                            className={`px-2.5 py-1.5 border rounded-lg text-xs font-medium outline-none ${
-                              isDark
-                                ? 'bg-zinc-800 border-zinc-700 text-white focus:border-zinc-500'
-                                : 'bg-zinc-50 border-zinc-200 text-zinc-800 focus:border-zinc-900'
-                            }`}
+                            className="px-2.5 py-1.5 border border-border-default rounded-lg text-xs font-medium outline-none bg-surface-2 text-text-primary focus:border-accent focus:ring-2 focus:ring-accent/20"
                           />
-                        </div>
+                        </motion.div>
                       ) : (
-                        <span className={`text-xs font-semibold px-3 py-1 rounded-lg ${
-                          isDark
-                            ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20'
-                            : 'text-rose-500 bg-rose-50'
-                        }`}>
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3 }}
+                          className="text-xs font-semibold px-3 py-1 rounded-lg bg-error-bg text-error border border-error-border"
+                        >
                           Cerrado
-                        </span>
+                        </motion.span>
                       )}
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
 
-                <div className="pt-4 flex items-center justify-between">
-                  <button
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="pt-4 flex items-center justify-between"
+                >
+                  <motion.button
                     type="button"
                     onClick={() => setStep(3)}
-                    className="px-6 py-3 rounded-xl border border-zinc-200 text-zinc-700 font-bold text-xs uppercase tracking-wider hover:bg-zinc-100 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="px-6 py-3 rounded-xl border border-border-default text-text-secondary font-bold text-xs uppercase tracking-wider hover:bg-bg-subtle transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <motion.span whileHover={{ x: -4 }} transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
+                      <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                    </motion.span>
                     <span>Atrás</span>
-                  </button>
+                  </motion.button>
 
-                  <button
+                  <motion.button
                     type="button"
                     onClick={handleNext}
-                    className={cx.btnPrimary}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Continuar</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
+                    <motion.span
+                      whileHover={{ x: 4 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                    >
+                      <ArrowRight className="w-4.5 h-4.5" aria-hidden="true" />
+                    </motion.span>
+                  </motion.button>
+                </motion.div>
               </motion.div>
             )}
 
@@ -1179,75 +1403,82 @@ export default function RegisterWizardPage() {
                 transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="space-y-2">
-                  <div className={cx.badge}>
-                    <Scissors className="w-3 h-3 text-amber-500" />
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                  className="space-y-2"
+                >
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass border-border-subtle text-[10px] font-black uppercase tracking-wider text-text-secondary"
+                  >
+                    <Scissors className="w-3.5 h-3.5 text-accent" aria-hidden="true" />
                     <span>Paso 5 de 6 · Servicios</span>
-                  </div>
-                  <h2 className={cx.heading}>
+                  </motion.div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-text-primary tracking-tight">
                     Agrega tus primeros servicios
                   </h2>
-                  <p className={cx.subtext}>
+                  <p className="text-sm text-text-secondary">
                     Haz clic en los ejemplos rápidos para añadirlos en un segundo, o escribe tus servicios personalizados.
                   </p>
-                </div>
+                </motion.div>
 
                 {/* Quick Presets */}
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
+                >
+                  <p className="text-[10px] font-black uppercase tracking-wider text-text-muted mb-2">
                     Ejemplos rápidos populares:
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {QUICK_SERVICE_PRESETS.map((p, idx) => (
-                      <button
+                      <motion.button
                         key={idx}
                         type="button"
                         onClick={() => handleAddPresetService(p)}
-                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-2xs border ${
-                          isDark
-                            ? 'bg-zinc-850 hover:bg-zinc-800 text-zinc-200 border-zinc-700/80'
-                            : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border-zinc-200/80'
-                        }`}
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs border border-border-subtle bg-surface-2 hover:bg-surface-3 text-text-primary"
                       >
-                        <Plus className="w-3.5 h-3.5 text-zinc-400" />
+                        <Plus className="w-3.5 h-3.5 text-text-tertiary" aria-hidden="true" />
                         <span>{p.name} ({p.duration} min - ${p.price.toLocaleString('es-CO')})</span>
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Add Custom Service Form */}
-                <div className={`p-4 rounded-2xl border space-y-3 ${
-                  isDark ? 'border-zinc-800 bg-zinc-900/90' : 'border-zinc-200 bg-zinc-50'
-                }`}>
-                  <span className={`text-xs font-black block ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="p-4 rounded-2xl glass border-border-subtle space-y-3"
+                >
+                  <span className="text-xs font-black text-text-primary block">
                     Personalizar o añadir nuevo servicio:
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
                     <div className="sm:col-span-6">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Nombre</label>
+                      <label className="block text-[10px] font-black uppercase tracking-wider text-text-muted mb-1">Nombre</label>
                       <input
                         type="text"
                         value={newServiceName}
                         onChange={(e) => setNewServiceName(e.target.value)}
                         placeholder="Ej. Diseño & Hair Tattoo"
-                        className={`w-full px-3 py-2 border rounded-xl text-xs font-medium outline-none ${
-                          isDark
-                            ? 'bg-zinc-800 border-zinc-700 text-white focus:border-zinc-500'
-                            : 'bg-white border-zinc-200 text-zinc-900 focus:border-zinc-900'
-                        }`}
+                        className="input-base pl-4 pr-4 text-xs"
                       />
                     </div>
                     <div className="sm:col-span-3">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Duración</label>
+                      <label className="block text-[10px] font-black uppercase tracking-wider text-text-muted mb-1">Duración</label>
                       <select
                         value={newServiceDuration}
                         onChange={(e) => setNewServiceDuration(Number(e.target.value))}
-                        className={`w-full px-3 py-2 border rounded-xl text-xs font-medium outline-none ${
-                          isDark
-                            ? 'bg-zinc-800 border-zinc-700 text-white focus:border-zinc-500'
-                            : 'bg-white border-zinc-200 text-zinc-900 focus:border-zinc-900'
-                        }`}
+                        className="input-base pl-4 pr-4 text-xs"
                       >
                         <option value={15}>15 minutos</option>
                         <option value={20}>20 minutos</option>
@@ -1259,89 +1490,105 @@ export default function RegisterWizardPage() {
                       </select>
                     </div>
                     <div className="sm:col-span-3">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Precio ($)</label>
+                      <label className="block text-[10px] font-black uppercase tracking-wider text-text-muted mb-1">Precio ($)</label>
                       <input
                         type="number"
                         value={newServicePrice}
                         onChange={(e) => setNewServicePrice(Number(e.target.value))}
                         step="1000"
-                        className={`w-full px-3 py-2 border rounded-xl text-xs font-medium outline-none ${
-                          isDark
-                            ? 'bg-zinc-800 border-zinc-700 text-white focus:border-zinc-500'
-                            : 'bg-white border-zinc-200 text-zinc-900 focus:border-zinc-900'
-                        }`}
+                        className="input-base pl-4 pr-4 text-xs"
                       />
                     </div>
                   </div>
                   <div className="flex justify-end pt-1">
-                    <button
+                    <motion.button
                       type="button"
                       onClick={handleAddService}
-                      className={`text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
-                        isDark
-                          ? 'bg-white hover:bg-zinc-200 text-zinc-950'
-                          : 'bg-zinc-950 hover:bg-zinc-800 text-white'
-                      }`}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs bg-accent text-text-inverse"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                       <span>Agregar servicio</span>
-                    </button>
+                    </motion.button>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Services List */}
-                <div className="space-y-2">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.25 }}
+                  className="space-y-2"
+                >
+                  <p className="text-[10px] font-black uppercase tracking-wider text-text-muted">
                     Servicios configurados ({services.length}):
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {services.map((s, idx) => (
-                      <div
+                      <motion.div
                         key={idx}
-                        className={`p-3 rounded-2xl border flex items-center justify-between shadow-2xs ${
-                          isDark
-                            ? 'border-zinc-800 bg-zinc-900/90'
-                            : 'border-zinc-200 bg-white'
-                        }`}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: 0.3 + idx * 0.04 }}
+                        className="p-3 rounded-2xl border border-border-subtle flex items-center justify-between shadow-2xs bg-surface-1 hover:bg-surface-2"
                       >
                         <div>
-                          <p className={`text-xs font-black ${isDark ? 'text-white' : 'text-zinc-950'}`}>{s.name}</p>
-                          <p className={`text-[10px] ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                            {s.duration} min · <span className={`font-bold ${isDark ? 'text-zinc-200' : 'text-zinc-900'}`}>${s.price.toLocaleString('es-CO')}</span>
+                          <p className="text-xs font-black text-text-primary">{s.name}</p>
+                          <p className="text-[10px] text-text-tertiary">
+                            {s.duration} min · <span className="font-bold text-text-primary">${s.price.toLocaleString('es-CO')}</span>
                           </p>
                         </div>
-                        <button
+                        <motion.button
                           type="button"
                           onClick={() => handleRemoveService(idx)}
-                          className="text-zinc-400 hover:text-rose-500 p-1.5 rounded-lg transition-colors cursor-pointer"
+                          whileHover={{ scale: 1.15, rotate: 180 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="text-text-muted hover:text-error p-1.5 rounded-lg transition-colors cursor-pointer"
                           title="Eliminar servicio"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
+                        </motion.button>
+                      </motion.div>
                     ))}
                   </div>
-                </div>
+                </motion.div>
 
-                <div className="pt-4 flex items-center justify-between">
-                  <button
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 }}
+                  className="pt-4 flex items-center justify-between"
+                >
+                  <motion.button
                     type="button"
                     onClick={() => setStep(4)}
-                    className="px-6 py-3 rounded-xl border border-zinc-200 text-zinc-700 font-bold text-xs uppercase tracking-wider hover:bg-zinc-100 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="px-6 py-3 rounded-xl border border-border-default text-text-secondary font-bold text-xs uppercase tracking-wider hover:bg-bg-subtle transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <motion.span whileHover={{ x: -4 }} transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
+                      <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                    </motion.span>
                     <span>Atrás</span>
-                  </button>
+                  </motion.button>
 
-                  <button
+                  <motion.button
                     type="button"
                     onClick={handleNext}
-                    className={cx.btnPrimary}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Continuar</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
+                    <motion.span
+                      whileHover={{ x: 4 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                    >
+                      <ArrowRight className="w-4.5 h-4.5" aria-hidden="true" />
+                    </motion.span>
+                  </motion.button>
+                </motion.div>
               </motion.div>
             )}
 
@@ -1357,45 +1604,56 @@ export default function RegisterWizardPage() {
                 transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="space-y-2">
-                  <div className={cx.badge}>
-                    <User className="w-3 h-3 text-blue-600" />
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                  className="space-y-2"
+                >
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass border-border-subtle text-[10px] font-black uppercase tracking-wider text-text-secondary"
+                  >
+                    <User className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
                     <span>Paso 6 de 6 · Equipo Inicial</span>
-                  </div>
-                  <h2 className={cx.heading}>
+                  </motion.div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-text-primary tracking-tight">
                     Agrega tu primer barbero
                   </h2>
-                  <p className={cx.subtext}>
+                  <p className="text-sm text-text-secondary">
                     Puedes agregar a tu primer estilista o saltar este paso si eres el único que atiende o prefieres agregarlos después en tu panel.
                   </p>
-                </div>
+                </motion.div>
 
-                <div className={`p-6 rounded-2xl border space-y-4 ${
-                  isDark ? 'border-zinc-800 bg-zinc-900/90' : 'border-zinc-200 bg-zinc-50'
-                }`}>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
+                  className="p-6 rounded-2xl glass border-border-subtle space-y-4"
+                >
                   <div>
-                    <label className={cx.label}>
+                    <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-2">
                       Nombre del Barbero
                     </label>
                     <div className="relative">
-                      <User className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <motion.div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                        <User className="w-4.5 h-4.5" aria-hidden="true" />
+                      </motion.div>
                       <input
                         type="text"
                         value={barberName}
                         onChange={(e) => setBarberName(e.target.value)}
                         placeholder="Ej. Carlos 'The Blade' Ruiz"
-                        className={`w-full pl-10 pr-4 py-3 border rounded-xl text-sm font-medium outline-none ${
-                          isDark
-                            ? 'bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-zinc-500'
-                            : 'bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900'
-                        }`}
+                        className="input-base pl-11 pr-4"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={cx.label}>
+                      <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-2">
                         Especialidad
                       </label>
                       <input
@@ -1403,16 +1661,12 @@ export default function RegisterWizardPage() {
                         value={barberSpecialty}
                         onChange={(e) => setBarberSpecialty(e.target.value)}
                         placeholder="Degradados & Barba"
-                        className={`w-full px-4 py-3 border rounded-xl text-sm font-medium outline-none ${
-                          isDark
-                            ? 'bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-zinc-500'
-                            : 'bg-white border-zinc-200 text-zinc-900 focus:border-zinc-900'
-                        }`}
+                        className="input-base pl-4 pr-4"
                       />
                     </div>
 
                     <div>
-                      <label className={cx.label}>
+                      <label className="block text-xs font-black uppercase tracking-wider text-text-tertiary mb-2">
                         Teléfono Celular
                       </label>
                       <input
@@ -1420,69 +1674,73 @@ export default function RegisterWizardPage() {
                         value={barberPhone}
                         onChange={(e) => setBarberPhone(e.target.value)}
                         placeholder="+57 311 000 0000"
-                        className={`w-full px-4 py-3 border rounded-xl text-sm font-medium outline-none ${
-                          isDark
-                            ? 'bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-zinc-500'
-                            : 'bg-white border-zinc-200 text-zinc-900 focus:border-zinc-900'
-                        }`}
+                        className="input-base pl-4 pr-4"
                       />
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
-                <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <button
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3"
+                >
+                  <motion.button
                     type="button"
                     onClick={() => setStep(5)}
-                    className={`w-full sm:w-auto px-6 py-3 rounded-xl border font-bold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
-                      isDark
-                        ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800'
-                        : 'border-zinc-200 text-zinc-700 hover:bg-zinc-100'
-                    }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl border border-border-default text-text-secondary font-bold text-xs uppercase tracking-wider hover:bg-bg-subtle transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <motion.span whileHover={{ x: -4 }} transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
+                      <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                    </motion.span>
                     <span>Atrás</span>
-                  </button>
+                  </motion.button>
 
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <motion.div className="flex items-center gap-2 w-full sm:w-auto">
                     {/* Botón: Agregar después */}
-                    <button
+                    <motion.button
                       type="button"
                       disabled={loading}
                       onClick={() => handleCompleteRegistration(true)}
-                      className={`flex-1 sm:flex-initial px-5 py-3.5 rounded-xl border font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
-                        isDark
-                          ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800'
-                          : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'
-                      }`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex-1 sm:flex-initial px-5 py-3.5 rounded-xl border border-border-default font-bold text-xs uppercase tracking-wider transition-all cursor-pointer bg-surface-2 hover:bg-surface-3 text-text-primary"
                     >
                       Agregar después
-                    </button>
+                    </motion.button>
 
                     {/* Botón: Finalizar y crear */}
-                    <button
+                    <motion.button
                       type="button"
                       disabled={loading}
                       onClick={() => handleCompleteRegistration(false)}
-                      className={`flex-1 sm:flex-initial font-bold text-xs uppercase tracking-wider px-8 py-3.5 rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${
-                        isDark
-                          ? 'bg-white hover:bg-zinc-200 text-zinc-950'
-                          : 'bg-zinc-950 hover:bg-zinc-800 text-white'
-                      }`}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex-1 sm:flex-initial btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? (
-                        <div className={`w-4 h-4 border-2 border-t-transparent rounded-full animate-spin ${
-                          isDark ? 'border-zinc-950' : 'border-white'
-                        }`} />
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full"
+                        />
                       ) : (
                         <>
                           <span>Crear mi barbería</span>
-                          <Check className="w-4 h-4 stroke-[3]" />
+                          <motion.span
+                            whileHover={{ x: 4 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                          >
+                            <Check className="w-4.5 h-4.5 stroke-[3]" aria-hidden="true" />
+                          </motion.span>
                         </>
                       )}
-                    </button>
-                  </div>
-                </div>
+                    </motion.button>
+                  </motion.div>
+                </motion.div>
               </motion.div>
             )}
 
@@ -1498,117 +1756,133 @@ export default function RegisterWizardPage() {
                 className="text-center space-y-6 py-4"
               >
                 {/* Success Icon */}
-                <div className={`w-20 h-20 rounded-full mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/10 border ${
-                  isDark
-                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                    : 'bg-emerald-50 text-emerald-600 border-emerald-200/80'
-                }`}>
-                  <CheckCircle2 className="w-10 h-10" />
-                </div>
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30, delay: 0.1 }}
+                  className="w-24 h-24 rounded-full mx-auto flex items-center justify-center shadow-lg shadow-success/20 border border-success/30 bg-success/10 text-success"
+                >
+                  <CheckCircle2 className="w-12 h-12" aria-hidden="true" />
+                </motion.div>
 
-                <div className="space-y-2">
-                  <span className={`text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
-                    isDark
-                      ? 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30'
-                      : 'text-emerald-600 bg-emerald-50 border-emerald-200'
-                  }`}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="space-y-2"
+                >
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30, delay: 0.3 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-success/10 border border-success/30 text-[10px] font-black uppercase tracking-widest text-success"
+                  >
                     ¡Configuración Completa!
-                  </span>
-                  <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${
-                    isDark ? 'text-white' : 'text-zinc-950'
-                  }`}>
+                  </motion.span>
+                  <h2 className="text-3xl sm:text-4xl font-black text-text-primary tracking-tight">
                     Tu barbería está lista
                   </h2>
-                  <p className={`text-sm max-w-md mx-auto leading-relaxed ${
-                    isDark ? 'text-zinc-400' : 'text-zinc-500'
-                  }`}>
+                  <p className="text-sm max-w-md mx-auto leading-relaxed text-text-secondary">
                     Ya puedes comenzar a recibir reservas, organizar tus citas y administrar tu negocio con BarberOS.
                   </p>
-                </div>
+                </motion.div>
 
                 {/* Summary Box */}
                 {createdBusiness && (
-                  <div className={`max-w-md mx-auto border rounded-2xl p-5 text-left space-y-3 ${
-                    isDark
-                      ? 'bg-zinc-900 border-zinc-800'
-                      : 'bg-zinc-50 border-zinc-200'
-                  }`}>
-                    <div className={`flex items-center justify-between pb-3 border-b ${
-                      isDark ? 'border-zinc-800' : 'border-zinc-200/80'
-                    }`}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.3 }}
+                    className="max-w-md mx-auto border border-border-subtle rounded-2xl p-5 text-left space-y-3 bg-surface-1"
+                  >
+                    <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
                       <div>
-                        <p className={`text-xs font-black ${isDark ? 'text-white' : 'text-zinc-950'}`}>{createdBusiness.name}</p>
-                        <p className={`text-[10px] ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Portal oficial de reservas activo</p>
+                        <p className="text-xs font-black text-text-primary">{createdBusiness.name}</p>
+                        <p className="text-[10px] text-text-tertiary">Portal oficial de reservas activo</p>
                       </div>
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <motion.span
+                        animate={{ scale: [1, 1.2, 1], opacity: [1, 0.6, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                        className="w-3 h-3 rounded-full bg-success"
+                      />
                     </div>
 
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Enlace de tu página web:</p>
-                      <div className={`flex items-center justify-between border rounded-xl px-3 py-2 ${
-                        isDark
-                          ? 'bg-zinc-800/90 border-zinc-700'
-                          : 'bg-white border-zinc-200'
-                      }`}>
-                        <span className={`font-mono text-xs truncate ${isDark ? 'text-zinc-200' : 'text-zinc-700'}`}>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-text-muted mb-1">Enlace de tu página web:</p>
+                      <div className="flex items-center justify-between border border-border-subtle rounded-xl px-3 py-2 bg-surface-2">
+                        <span className="font-mono text-xs truncate text-text-secondary">
                           barberos.app/b/{createdBusiness.slug}
                         </span>
-                        <button
+                        <motion.button
                           type="button"
                           onClick={copyPublicUrl}
-                          className={`ml-2 text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0 ${
-                            isDark
-                              ? 'text-zinc-300 hover:text-white'
-                              : 'text-zinc-800 hover:text-black'
-                          }`}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="ml-2 text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0 text-text-secondary hover:text-text-primary transition-colors"
                         >
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-3.5 h-3.5" aria-hidden="true" />
                           <span>{copiedUrl ? 'Copiado' : 'Copiar'}</span>
-                        </button>
+                        </motion.button>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                  <button
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.4 }}
+                  className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2"
+                >
+                  <motion.button
                     type="button"
                     onClick={() => {
                       router.push('/dashboard')
                       router.refresh()
                     }}
-                    className="w-full sm:w-auto bg-zinc-950 hover:bg-zinc-800 text-white font-black text-xs uppercase tracking-wider px-8 py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full sm:w-auto bg-text-primary hover:bg-text-secondary text-text-inverse font-black text-xs uppercase tracking-wider px-8 py-4 rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <span>Ir al Dashboard</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                    <motion.span
+                      whileHover={{ x: 4 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                    >
+                      <ArrowRight className="w-4.5 h-4.5" aria-hidden="true" />
+                    </motion.span>
+                  </motion.button>
 
                   {createdBusiness && (
-                    <Link
+                    <motion.a
                       href={`/b/${createdBusiness.slug}`}
                       target="_blank"
-                      className="w-full sm:w-auto bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-900 font-bold text-xs uppercase tracking-wider px-7 py-4 rounded-xl transition-all shadow-2xs flex items-center justify-center gap-2"
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full sm:w-auto btn-secondary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <ExternalLink className="w-4 h-4" />
+                      <ExternalLink className="w-4.5 h-4.5" aria-hidden="true" />
                       <span>Ver mi Página Web</span>
-                    </Link>
+                    </motion.a>
                   )}
-                </div>
+                </motion.div>
               </motion.div>
             )}
 
           </AnimatePresence>
-
-        </div>
+        </motion.div>
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-5xl mx-auto px-6 py-6 text-center text-xs text-zinc-400">
+      <motion.footer
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="relative z-10 w-full max-w-5xl mx-auto px-6 py-6 text-center text-xs text-text-tertiary"
+      >
         <p>© {new Date().getFullYear()} BarberOS. Tu negocio organizado desde el primer día.</p>
-      </footer>
-
+      </motion.footer>
     </div>
   )
 }
-

@@ -118,8 +118,30 @@ export async function POST(request: Request) {
     })
 
     // Execute atomic transaction: All or Nothing
-    const { business, user } = await prisma.$transaction(async (tx) => {
-      // 1. Create Business con 1 mes de prueba gratis a FULL
+    const { business, user, company } = await prisma.$transaction(async (tx) => {
+      // 1. Create Owner User
+      const newUser = await tx.user.create({
+        data: {
+          email: cleanEmail,
+          password: hashedPassword,
+          role: 'OWNER',
+          accentColor: primaryColor || '#F59E0B'
+        }
+      })
+
+      // 2. Create Company (Empresa Propietaria Multisedes)
+      const newCompany = await tx.company.create({
+        data: {
+          name: businessName.trim(),
+          ownerId: newUser.id,
+          planId: defaultTrialPlan?.id || null,
+          maxBranches: 1,
+          additionalBranchPrice: 50000,
+          status: 'ACTIVE'
+        }
+      })
+
+      // 3. Create Business (Sede Principal) vinculada a la Company
       const newBusiness = await tx.business.create({
         data: {
           name: businessName.trim(),
@@ -129,6 +151,8 @@ export async function POST(request: Request) {
           email: businessEmail?.trim() || cleanEmail,
           logo: logoUrl,
           status: 'TRIAL',
+          companyId: newCompany.id,
+          isMainBranch: true,
           planId: defaultTrialPlan?.id || null,
           trialEndsAt: trialEndsAt,
           maxBarbers: defaultTrialPlan?.maxBarbers || 30,
@@ -137,7 +161,16 @@ export async function POST(request: Request) {
         }
       })
 
-      // 2. Create BusinessPage (Public web portal)
+      // 4. Vincular negocio y empresa al usuario
+      await tx.user.update({
+        where: { id: newUser.id },
+        data: {
+          businessId: newBusiness.id,
+          companyId: newCompany.id
+        }
+      })
+
+      // 5. Create BusinessPage (Public web portal)
       const hoursJson = schedule && Array.isArray(schedule) && schedule.length > 0
         ? JSON.stringify(schedule)
         : JSON.stringify(DEFAULT_SCHEDULE)
@@ -153,17 +186,6 @@ export async function POST(request: Request) {
           bannerUrl: '/landing/pagina-web-real.png',
           coverTitle: `Bienvenido a ${businessName.trim()}`,
           coverSubtitle: 'Reserva tu cita con nuestros profesionales y disfruta de una experiencia de barbería diseñada para resaltar tu mejor estilo.',
-        }
-      })
-
-      // 3. Create Owner User
-      const newUser = await tx.user.create({
-        data: {
-          email: cleanEmail,
-          password: hashedPassword,
-          role: 'OWNER',
-          businessId: newBusiness.id,
-          accentColor: primaryColor || '#F59E0B'
         }
       })
 
@@ -235,11 +257,11 @@ export async function POST(request: Request) {
         }
       }
 
-      return { business: newBusiness, user: newUser }
+      return { business: newBusiness, user: newUser, company: newCompany }
     })
 
     // Establish JWT session cookie
-    await createSession(user.id, 'OWNER', null, business.id)
+    await createSession(user.id, 'OWNER', null, business.id, null, null, false, company.id)
 
     return NextResponse.json({
       success: true,

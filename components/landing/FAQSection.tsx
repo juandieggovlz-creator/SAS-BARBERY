@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Minus, HelpCircle, Sparkles } from 'lucide-react'
+import { Plus, Minus, HelpCircle } from 'lucide-react'
 
 const faqs = [
   {
@@ -26,8 +26,8 @@ const faqs = [
     a: '¡Por supuesto! De hecho, es lo más recomendado. Colocas el enlace en tu perfil de Instagram, en tu ficha de Google Maps y en el mensaje de respuesta automática de WhatsApp Business. De esa manera, tus clientes agendan solos 24/7 sin que tengas que atender el chat manualmente.'
   },
   {
-    q: '¿Cómo funciona la prueba gratuita de 14 días? ¿Me cobrarán automáticamente?',
-    a: 'Al registrar tu barbería recibes 14 días de acceso completo a todas las funciones sin ingresar tarjeta de crédito ni datos de pago. Al finalizar el periodo de prueba tú decides si deseas contratar uno de los planes; si decides no continuar, tu cuenta simplemente se pausa sin cobros sorpresa.'
+    q: '¿Cómo funciona la prueba gratuita de 1 mes (30 días)? ¿Me cobrarán automáticamente?',
+    a: 'Al registrar tu barbería recibes 1 mes completo (30 días) de acceso sin ingresar tarjeta de crédito ni datos de pago. Al finalizar el periodo de prueba tú decides si deseas contratar uno de los planes; si decides no continuar, tu cuenta simplemente se pausa sin cobros sorpresa.'
   }
 ]
 
@@ -39,46 +39,56 @@ export default function FAQSection() {
   }
 
   return (
-    <section id="faq" className="py-24 md:py-32 bg-zinc-50/70 border-t border-zinc-200/80 relative overflow-hidden">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+    <section id="faq" className="py-20 md:py-28 relative overflow-hidden bg-white dark:bg-[#070709] transition-colors duration-300" aria-labelledby="faq-title">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
         {/* Header */}
-        <div className="text-center space-y-4 mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-zinc-200/90 text-xs font-bold text-zinc-800 shadow-2xs">
-            <HelpCircle className="w-3.5 h-3.5 text-zinc-900" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center space-y-4 mb-14"
+        >
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+            <HelpCircle className="w-3.5 h-3.5 text-zinc-500" aria-hidden="true" />
             <span className="uppercase tracking-wider">Preguntas Frecuentes</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-zinc-950 tracking-tight">
+          <h2 id="faq-title" className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-zinc-950 dark:text-white leading-[1.1]">
             Todo lo que necesitas saber antes de empezar
           </h2>
 
-          <p className="text-base sm:text-lg text-zinc-600 font-normal leading-relaxed">
+          <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed">
             Resolvemos las dudas más habituales sobre la implementación de BarberOS.
           </p>
-        </div>
+        </motion.div>
 
         {/* Accordion */}
         <div className="space-y-3.5">
           {faqs.map((faq, i) => {
             const isOpen = openIndex === i
-
             return (
               <div
                 key={i}
-                className="bg-white rounded-2xl border border-zinc-200/90 shadow-2xs overflow-hidden transition-colors"
+                className="rounded-2xl bg-zinc-50/70 dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800 overflow-hidden transition-all duration-200"
               >
                 <button
+                  type="button"
                   onClick={() => toggle(i)}
-                  className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 cursor-pointer select-none"
+                  className="w-full text-left p-5 sm:p-6 flex items-center justify-between gap-4 cursor-pointer select-none"
                   aria-expanded={isOpen}
                 >
-                  <span className="text-base sm:text-lg font-black text-zinc-950 tracking-tight">
+                  <span className="font-bold text-sm sm:text-base text-zinc-950 dark:text-white pr-2">
                     {faq.q}
                   </span>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border transition-all ${
-                    isOpen ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-zinc-100 text-zinc-600 border-zinc-200'
-                  }`}>
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                      isOpen
+                        ? 'bg-amber-500 text-zinc-950'
+                        : 'bg-zinc-200/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
                     {isOpen ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   </div>
                 </button>
@@ -89,9 +99,9 @@ export default function FAQSection() {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25, ease: 'easeInOut' }}
+                      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                     >
-                      <div className="px-5 pb-6 sm:px-6 sm:pb-6 pt-1 text-sm text-zinc-600 leading-relaxed border-t border-zinc-100">
+                      <div className="px-5 pb-5 sm:px-6 sm:pb-6 pt-0 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed border-t border-zinc-200/50 dark:border-zinc-800/60 pt-3">
                         {faq.a}
                       </div>
                     </motion.div>

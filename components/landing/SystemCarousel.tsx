@@ -3,16 +3,16 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  LayoutDashboard, 
-  UserCheck, 
-  DollarSign, 
-  BarChart3, 
-  Calendar, 
-  Globe, 
-  Clock, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  LayoutDashboard,
+  UserCheck,
+  DollarSign,
+  BarChart3,
+  Calendar,
+  Globe,
+  Clock,
   Sparkles,
   CheckCircle2,
   ArrowRight
@@ -149,7 +149,7 @@ const slides: SlideItem[] = [
 export default function SystemCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const activeSlide = slides[currentIndex]
 
@@ -175,64 +175,89 @@ export default function SystemCarousel() {
   }
 
   return (
-    <section id="sistema" className="py-24 md:py-32 bg-zinc-50/70 border-y border-zinc-200/80 relative overflow-hidden">
-      {/* Background radial accent */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-gradient-to-r from-blue-100/40 via-amber-100/30 to-emerald-100/40 rounded-full blur-3xl pointer-events-none -z-10" />
+    <section id="sistema" className="section section-alt relative overflow-hidden" aria-labelledby="sistema-title">
+      {/* Background radial accent - Light */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-gradient-to-r from-blue-100/40 via-amber-100/30 to-emerald-100/40 rounded-full blur-3xl pointer-events-none -z-10 hidden dark:hidden" aria-hidden="true" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+      {/* Background radial accent - Dark */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-gradient-to-r from-blue-900/20 via-amber-900/15 to-emerald-900/20 rounded-full blur-3xl pointer-events-none -z-10 dark:block hidden" aria-hidden="true" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-zinc-200/90 text-xs font-bold text-zinc-800 shadow-2xs">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center max-w-3xl mx-auto space-y-4 mb-14"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border-border-subtle text-xs font-semibold text-text-secondary">
+            <Sparkles className="w-4 h-4 text-accent" aria-hidden="true" />
             <span className="uppercase tracking-wider">Demostración en Vivo</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-zinc-950 tracking-tight">
+          <h2 id="sistema-title" className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tighter text-text-primary leading-[1.05]">
             Todo tu negocio en una sola plataforma
           </h2>
 
-          <p className="text-base sm:text-lg text-zinc-600 font-normal leading-relaxed">
+          <p className="text-base sm:text-lg text-text-secondary font-normal leading-relaxed">
             Explora las herramientas que transforman barberías convencionales en negocios organizados, rentables y escalables.
           </p>
-        </div>
+        </motion.div>
 
         {/* Tab Selector Pills */}
-        <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-4 mb-10 no-scrollbar">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-6 mb-12 no-scrollbar"
+          role="tablist"
+          aria-label="Módulos del sistema"
+        >
           {slides.map((slide, idx) => {
             const Icon = slide.icon
             const isActive = idx === currentIndex
             return (
-              <button
+              <motion.button
                 key={slide.id}
                 onClick={() => setCurrentIndex(idx)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: idx * 0.04 }}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap shrink-0 border ${
                   isActive
-                    ? 'bg-zinc-950 text-white border-zinc-950 shadow-md shadow-zinc-950/15'
-                    : 'bg-white text-zinc-600 border-zinc-200/90 hover:bg-zinc-100/80 hover:text-zinc-950'
+                    ? 'bg-text-primary text-text-inverse border-text-primary shadow-md shadow-text-primary/20'
+                    : 'bg-surface-1 text-text-tertiary border-border-subtle hover:bg-bg-subtle hover:text-text-primary'
                 }`}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`panel-${slide.id}`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-zinc-400'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-text-inverse' : 'text-text-muted'}`} aria-hidden="true" />
                 <span>{slide.tabLabel}</span>
-              </button>
+              </motion.button>
             )
           })}
-        </div>
+        </motion.div>
 
         {/* Main Carousel Display Card */}
-        <div 
+        <div
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
-          className="bg-white rounded-3xl border border-zinc-200/90 shadow-2xl shadow-zinc-950/5 p-6 sm:p-8 lg:p-10 relative overflow-hidden"
+          className="card card-elevated p-6 sm:p-8 lg:p-10 relative overflow-hidden"
         >
           {/* Progress bar line */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-zinc-100">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-bg-subtle" aria-hidden="true">
             <motion.div
               key={currentIndex}
               initial={{ width: '0%' }}
               animate={{ width: '100%' }}
               transition={{ duration: 7, ease: 'linear' }}
-              className="h-full bg-zinc-950"
+              className="h-full bg-text-primary"
             />
           </div>
 
@@ -242,88 +267,150 @@ export default function SystemCarousel() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.35 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center"
+              role="tabpanel"
+              id={`panel-${activeSlide.id}`}
+              aria-labelledby={`tab-${activeSlide.id}`}
             >
               {/* Left Column: Details & Features */}
-              <div className="lg:col-span-5 space-y-6">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="lg:col-span-5 space-y-6"
+              >
                 <div>
-                  <span className="inline-block text-[11px] font-black uppercase tracking-widest text-amber-600 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 mb-3">
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                    className="inline-block text-[11px] font-black uppercase tracking-widest text-accent bg-accent-light px-3 py-1 rounded-full border border-accent-subtle mb-3"
+                  >
                     {activeSlide.tabLabel}
-                  </span>
-                  <h3 className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight leading-snug">
+                  </motion.span>
+                  <motion.h3
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.15 }}
+                    className="font-display text-2xl sm:text-3xl font-extrabold text-text-primary tracking-tight leading-snug"
+                  >
                     {activeSlide.title}
-                  </h3>
-                  <p className="text-sm font-semibold text-zinc-500 mt-1">
+                  </motion.h3>
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.2 }}
+                    className="text-sm font-semibold text-text-tertiary mt-1"
+                  >
                     {activeSlide.tagline}
-                  </p>
+                  </motion.p>
                 </div>
 
-                <p className="text-sm text-zinc-600 leading-relaxed">
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.25 }}
+                  className="text-sm text-text-secondary leading-relaxed"
+                >
                   {activeSlide.description}
-                </p>
+                </motion.p>
 
                 {/* Highlights List */}
-                <div className="space-y-2.5 pt-2">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.4, delay: 0.3 }}
+                  className="space-y-3 pt-2"
+                >
                   {activeSlide.highlights.map((item, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                      <span className="text-xs sm:text-sm font-medium text-zinc-700 leading-snug">{item}</span>
-                    </div>
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: 0.3 + i * 0.06 }}
+                      className="flex items-start gap-3"
+                    >
+                      <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
+                      </div>
+                      <span className="text-sm font-medium text-text-secondary leading-snug">{item}</span>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
 
                 {/* Action CTA */}
-                <div className="pt-4 flex items-center gap-4">
-                  <Link
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.5 }}
+                  className="pt-4 flex items-center gap-4 flex-wrap"
+                >
+                  <motion.a
                     href="/register"
-                    className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white text-xs font-black uppercase tracking-wider px-6 py-3.5 rounded-xl shadow-md transition-all active:scale-95 group"
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="inline-flex items-center gap-2 btn-accent text-xs font-black uppercase tracking-wider px-6 py-3.5 rounded-xl shadow-md shadow-accent/20 hover:shadow-glow-sm transition-all duration-200 group"
                   >
                     <span>Probar Este Módulo</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                  </Link>
+                    <motion.span
+                      whileHover={{ x: 4 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                    >
+                      <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                    </motion.span>
+                  </motion.a>
 
                   {/* Manual Navigation Controls */}
                   <div className="flex items-center gap-2 ml-auto">
-                    <button
+                    <motion.button
                       onClick={handlePrev}
-                      className="p-2.5 rounded-xl border border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 transition-colors"
-                      aria-label="Anterior"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="p-2.5 rounded-xl border border-border-default text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-all duration-200"
+                      aria-label="Módulo anterior"
                     >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <span className="text-xs font-mono font-bold text-zinc-400">
+                      <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+                    </motion.button>
+                    <span className="text-xs font-mono font-bold text-text-tertiary px-2">
                       {currentIndex + 1} / {slides.length}
                     </span>
-                    <button
+                    <motion.button
                       onClick={handleNext}
-                      className="p-2.5 rounded-xl border border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 transition-colors"
-                      aria-label="Siguiente"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="p-2.5 rounded-xl border border-border-default text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-all duration-200"
+                      aria-label="Módulo siguiente"
                     >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
+                      <ChevronRight className="w-5 h-5" aria-hidden="true" />
+                    </motion.button>
                   </div>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
 
               {/* Right Column: High Quality Mockup Frame */}
-              <div className="lg:col-span-7">
-                <div className="bg-zinc-100/80 dark:bg-[#18181d] rounded-2xl p-2.5 sm:p-4 border border-zinc-200/90 dark:border-zinc-800 shadow-xl overflow-hidden relative group">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="lg:col-span-7"
+              >
+                <div className="mockup-frame p-3 sm:p-4">
                   {/* Window Browser Header */}
-                  <div className="flex items-center justify-between pb-3 px-2 border-b border-zinc-200/70 dark:border-zinc-800 mb-3">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                  <div className="mockup-browser-bar flex items-center justify-between pb-3 px-2 mb-3">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700" aria-hidden="true" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700" aria-hidden="true" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700" aria-hidden="true" />
                     </div>
-                    <div className="text-[10px] font-mono text-zinc-500 dark:text-zinc-300 bg-white dark:bg-[#121215] px-3 py-0.5 rounded-md border border-zinc-200/80 dark:border-zinc-700">
+                    <div className="text-[10px] font-mono text-text-tertiary bg-surface-1 px-3 py-0.5 rounded-md border border-border-subtle">
                       barberos.app/{activeSlide.id.replace('dashboard-', '')}
                     </div>
                     <div className="w-8" />
                   </div>
 
                   {/* Image Presentation */}
-                  <div className="relative aspect-[16/10] w-full rounded-xl overflow-hidden bg-white dark:bg-[#0c0c0e] shadow-inner">
+                  <div className="relative aspect-[16/10] w-full rounded-xl overflow-hidden bg-bg-base shadow-inner group">
                     {activeSlide.imageSrcDark ? (
                       <>
                         <Image
@@ -332,6 +419,7 @@ export default function SystemCarousel() {
                           fill
                           className="object-cover object-top transition-transform duration-700 group-hover:scale-[1.02] dark:hidden"
                           unoptimized
+                          sizes="(max-width: 1024px) 100vw, 50vw"
                         />
                         <Image
                           src={activeSlide.imageSrcDark}
@@ -339,6 +427,7 @@ export default function SystemCarousel() {
                           fill
                           className="object-cover object-top transition-transform duration-700 group-hover:scale-[1.02] hidden dark:block"
                           unoptimized
+                          sizes="(max-width: 1024px) 100vw, 50vw"
                         />
                       </>
                     ) : (
@@ -348,11 +437,12 @@ export default function SystemCarousel() {
                         fill
                         className="object-cover object-top transition-transform duration-700 group-hover:scale-[1.02]"
                         unoptimized
+                        sizes="(max-width: 1024px) 100vw, 50vw"
                       />
                     )}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
           </AnimatePresence>
         </div>
