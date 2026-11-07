@@ -84,7 +84,7 @@ export default function Footer() {
                 { href: '#caracteristicas', label: 'Comisiones Automáticas' },
                 { href: '#precios', label: 'Planes & Precios' },
               ].map((item) => (
-                <li key={item.href}>
+                <li key={item.label}>
                   <a
                     href={item.href}
                     className="text-zinc-600 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
@@ -109,7 +109,7 @@ export default function Footer() {
                 { href: '#faq', label: 'Preguntas Frecuentes (FAQ)' },
                 { href: '/login', label: 'Acceso a BarberOS' },
               ].map((item) => (
-                <li key={item.href}>
+                <li key={item.label}>
                   <Link
                     href={item.href}
                     className="text-zinc-600 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"

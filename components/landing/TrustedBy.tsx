@@ -5,13 +5,13 @@ import { motion } from 'framer-motion'
 import { 
   Smartphone, 
   Share2, 
-  Globe,
-  ShieldCheck
+  Globe, 
+  ShieldCheck 
 } from 'lucide-react'
 
 const integrations = [
-  { icon: ShieldCheck, label: 'Google Login', color: 'text-blue-600' },
-  { icon: Smartphone, label: 'WhatsApp', color: 'text-emerald-600' },
+  { icon: ShieldCheck, label: 'Google Login', color: 'text-blue-600 dark:text-blue-400' },
+  { icon: Smartphone, label: 'WhatsApp', color: 'text-emerald-600 dark:text-emerald-400' },
   { icon: Share2, label: 'Instagram Link', color: 'text-rose-500' },
   { icon: Globe, label: 'Google Maps', color: 'text-amber-500' },
 ]
@@ -25,7 +25,7 @@ const stats = [
 
 export default function TrustedBy() {
   return (
-    <section className="py-12 border-y border-zinc-200/80 bg-zinc-50/50">
+    <section className="py-12 border-y border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-[#070709] transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Stats strip */}
@@ -34,19 +34,19 @@ export default function TrustedBy() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-6 pb-10 mb-10 border-b border-zinc-200/80"
+          className="grid grid-cols-2 md:grid-cols-4 gap-6 pb-10 mb-10 border-b border-zinc-200/80 dark:border-zinc-800/80"
         >
           {stats.map((s, i) => (
             <div key={i} className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-zinc-950 font-mono tracking-tight">{s.value}</p>
-              <p className="text-xs font-semibold text-zinc-500 mt-1 uppercase tracking-wider">{s.label}</p>
+              <p className="text-2xl sm:text-3xl font-black text-zinc-950 dark:text-white font-mono tracking-tight">{s.value}</p>
+              <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">{s.label}</p>
             </div>
           ))}
         </motion.div>
 
         {/* Integrations row */}
         <div className="text-center mb-6">
-          <p className="text-[11px] font-black uppercase tracking-widest text-zinc-400">
+          <p className="text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
             Se integra con las herramientas que ya usas
           </p>
         </div>
@@ -61,7 +61,7 @@ export default function TrustedBy() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.3, delay: i * 0.06 }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-zinc-200/90 shadow-xs text-xs font-bold text-zinc-700 hover:border-zinc-300 hover:shadow-md transition-all"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 shadow-xs text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all"
               >
                 <Icon className={`w-4 h-4 ${item.color} shrink-0`} />
                 <span>{item.label}</span>
