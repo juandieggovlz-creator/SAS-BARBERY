@@ -18,7 +18,7 @@ import Footer from '@/components/landing/Footer'
 
 export default function LandingPage() {
   return (
-    <div className="landing-page-root min-h-screen bg-white dark:bg-[#070709] text-zinc-900 dark:text-zinc-100 font-sans selection:bg-amber-500 selection:text-zinc-950 antialiased overflow-x-hidden transition-colors duration-200">
+    <div className="landing-page-root min-h-screen bg-white dark:bg-[#06070a] text-zinc-900 dark:text-zinc-100 font-sans selection:bg-amber-500 selection:text-zinc-950 antialiased overflow-x-hidden transition-colors duration-200">
       {/* 1. Floating Glassmorphism Navbar */}
       <Navbar />
 

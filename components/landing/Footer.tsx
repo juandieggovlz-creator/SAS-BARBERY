@@ -8,7 +8,7 @@ import { Phone, MapPin, Heart, ShieldCheck, Globe, X, MessageSquare, Link2, Exte
 
 export default function Footer() {
   return (
-    <footer id="footer" className="relative overflow-hidden bg-white dark:bg-[#070709] border-t border-zinc-200/80 dark:border-zinc-800/80 transition-colors duration-300" aria-labelledby="footer-title">
+    <footer id="footer" className="relative overflow-hidden bg-white dark:bg-[#06070a] border-t border-zinc-200/80 dark:border-white/10 transition-colors duration-300" aria-labelledby="footer-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Brand info */}
@@ -44,7 +44,7 @@ export default function Footer() {
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-amber-500 transition-colors"
+                className="w-9 h-9 rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/[0.04] flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-amber-500 hover:border-amber-500/40 transition-colors"
                 aria-label="Instagram"
               >
                 <MessageSquare className="w-4 h-4" aria-hidden="true" />
@@ -53,7 +53,7 @@ export default function Footer() {
                 href="https://x.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-amber-500 transition-colors"
+                className="w-9 h-9 rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/[0.04] flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-amber-500 hover:border-amber-500/40 transition-colors"
                 aria-label="X (Twitter)"
               >
                 <X className="w-4 h-4" aria-hidden="true" />
@@ -62,7 +62,7 @@ export default function Footer() {
                 href="https://linkedin.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-amber-500 transition-colors"
+                className="w-9 h-9 rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/[0.04] flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-amber-500 hover:border-amber-500/40 transition-colors"
                 aria-label="LinkedIn"
               >
                 <Link2 className="w-4 h-4" aria-hidden="true" />
@@ -99,68 +99,55 @@ export default function Footer() {
           {/* Col 2: Soporte & Legal */}
           <div className="space-y-3">
             <p className="font-bold text-zinc-950 dark:text-white uppercase tracking-widest text-xs">
-              Soporte & Legal
+              Legal & Soporte
             </p>
             <ul className="space-y-2.5 text-sm" role="list">
               {[
-                { href: '/terminos-y-condiciones', label: 'Términos y Condiciones' },
-                { href: '/politica-de-privacidad', label: 'Política de Privacidad' },
-                { href: '/politica-de-cookies', label: 'Política de Cookies' },
-                { href: '#faq', label: 'Preguntas Frecuentes (FAQ)' },
-                { href: '/login', label: 'Acceso a BarberOS' },
+                { href: '#faq', label: 'Centro de Ayuda & FAQ' },
+                { href: '#', label: 'Términos del Servicio' },
+                { href: '#', label: 'Política de Privacidad' },
+                { href: '#', label: 'Seguridad de Datos' },
+                { href: '#', label: 'Acuerdo de Nivel de Servicio' },
               ].map((item) => (
                 <li key={item.label}>
-                  <Link
+                  <a
                     href={item.href}
                     className="text-zinc-600 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
                   >
                     {item.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Col 3: Contacto */}
+          {/* Col 3: Ubicación y Contacto */}
           <div className="space-y-3">
             <p className="font-bold text-zinc-950 dark:text-white uppercase tracking-widest text-xs">
-              Contacto Directo
+              Contacto
             </p>
-            <div className="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
-              <a
-                href="tel:+573242063393"
-                className="flex items-center gap-2 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-              >
-                <Phone className="w-4 h-4 shrink-0 text-zinc-400" aria-hidden="true" />
-                <span>+57 324 206 3393</span>
-              </a>
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin className="w-4 h-4 shrink-0 text-zinc-400" aria-hidden="true" />
-                <span>Sincelejo, Sucre · Colombia</span>
-              </div>
-            </div>
-
-            {/* Badges mini */}
-            <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap gap-1.5">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                <ShieldCheck className="w-3 h-3" aria-hidden="true" />
-                Datos Encriptados
-              </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                <Heart className="w-3 h-3 fill-current" aria-hidden="true" />
-                Hecho en Colombia
-              </span>
-            </div>
+            <ul className="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
+              <li className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" aria-hidden="true" />
+                <span>Bogotá D.C. & Medellín, Colombia</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" />
+                <span>WhatsApp: +57 300 000 0000</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-blue-500 shrink-0" aria-hidden="true" />
+                <span>Soporte 24/7 para clientes VIP</span>
+              </li>
+            </ul>
           </div>
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 pt-8 border-t border-zinc-200/80 dark:border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
-          <p className="text-center sm:text-left">
-            © {new Date().getFullYear()} BarberOS. Plataforma SaaS de Gestión para Barberías. Todos los derechos reservados.
-          </p>
-          <p className="flex items-center gap-1 text-center sm:text-right">
-            Diseñado con <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" aria-hidden="true" /> para los mejores profesionales del corte.
+        <div className="mt-14 pt-8 border-t border-zinc-200/80 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+          <p>© {new Date().getFullYear()} BarberOS. Todos los derechos reservados.</p>
+          <p className="flex items-center gap-1">
+            Diseñado con precisión para barberos de élite
           </p>
         </div>
       </div>

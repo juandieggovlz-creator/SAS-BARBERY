@@ -6,26 +6,29 @@ import {
   Smartphone, 
   Share2, 
   Globe, 
-  ShieldCheck 
+  ShieldCheck,
+  CreditCard,
+  MessageSquare
 } from 'lucide-react'
 
 const integrations = [
-  { icon: ShieldCheck, label: 'Google Login', color: 'text-blue-600 dark:text-blue-400' },
-  { icon: Smartphone, label: 'WhatsApp', color: 'text-emerald-600 dark:text-emerald-400' },
-  { icon: Share2, label: 'Instagram Link', color: 'text-rose-500' },
-  { icon: Globe, label: 'Google Maps', color: 'text-amber-500' },
+  { icon: MessageSquare, label: 'WhatsApp Cloud API', color: 'text-emerald-500' },
+  { icon: Share2, label: 'Enlace en Bio Instagram', color: 'text-rose-500' },
+  { icon: CreditCard, label: 'Nequi & Daviplata', color: 'text-purple-500' },
+  { icon: Globe, label: 'Google Maps Business', color: 'text-amber-500' },
+  { icon: ShieldCheck, label: 'Google & OAuth 2.0', color: 'text-blue-500' },
 ]
 
 const stats = [
   { value: '+500', label: 'Barberías activas' },
   { value: '4.9/5', label: 'Valoración promedio' },
   { value: '98%', label: 'Tasa de satisfacción' },
-  { value: '24/7', label: 'Sistema disponible' },
+  { value: '24/7', label: 'Disponibilidad online' },
 ]
 
 export default function TrustedBy() {
   return (
-    <section className="py-12 border-y border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-[#070709] transition-colors duration-300">
+    <section className="py-12 border-y border-zinc-200/80 dark:border-white/10 bg-zinc-50/60 dark:bg-[#07080c] transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Stats strip */}
@@ -34,7 +37,7 @@ export default function TrustedBy() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-6 pb-10 mb-10 border-b border-zinc-200/80 dark:border-zinc-800/80"
+          className="grid grid-cols-2 md:grid-cols-4 gap-6 pb-10 mb-10 border-b border-zinc-200/80 dark:border-white/10"
         >
           {stats.map((s, i) => (
             <div key={i} className="text-center">
@@ -47,7 +50,7 @@ export default function TrustedBy() {
         {/* Integrations row */}
         <div className="text-center mb-6">
           <p className="text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-            Se integra con las herramientas que ya usas
+            Sincronizado con el ecosistema que impulsa tu barbería
           </p>
         </div>
 
@@ -60,8 +63,8 @@ export default function TrustedBy() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: i * 0.06 }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 shadow-xs text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all"
+                transition={{ duration: 0.3, delay: i * 0.05 }}
+                className="liquid-glass flex items-center gap-2.5 px-4 py-2.5 rounded-2xl shadow-xs text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:border-amber-500/40 hover:shadow-md transition-all active:scale-[0.98]"
               >
                 <Icon className={`w-4 h-4 ${item.color} shrink-0`} />
                 <span>{item.label}</span>

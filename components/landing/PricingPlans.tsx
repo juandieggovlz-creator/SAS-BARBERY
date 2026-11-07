@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Check, Sparkles, ArrowRight } from 'lucide-react'
+import { Check, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react'
 
 interface PlanData {
   id: string
@@ -117,7 +117,11 @@ export default function PricingPlans() {
     }).format(amount)
 
   return (
-    <section id="precios" className="py-20 md:py-28 relative overflow-hidden bg-white dark:bg-[#070709] transition-colors duration-300" aria-labelledby="pricing-title">
+    <section
+      id="precios"
+      className="py-20 md:py-28 relative overflow-hidden bg-white dark:bg-[#07080c] transition-colors duration-300"
+      aria-labelledby="pricing-title"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
         {/* Header */}
@@ -126,19 +130,27 @@ export default function PricingPlans() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-100px' }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center max-w-3xl mx-auto space-y-4 mb-14"
+          className="text-center max-w-3xl mx-auto space-y-4 mb-16"
         >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-700 dark:text-amber-400">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-xs font-semibold text-amber-800 dark:text-amber-300">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
-            <span className="uppercase tracking-wider">Inversión Transparente · Mes Gratis a Full</span>
+            <span className="uppercase tracking-wider font-black text-[10px]">Inversión Transparente</span>
+            <span className="text-zinc-400 dark:text-zinc-600">·</span>
+            <span className="font-medium text-xs">1 Mes Gratis Completo</span>
           </div>
 
-          <h2 id="pricing-title" className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-zinc-950 dark:text-white leading-[1.1]">
-            Planes diseñados para cada etapa de tu barbería
+          <h2
+            id="pricing-title"
+            className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-zinc-950 dark:text-white leading-[1.08]"
+          >
+            Planes diseñados para cada etapa de tu{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400 dark:from-amber-300 dark:via-amber-400 dark:to-amber-100">
+              barbería.
+            </span>
           </h2>
 
           <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed">
-            Sin contratos forzosos. Prueba gratis <strong>1 mes (30 días) con todo habilitado a full</strong> y elige el plan que mejor se adapte al tamaño de tu equipo.
+            Sin contratos forzosos. Prueba gratis <strong>1 mes (30 días) con todas las funciones habilitadas</strong> y elige el plan ideal para tu equipo.
           </p>
 
           {/* Billing Switcher */}
@@ -148,11 +160,11 @@ export default function PricingPlans() {
             </span>
             <button
               onClick={() => setAnnual(!annual)}
-              className="w-14 h-8 bg-zinc-900 dark:bg-zinc-700 rounded-full p-1 relative transition-colors cursor-pointer"
+              className="w-14 h-8 bg-zinc-900 dark:bg-[#1a202c] rounded-full p-1 relative transition-colors cursor-pointer border border-zinc-700/60"
               aria-label="Alternar facturación anual"
             >
               <div
-                className={`w-6 h-6 rounded-full bg-white shadow-md transition-all ${annual ? 'ml-auto' : ''}`}
+                className={`w-6 h-6 rounded-full bg-amber-500 shadow-md transition-all ${annual ? 'ml-auto' : ''}`}
               />
             </button>
             <div className="flex items-center gap-2">
@@ -177,17 +189,17 @@ export default function PricingPlans() {
             return (
               <div
                 key={plan.id}
-                className={`p-8 rounded-3xl bg-zinc-50/70 dark:bg-zinc-900/80 border flex flex-col justify-between space-y-6 transition-all duration-300 relative shadow-sm hover:shadow-xl ${
+                className={`p-8 sm:p-9 rounded-3xl flex flex-col justify-between space-y-6 transition-all duration-300 relative shadow-sm hover:shadow-2xl ${
                   isFeatured
-                    ? 'border-2 border-amber-500 shadow-xl shadow-amber-500/10 lg:-translate-y-2'
-                    : 'border-zinc-200/90 dark:border-zinc-800'
+                    ? 'liquid-glass-amber shadow-2xl shadow-amber-500/15 lg:-translate-y-2 relative overflow-visible'
+                    : 'liquid-glass'
                 }`}
               >
-                {/* Badge for featured */}
+                {/* Badge for featured plan */}
                 {isFeatured && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-500 text-zinc-950 font-black text-[10px] uppercase tracking-widest px-4 py-1 rounded-full shadow-md flex items-center gap-1.5 whitespace-nowrap">
                     <Sparkles className="w-3 h-3 fill-zinc-950" aria-hidden="true" />
-                    MÁS POPULAR · RECOMENDADO
+                    MÁS ELEGIDO · RECOMENDADO
                   </div>
                 )}
 
@@ -197,12 +209,12 @@ export default function PricingPlans() {
                       className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
                         isFeatured
                           ? 'text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20'
-                          : 'text-zinc-500 dark:text-zinc-400 bg-zinc-200/60 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700'
+                          : 'text-zinc-500 dark:text-zinc-400 bg-zinc-200/60 dark:bg-white/[0.04] border border-zinc-200 dark:border-white/5'
                       }`}
                     >
                       {plan.maxBarbers <= 3 ? 'Para Iniciar' : plan.maxBarbers <= 8 ? 'Operación Completa' : 'Multisedes VIP'}
                     </span>
-                    <h3 className="text-xl font-bold text-zinc-950 dark:text-white mt-3">
+                    <h3 className="text-xl sm:text-2xl font-bold text-zinc-950 dark:text-white mt-3">
                       {plan.name}
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
@@ -226,7 +238,7 @@ export default function PricingPlans() {
                     </p>
                   </div>
 
-                  <div className="space-y-3 pt-4 border-t border-zinc-200/80 dark:border-zinc-800 text-xs">
+                  <div className="space-y-3 pt-5 border-t border-zinc-200/80 dark:border-white/10 text-xs">
                     {plan.features.map((feature, i) => (
                       <div
                         key={i}
@@ -243,8 +255,8 @@ export default function PricingPlans() {
                   href={`/register?plan=${plan.slug}`}
                   className={`w-full py-4 text-center rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 group cursor-pointer ${
                     isFeatured
-                      ? 'bg-amber-500 hover:bg-amber-600 text-zinc-950 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 active:scale-[0.98]'
-                      : 'bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 active:scale-[0.98]'
+                      ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/35 active:scale-[0.97]'
+                      : 'bg-white dark:bg-white/[0.04] hover:bg-zinc-100 dark:hover:bg-white/[0.08] text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-white/10 active:scale-[0.97]'
                   }`}
                 >
                   <span>Comenzar 1 Mes Gratis</span>
@@ -257,7 +269,7 @@ export default function PricingPlans() {
 
         {/* Footnote */}
         <p className="text-center text-xs text-zinc-500 dark:text-zinc-400 mt-12">
-          Todos los precios están expresados en pesos colombianos (COP). Se actualizan en tiempo real y no tienen comisiones por reserva agendada.
+          Precios oficiales en pesos colombianos (COP). Sin comisiones ocultas por reserva.
         </p>
 
       </div>
