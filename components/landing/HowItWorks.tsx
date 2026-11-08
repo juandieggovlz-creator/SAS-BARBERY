@@ -10,7 +10,7 @@ const steps = [
     step: '01',
     icon: Building2,
     title: 'Registra tu barbería',
-    desc: 'Crea tu cuenta en menos de 2 minutos con el nombre de tu barbería, ciudad y contacto. No requieres tarjeta de crédito para iniciar.',
+    desc: 'Crea tu cuenta en menos de 2 minutos con el nombre de tu barbería, ciudad y contacto para comenzar tu mes de prueba gratis.',
     badge: '2 minutos',
     color: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20'
   },

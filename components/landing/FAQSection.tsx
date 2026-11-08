@@ -27,7 +27,7 @@ const faqs = [
   },
   {
     q: '¿Cómo funciona la prueba gratuita de 1 mes (30 días)? ¿Me cobrarán automáticamente?',
-    a: 'Al registrar tu barbería recibes 1 mes completo (30 días) de acceso sin ingresar tarjeta de crédito ni datos de pago. Al finalizar el periodo de prueba tú decides si deseas contratar uno de los planes; si decides no continuar, tu cuenta simplemente se pausa sin cobros sorpresa.'
+    a: 'Al registrar tu barbería recibes 1 mes completo (30 días) de acceso gratuito a todas las herramientas. Al finalizar el periodo de prueba tú decides si deseas contratar uno de los planes; si decides no continuar, tu cuenta simplemente se pausa sin cobros sorpresa.'
   }
 ]
 

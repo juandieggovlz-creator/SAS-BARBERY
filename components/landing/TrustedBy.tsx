@@ -7,14 +7,12 @@ import {
   Share2, 
   Globe, 
   ShieldCheck,
-  CreditCard,
   MessageSquare
 } from 'lucide-react'
 
 const integrations = [
   { icon: MessageSquare, label: 'WhatsApp Cloud API', color: 'text-emerald-500' },
   { icon: Share2, label: 'Enlace en Bio Instagram', color: 'text-rose-500' },
-  { icon: CreditCard, label: 'Pagos Digitales & QR', color: 'text-purple-500' },
   { icon: Globe, label: 'Google Maps', color: 'text-amber-500' },
   { icon: ShieldCheck, label: 'Google & OAuth 2.0', color: 'text-blue-500' },
 ]

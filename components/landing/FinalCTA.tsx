@@ -75,7 +75,6 @@ export default function FinalCTA() {
             <div className="pt-8 border-t border-zinc-200 dark:border-white/10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-zinc-600 dark:text-zinc-400 font-medium">
               {[
                 '1 mes de prueba gratis con todo incluido',
-                'Sin ingresar tarjeta de crédito',
                 'Configuración en 3 minutos',
                 'Cancela cuando quieras',
               ].map((item, i) => (

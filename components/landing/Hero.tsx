@@ -173,8 +173,7 @@ export default function Hero() {
               className="pt-3 border-t border-zinc-200/80 dark:border-white/10 flex flex-wrap items-center gap-y-2 gap-x-5 text-xs text-zinc-600 dark:text-zinc-400 font-medium"
             >
               {[
-                'Prueba gratis 14 días',
-                'Sin tarjeta de crédito',
+                'Prueba gratis 1 mes',
                 'Listo en 3 minutos',
                 'Cancela cuando quieras'
               ].map((item) => (
@@ -415,7 +414,7 @@ export default function Hero() {
                         </span>
                       </div>
                       <p className="text-base font-black text-zinc-950 dark:text-white font-mono mt-0.5">$1.840.000 COP</p>
-                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Efectivo + Pagos Digitales + Tarjetas</p>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Efectivo + Transferencias + Tarjetas</p>
                     </div>
                   </div>
                 </div>

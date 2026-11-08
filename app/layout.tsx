@@ -20,7 +20,7 @@ const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://barberos.app';
 export const metadata: Metadata = {
   metadataBase: new URL(appBaseUrl),
   title: "BarberOS – El Sistema Operativo para Barberías Profesionales",
-  description: "Gestiona reservas online, finanzas, comisiones, agenda y la página web de tu barbería desde una sola plataforma. Prueba gratis 14 días.",
+  description: "Gestiona reservas online, finanzas, comisiones, agenda y la página web de tu barbería desde una sola plataforma. Prueba gratis 1 mes.",
   keywords: "barbería software, gestión barbería, reservas online barbería, sistema barbería Colombia",
   icons: {
     icon: '/logo.png',
