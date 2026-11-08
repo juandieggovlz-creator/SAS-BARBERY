@@ -17,7 +17,7 @@ export default function HeroSection() {
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-[11px] font-black uppercase tracking-widest text-zinc-300"
         >
           <Sparkles className="w-3.5 h-3.5 text-white" />
-          Software de Gestión SaaS Premium
+          Software de Gestión Premium
         </motion.div>
         <motion.h1
           initial={{ opacity: 0, y: 20 }}

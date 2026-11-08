@@ -58,7 +58,7 @@ export default function LandingPage() {
       {/* 12. Final Conversion CTA */}
       <FinalCTA />
 
-      {/* 13. Comprehensive SaaS Footer */}
+      {/* 13. Comprehensive Footer */}
       <Footer />
     </div>
   )

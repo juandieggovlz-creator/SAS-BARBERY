@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Phone, MapPin, Heart, ShieldCheck, Globe, X, MessageSquare, Link2, ExternalLink } from 'lucide-react'
+import { Phone, MapPin, Heart, ShieldCheck, Globe, ExternalLink } from 'lucide-react'
 
 export default function Footer() {
   return (
@@ -38,34 +38,18 @@ export default function Footer() {
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" aria-hidden="true" />
             </div>
 
-            {/* Social links */}
-            <div className="flex items-center gap-2.5 pt-2">
+            {/* Direct WhatsApp button */}
+            <div className="pt-2">
               <a
-                href="https://instagram.com"
+                href="https://wa.me/573242063393"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/[0.04] flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-amber-500 hover:border-amber-500/40 transition-colors"
-                aria-label="Instagram"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs transition-colors"
+                aria-label="Contactar por WhatsApp"
               >
-                <MessageSquare className="w-4 h-4" aria-hidden="true" />
-              </a>
-              <a
-                href="https://x.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/[0.04] flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-amber-500 hover:border-amber-500/40 transition-colors"
-                aria-label="X (Twitter)"
-              >
-                <X className="w-4 h-4" aria-hidden="true" />
-              </a>
-              <a
-                href="https://linkedin.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/[0.04] flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-amber-500 hover:border-amber-500/40 transition-colors"
-                aria-label="LinkedIn"
-              >
-                <Link2 className="w-4 h-4" aria-hidden="true" />
+                <Phone className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" />
+                <span>Contactar por WhatsApp</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-70 shrink-0" aria-hidden="true" />
               </a>
             </div>
           </div>

@@ -56,11 +56,8 @@ export default function Navbar() {
                 />
               </motion.div>
               <div className="flex flex-col text-left">
-                <span className="text-xl font-black tracking-tight text-zinc-950 dark:text-white flex items-center gap-1.5">
+                <span className="text-xl font-black tracking-tight text-zinc-950 dark:text-white">
                   Barber<span className="font-light text-zinc-500 dark:text-zinc-400">OS</span>
-                  <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    SaaS
-                  </span>
                 </span>
               </div>
             </Link>

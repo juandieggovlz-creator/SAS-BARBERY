@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     shortcut: '/logo.png',
   },
   openGraph: {
-    title: "BarberOS – Plataforma SaaS para Barberías",
+    title: "BarberOS – Plataforma Integral para Barberías",
     description: "Todo tu negocio en una sola plataforma. Reservas 24/7, caja ciega, comisiones automáticas y tu propia página web.",
     type: "website",
     images: [{ url: '/logo.png', width: 512, height: 512, alt: 'BarberOS Logo' }],

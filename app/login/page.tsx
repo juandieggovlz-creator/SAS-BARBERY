@@ -723,7 +723,7 @@ export default function LoginPage() {
         transition={{ duration: 0.5, delay: 0.7 }}
         className="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 text-center text-xs text-text-tertiary"
       >
-        <p>© {new Date().getFullYear()} BarberOS. Plataforma SaaS de Gestión para Barberías.</p>
+        <p>© {new Date().getFullYear()} BarberOS. Plataforma de Gestión Integral para Barberías.</p>
       </motion.footer>
     </div>
   )
