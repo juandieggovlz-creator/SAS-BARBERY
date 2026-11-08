@@ -356,18 +356,19 @@ export default function Hero() {
               </div>
 
               {/* ───────────────────────────────────────────────────────────
-                  FLOATING LAYER 1: Portal del Barbero (Tarjeta en perspectiva)
+                  COMPANION TELEMETRY DECK: Zero collisions, 100% clean
               ─────────────────────────────────────────────────────────── */}
               <motion.div
-                initial={{ opacity: 0, x: 25, y: -20, filter: 'blur(6px)' }}
-                animate={{ opacity: 1, x: 0, y: 0, filter: 'blur(0px)' }}
-                transition={{ duration: 0.7, delay: 0.65, ease: [0.16, 1, 0.3, 1] }}
-                className="hidden xl:block absolute -top-6 -right-6 w-72 z-20"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.65, ease: [0.16, 1, 0.3, 1] }}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3.5"
               >
-                <div className="liquid-glass p-4 rounded-2xl bg-white/95 dark:bg-[#121620]/95 shadow-2xl">
-                  <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-white/10">
+                {/* Card 1: Portal Barbero */}
+                <div className="liquid-glass p-3.5 rounded-2xl shadow-lg border border-zinc-200/80 dark:border-white/10 hover:border-amber-500/30 transition-all">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-zinc-100 dark:border-white/10">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-black">
+                      <div className="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-[11px] font-black">
                         CR
                       </div>
                       <div>
@@ -381,40 +382,33 @@ export default function Hero() {
                     </span>
                   </div>
 
-                  <div className="pt-3 grid grid-cols-2 gap-2">
-                    <div className="bg-zinc-50 dark:bg-white/[0.04] rounded-xl p-2.5">
+                  <div className="pt-2 flex items-center justify-between">
+                    <div>
                       <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Comisión Hoy</p>
-                      <p className="text-lg font-black text-amber-600 dark:text-amber-400 mt-0.5">$220.000</p>
+                      <p className="text-base font-black text-amber-600 dark:text-amber-400 font-mono mt-0.5">$232.000 COP</p>
                     </div>
-                    <div className="bg-zinc-50 dark:bg-white/[0.04] rounded-xl p-2.5 text-right">
+                    <div className="text-right">
                       <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Citas Hoy</p>
-                      <p className="text-lg font-black text-zinc-950 dark:text-white mt-0.5">10 turnos</p>
+                      <p className="text-base font-black text-zinc-950 dark:text-white font-mono mt-0.5">14 turnos</p>
                     </div>
                   </div>
                 </div>
-              </motion.div>
 
-              {/* ───────────────────────────────────────────────────────────
-                  FLOATING LAYER 2: Balance de Caja en Tiempo Real
-              ─────────────────────────────────────────────────────────── */}
-              <motion.div
-                initial={{ opacity: 0, x: -25, y: 20, filter: 'blur(6px)' }}
-                animate={{ opacity: 1, x: 0, y: 0, filter: 'blur(0px)' }}
-                transition={{ duration: 0.7, delay: 0.75, ease: [0.16, 1, 0.3, 1] }}
-                className="hidden xl:block absolute -bottom-6 -left-6 z-20"
-              >
-                <div className="liquid-glass p-4 rounded-2xl bg-white/95 dark:bg-[#121620]/95 shadow-2xl max-w-[270px]">
+                {/* Card 2: Balance de Caja */}
+                <div className="liquid-glass p-3.5 rounded-2xl shadow-lg border border-zinc-200/80 dark:border-white/10 hover:border-emerald-500/30 transition-all">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-black shrink-0">
-                      <DollarSign className="w-5 h-5" />
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-black shrink-0">
+                      <DollarSign className="w-4 h-4" />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Caja Diaria</span>
-                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">✓ Cuadrada</span>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Arqueo Diario</span>
+                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
+                          ✓ Cuadrada
+                        </span>
                       </div>
-                      <p className="text-xl font-black text-zinc-950 dark:text-white mt-0.5">$1.480.000</p>
-                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Efectivo + Transferencias</p>
+                      <p className="text-base font-black text-zinc-950 dark:text-white font-mono mt-0.5">$1.840.000 COP</p>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Efectivo + Nequi + Tarjetas</p>
                     </div>
                   </div>
                 </div>
