@@ -1,8 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger)
+}
 import {
   Calendar,
   DollarSign,
@@ -442,7 +448,7 @@ function DashboardView() {
           </p>
           <div className="space-y-2">
             {[
-              { client: 'Andrés Gómez', serv: 'Skin Fade + Barba', method: 'Nequi', amount: '$45.000', time: '10:45 AM' },
+              { client: 'Andrés Gómez', serv: 'Skin Fade + Barba', method: 'Transferencia', amount: '$45.000', time: '10:45 AM' },
               { client: 'Luis Martínez', serv: 'Combo Elite VIP', method: 'Datáfono', amount: '$55.000', time: '10:28 AM' },
               { client: 'Sebastián Mora', serv: 'Platinado Global', method: 'Efectivo', amount: '$110.000', time: '09:55 AM' }
             ].map((p, i) => (
@@ -511,7 +517,7 @@ function FinanzasView() {
               <span className="font-mono font-bold text-white">$840.000 COP</span>
             </div>
             <div className="flex justify-between p-2 rounded-lg bg-white/[0.02]">
-              <span className="text-zinc-400">Comprobantes Nequi / Daviplata:</span>
+              <span className="text-zinc-400">Comprobantes Digitales / Transferencias:</span>
               <span className="font-mono font-bold text-white">$680.000 COP</span>
             </div>
             <div className="flex justify-between p-2 rounded-lg bg-white/[0.02]">
@@ -726,10 +732,10 @@ function WebpageView() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h4 className="text-sm font-extrabold text-white">Barbería Elite Medellín</h4>
+                <h4 className="text-sm font-extrabold text-white">Barbería Elite</h4>
                 <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Abierto</span>
               </div>
-              <p className="text-[11px] text-zinc-400">Calle 10 # 36-24, El Poblado · Medellín</p>
+              <p className="text-[11px] text-zinc-400">Carrera 20 # 25-18, Centro · Sincelejo</p>
             </div>
           </div>
           <div className="flex items-center gap-1 text-amber-400 text-xs font-bold">
@@ -811,8 +817,43 @@ function WebpageView() {
 // ─────────────────────────────────────────────────────────────
 export default function ScrollExpandShowcase() {
   const [activeTab, setActiveTab] = useState<string>('agenda')
+  const showcaseContainerRef = useRef<HTMLDivElement>(null)
 
   const currentTab = SHOWCASE_TABS.find((t) => t.id === activeTab) || SHOWCASE_TABS[0]
+
+  // GSAP ScrollTrigger Fluid Expand Animation (Sin Pinned / Sin Bloqueo)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !showcaseContainerRef.current) return
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced) return
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        showcaseContainerRef.current,
+        {
+          scale: 0.93,
+          opacity: 0.85,
+          y: 35,
+          clipPath: 'inset(2% 2% 2% 2% round 32px)',
+        },
+        {
+          scale: 1,
+          opacity: 1,
+          y: 0,
+          clipPath: 'inset(0% 0% 0% 0% round 24px)',
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: showcaseContainerRef.current,
+            start: 'top 85%',
+            end: 'top 35%',
+            scrub: 1,
+          },
+        }
+      )
+    })
+
+    return () => ctx.revert()
+  }, [])
 
   return (
     <section
@@ -894,12 +935,9 @@ export default function ScrollExpandShowcase() {
         {/* ═════════════════════════════════════════════════════════
             MAJESTIC FULL-DPI SCREEN CONTAINER (FLUIDO, SIN PINNING)
         ═════════════════════════════════════════════════════════ */}
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-50px' }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-6xl mx-auto rounded-3xl overflow-hidden bg-white dark:bg-[#0c0e15] border border-zinc-200/90 dark:border-white/15 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_80px_-20px_rgba(0,0,0,0.8)]"
+        <div
+          ref={showcaseContainerRef}
+          className="relative w-full max-w-6xl mx-auto rounded-3xl overflow-hidden bg-white dark:bg-[#0c0e15] border border-zinc-200/90 dark:border-white/15 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_80px_-20px_rgba(0,0,0,0.8)] will-change-transform"
         >
           {/* Browser macOS Top Bar */}
           <div className="flex items-center justify-between px-5 py-3.5 bg-zinc-100/90 dark:bg-[#12151e] border-b border-zinc-200/80 dark:border-white/10">
@@ -942,7 +980,7 @@ export default function ScrollExpandShowcase() {
               </motion.div>
             </AnimatePresence>
           </div>
-        </motion.div>
+        </div>
 
         {/* Tab Detail Info & Real Metrics Strip */}
         <motion.div

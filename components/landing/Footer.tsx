@@ -103,19 +103,32 @@ export default function Footer() {
             </p>
             <ul className="space-y-2.5 text-sm" role="list">
               {[
-                { href: '#faq', label: 'Centro de Ayuda & FAQ' },
-                { href: '#', label: 'Términos del Servicio' },
-                { href: '#', label: 'Política de Privacidad' },
-                { href: '#', label: 'Seguridad de Datos' },
-                { href: '#', label: 'Acuerdo de Nivel de Servicio' },
+                { href: '#faq', label: 'Centro de Ayuda & FAQ', isExternal: false },
+                { href: '/terminos-y-condiciones', label: 'Términos y Condiciones', isExternal: false },
+                { href: '/politica-de-privacidad', label: 'Política de Privacidad', isExternal: false },
+                { href: '/seguridad', label: 'Seguridad y Protección de Datos', isExternal: false },
+                { href: '/sla', label: 'Acuerdo de Nivel de Servicio (SLA)', isExternal: false },
+                { href: 'https://wa.me/573242063393', label: 'Canal de Soporte Oficial', isExternal: true },
               ].map((item) => (
                 <li key={item.label}>
-                  <a
-                    href={item.href}
-                    className="text-zinc-600 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                  >
-                    {item.label}
-                  </a>
+                  {item.isExternal ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-zinc-600 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors flex items-center gap-1"
+                    >
+                      <span>{item.label}</span>
+                      <ExternalLink className="w-3 h-3 opacity-60" />
+                    </a>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className="text-zinc-600 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -129,15 +142,25 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" aria-hidden="true" />
-                <span>Bogotá D.C. & Medellín, Colombia</span>
+                <span>Sincelejo, Sucre, Colombia</span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" />
-                <span>WhatsApp: +57 300 000 0000</span>
+                <a
+                  href="https://wa.me/573242063393"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-500 transition-colors"
+                >
+                  WhatsApp: +57 324 206 3393
+                </a>
               </li>
-              <li className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-blue-500 shrink-0" aria-hidden="true" />
-                <span>Soporte 24/7 para clientes VIP</span>
+              <li className="flex items-start gap-2">
+                <Globe className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" aria-hidden="true" />
+                <div>
+                  <p>Atención: Lun - Sáb (8am - 7pm)</p>
+                  <p className="text-[11px] text-zinc-500">Plataforma en la nube operativa 24/7</p>
+                </div>
               </li>
             </ul>
           </div>

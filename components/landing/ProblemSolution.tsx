@@ -39,7 +39,7 @@ const comparisons = [
   {
     problemIcon: BadgeDollarSign,
     problemTitle: 'Caja sin control y descuadres misteriosos',
-    problemDesc: 'Efectivo mezclado en cajones, transferencias de Nequi sin verificar, salidas de dinero no registradas y arqueos que nunca cuadran al final del día.',
+    problemDesc: 'Efectivo mezclado en cajones, transferencias bancarias sin verificar, salidas de dinero no registradas y arqueos que nunca cuadran al final del día.',
     solutionIcon: Receipt,
     solutionTitle: 'Cierre de caja ciego con auditoría anti-fugas',
     solutionDesc: 'El cajero cuenta el dinero sin ver el sistema. Conciliación estricta de efectivo físico, transferencias y datáfono con alerta inmediata al dueño.'

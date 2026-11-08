@@ -115,7 +115,7 @@ export default function FeatureBento() {
               </div>
 
               <div className="bg-white dark:bg-white/[0.04] p-3.5 rounded-2xl border border-zinc-200/80 dark:border-white/5">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Nequi & Daviplata</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Transferencias & QR</p>
                 <p className="text-base font-black text-zinc-950 dark:text-white mt-1">$560.000 COP</p>
                 <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">14 comprobantes</p>
               </div>

@@ -3,7 +3,7 @@
 import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
 import {
   ArrowRight,
   Sparkles,
@@ -40,6 +40,10 @@ const headlineWords = [
 ]
 
 export default function Hero() {
+  const { scrollY } = useScroll()
+  const yHeroGlow = useTransform(scrollY, [0, 800], [0, 150])
+  const yCockpitParallax = useTransform(scrollY, [0, 800], [0, -30])
+
   return (
     <section
       id="inicio"
@@ -55,19 +59,21 @@ export default function Hero() {
         aria-hidden="true"
       />
 
-      {/* Atmospheric MotionSites Dual Ambient Spotlights */}
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[950px] h-[550px] bg-gradient-to-b from-amber-400/20 via-amber-200/5 to-transparent rounded-full blur-3xl pointer-events-none -z-10 dark:hidden"
-        aria-hidden="true"
-      />
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[950px] h-[550px] bg-gradient-to-b from-amber-500/15 via-amber-900/10 to-transparent rounded-full blur-3xl pointer-events-none -z-10 hidden dark:block"
-        aria-hidden="true"
-      />
-      <div
-        className="absolute bottom-0 right-10 w-[500px] h-[400px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -z-10 hidden dark:block"
-        aria-hidden="true"
-      />
+      {/* Atmospheric MotionSites Dual Ambient Spotlights with Parallax */}
+      <motion.div style={{ y: yHeroGlow }} className="pointer-events-none -z-10">
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[950px] h-[550px] bg-gradient-to-b from-amber-400/20 via-amber-200/5 to-transparent rounded-full blur-3xl pointer-events-none dark:hidden"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[950px] h-[550px] bg-gradient-to-b from-amber-500/15 via-amber-900/10 to-transparent rounded-full blur-3xl pointer-events-none hidden dark:block"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute bottom-0 right-10 w-[500px] h-[400px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none hidden dark:block"
+          aria-hidden="true"
+        />
+      </motion.div>
 
       {/* Vertical Subtle Guide Lines (MotionSites Signature) */}
       <div className="hidden 2xl:block pointer-events-none absolute inset-y-0 left-1/2 -translate-x-[calc(50%+42rem)] w-px bg-zinc-200/60 dark:bg-white/[0.04] z-0" />
@@ -91,7 +97,7 @@ export default function Hero() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
               </span>
-              <span className="tracking-wide uppercase font-black text-[10px]">BarberOS 2.0</span>
+              <span className="tracking-wide uppercase font-black text-[10px]">BarberOS</span>
               <span className="text-zinc-400 dark:text-zinc-600">|</span>
               <span className="tracking-tight text-xs font-medium">El estándar de las barberías de élite</span>
             </motion.div>
@@ -244,6 +250,7 @@ export default function Hero() {
           ═══════════════════════════════════════════════════════ */}
           <div className="lg:col-span-6 relative">
             <motion.div
+              style={{ y: yCockpitParallax }}
               initial={{ opacity: 0, scale: 0.94, y: 24, filter: 'blur(8px)' }}
               animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
               transition={{ duration: 0.9, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
@@ -408,7 +415,7 @@ export default function Hero() {
                         </span>
                       </div>
                       <p className="text-base font-black text-zinc-950 dark:text-white font-mono mt-0.5">$1.840.000 COP</p>
-                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Efectivo + Nequi + Tarjetas</p>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Efectivo + Pagos Digitales + Tarjetas</p>
                     </div>
                   </div>
                 </div>

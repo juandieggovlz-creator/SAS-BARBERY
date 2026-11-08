@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Monitor,
@@ -14,32 +13,18 @@ import {
   Globe,
   ArrowRight,
   Link as LinkIcon,
-  Sparkles
+  Sparkles,
+  Star,
+  Clock,
+  Check,
+  Scissors,
+  MapPin,
+  Phone,
+  MessageSquare
 } from 'lucide-react'
 import Link from 'next/link'
 
 type DeviceType = 'desktop' | 'tablet' | 'mobile'
-
-const deviceConfig = {
-  desktop: {
-    frameClass: 'w-full max-w-[700px] mx-auto',
-    outerClass: 'bg-zinc-200 dark:bg-[#151922] rounded-2xl p-2 shadow-2xl border border-zinc-300 dark:border-white/10',
-    screenClass: 'rounded-xl overflow-hidden bg-white dark:bg-[#0c0e14]',
-    aspectRatio: '16/9',
-  },
-  tablet: {
-    frameClass: 'w-[380px] mx-auto',
-    outerClass: 'bg-zinc-800 rounded-[28px] p-2.5 shadow-2xl border-4 border-zinc-700',
-    screenClass: 'rounded-[20px] overflow-hidden bg-white dark:bg-[#0c0e14]',
-    aspectRatio: '4/3',
-  },
-  mobile: {
-    frameClass: 'w-[280px] mx-auto',
-    outerClass: 'bg-zinc-900 rounded-[42px] p-2.5 shadow-2xl border-4 border-zinc-700',
-    screenClass: 'rounded-[32px] overflow-hidden bg-zinc-950 relative',
-    aspectRatio: '9/18.5',
-  },
-}
 
 const features = [
   {
@@ -51,20 +36,202 @@ const features = [
   {
     icon: Camera,
     color: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/20',
-    title: 'Galería de Cortes & Portada',
-    desc: 'Sube fotografías de tus mejores trabajos, eslogan y redes sociales para deslumbrar a los visitantes.',
+    title: 'Catálogo de Servicios & Portada',
+    desc: 'Muestra tus mejores cortes con precios claros, tiempos de servicio y eslogan para convertir visitantes en clientes.',
   },
   {
     icon: Calendar,
     color: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
     title: 'Motor de Reservas Directo',
-    desc: 'El cliente escoge barbero, servicio, fecha y hora disponible. Cero llamadas perdidas ni tiempos muertos.',
+    desc: 'El cliente escoge barbero, servicio, fecha y hora disponible. Confirmación automática sin llamadas ni tiempos muertos.',
   },
 ]
 
+// ─────────────────────────────────────────────────────────────
+// COMPONENTE NATIVO SINCRONIZADO: SIMULACIÓN WEB DE BARBERÍA
+// ─────────────────────────────────────────────────────────────
+interface WebPreviewProps {
+  device: DeviceType
+}
+
+function WebpageInteractivePreview({ device }: WebPreviewProps) {
+  const [selectedService, setSelectedService] = useState(0)
+  const [selectedBarber, setSelectedBarber] = useState(0)
+  const [selectedTime, setSelectedTime] = useState('11:30 AM')
+  const [confirmed, setConfirmed] = useState(false)
+
+  const services = [
+    { name: 'Skin Fade Pro', price: '$35.000', duration: '40 min' },
+    { name: 'Barba Ritual', price: '$25.000', duration: '25 min' },
+    { name: 'Combo Titán VIP', price: '$55.000', duration: '60 min' }
+  ]
+
+  const barbers = [
+    { name: 'Carlos Ruiz', role: 'Master Fade' },
+    { name: 'Mateo Valencia', role: 'Estilista' },
+    { name: 'Julián Fade', role: 'Colorimetría' }
+  ]
+
+  const times = ['09:30 AM', '11:30 AM', '02:15 PM', '04:00 PM']
+
+  const handleBook = () => {
+    setConfirmed(true)
+    setTimeout(() => setConfirmed(false), 3500)
+  }
+
+  return (
+    <div className="w-full h-full bg-zinc-50 dark:bg-[#090b10] text-zinc-900 dark:text-zinc-100 flex flex-col justify-between p-3.5 sm:p-5 select-none transition-colors duration-300 font-sans text-left overflow-y-auto">
+      {/* ── Brand Header ── */}
+      <div className="flex items-center justify-between pb-3 border-b border-zinc-200/90 dark:border-white/10 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-zinc-950 font-black text-xs shadow-md shadow-amber-500/20">
+            BE
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <h4 className="text-xs sm:text-sm font-black text-zinc-950 dark:text-white leading-tight">
+                Barbería Elite
+              </h4>
+              <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded-full">
+                Abierto
+              </span>
+            </div>
+            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate max-w-[190px] sm:max-w-none">
+              Carrera 20 # 25-18, Centro · Sincelejo
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 text-amber-500 text-[11px] font-bold shrink-0">
+          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+          <span>4.9</span>
+          <span className="text-zinc-400 dark:text-zinc-500 hidden sm:inline">(240)</span>
+        </div>
+      </div>
+
+      {/* ── Step 1: Select Service ── */}
+      <div className="space-y-1.5 my-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+            1. Elige tu servicio
+          </span>
+          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+            {services[selectedService].name} · {services[selectedService].price}
+          </span>
+        </div>
+
+        <div className={`grid gap-2 ${device === 'mobile' ? 'grid-cols-1' : 'grid-cols-3'}`}>
+          {services.map((s, idx) => (
+            <div
+              key={idx}
+              onClick={() => setSelectedService(idx)}
+              className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
+                selectedService === idx
+                  ? 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500 shadow-sm'
+                  : 'bg-white dark:bg-white/[0.03] border-zinc-200/80 dark:border-white/10 hover:border-zinc-300 dark:hover:border-white/20'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-950 dark:text-white leading-tight">
+                  {s.name}
+                </span>
+                {selectedService === idx && (
+                  <Check className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                )}
+              </div>
+              <div className="flex items-center justify-between mt-1 text-[10px]">
+                <span className="text-zinc-500 dark:text-zinc-400">{s.duration}</span>
+                <span className="font-mono font-black text-amber-600 dark:text-amber-400">{s.price}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Step 2: Select Barber ── */}
+      <div className="space-y-1.5 mb-3">
+        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+          2. Selecciona tu barbero
+        </span>
+        <div className="grid grid-cols-3 gap-2">
+          {barbers.map((b, idx) => (
+            <div
+              key={idx}
+              onClick={() => setSelectedBarber(idx)}
+              className={`p-2 rounded-xl border text-center cursor-pointer transition-all ${
+                selectedBarber === idx
+                  ? 'bg-amber-500 text-zinc-950 font-bold border-amber-500 shadow-sm'
+                  : 'bg-white dark:bg-white/[0.03] border-zinc-200/80 dark:border-white/10 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300'
+              }`}
+            >
+              <p className="text-[11px] font-bold truncate leading-tight">{b.name}</p>
+              <p className={`text-[9px] truncate ${selectedBarber === idx ? 'text-zinc-800 font-medium' : 'text-zinc-400'}`}>
+                {b.role}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Step 3: Select Time ── */}
+      <div className="space-y-1.5 mb-3">
+        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+          3. Horario para hoy
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {times.map((t) => (
+            <button
+              key={t}
+              onClick={() => setSelectedTime(t)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                selectedTime === t
+                  ? 'bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 shadow-sm'
+                  : 'bg-white dark:bg-white/[0.04] border border-zinc-200/80 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Booking Action / Confirmation ── */}
+      <div className="pt-2 border-t border-zinc-200/80 dark:border-white/10 shrink-0">
+        <AnimatePresence mode="wait">
+          {confirmed ? (
+            <motion.div
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-center gap-2"
+            >
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>¡Cita confirmada! Notificación enviada por WhatsApp</span>
+            </motion.div>
+          ) : (
+            <button
+              onClick={handleBook}
+              className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-zinc-950 font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Confirmar Cita para las {selectedTime}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </AnimatePresence>
+
+        <p className="text-[10px] text-center text-zinc-400 dark:text-zinc-500 mt-2">
+          Sin descargas · Sincronizado automáticamente con BarberOS
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// COMPONENTE PRINCIPAL WEBPAGESHOWCASE
+// ─────────────────────────────────────────────────────────────
 export default function WebpageShowcase() {
   const [device, setDevice] = useState<DeviceType>('desktop')
-  const cfg = deviceConfig[device]
 
   return (
     <section
@@ -106,7 +273,7 @@ export default function WebpageShowcase() {
           </h2>
 
           <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed">
-            Sin programar ni contratar agencias. BarberOS crea tu portal oficial de reservas adaptado perfectamente a cualquier pantalla.
+            Sin programar ni contratar agencias. BarberOS crea tu portal oficial de reservas adaptado perfectamente a cualquier pantalla y con sincronización en tiempo real.
           </p>
         </motion.div>
 
@@ -146,7 +313,7 @@ export default function WebpageShowcase() {
                 Tu marca, tus reglas y reservas 100% automáticas
               </h3>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                Cada barbería en BarberOS obtiene un enlace exclusivo para compartir en bio de Instagram, TikTok, Google Maps y estados de WhatsApp.
+                Cada barbería en BarberOS obtiene un enlace exclusivo para compartir en su biografía de Instagram, TikTok, Google Maps y estados de WhatsApp.
               </p>
             </div>
 
@@ -189,14 +356,27 @@ export default function WebpageShowcase() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.97 }}
                 transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                className={cfg.frameClass}
+                className={
+                  device === 'desktop'
+                    ? 'w-full max-w-[680px] mx-auto'
+                    : device === 'tablet'
+                    ? 'w-[420px] max-w-full mx-auto'
+                    : 'w-[300px] max-w-full mx-auto'
+                }
               >
-                {/* ── Outer device frame ── */}
-                <div className={cfg.outerClass}>
-
-                  {/* Desktop: browser bar */}
+                {/* ── Outer Device Frame ── */}
+                <div
+                  className={
+                    device === 'desktop'
+                      ? 'bg-zinc-200 dark:bg-[#151922] rounded-2xl p-2.5 shadow-2xl border border-zinc-300 dark:border-white/10'
+                      : device === 'tablet'
+                      ? 'bg-zinc-800 rounded-[32px] p-3 shadow-2xl border-4 border-zinc-700'
+                      : 'bg-zinc-900 rounded-[44px] p-3 shadow-2xl border-4 border-zinc-700 relative'
+                  }
+                >
+                  {/* Desktop Browser Top Bar */}
                   {device === 'desktop' && (
-                    <div className="rounded-t-lg px-3 py-2 flex items-center gap-2 bg-zinc-100 dark:bg-[#12151e] border-b border-zinc-200 dark:border-white/10">
+                    <div className="rounded-t-lg px-3 py-2 flex items-center gap-2 bg-zinc-100 dark:bg-[#12151e] border-b border-zinc-200 dark:border-white/10 mb-1">
                       <div className="flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-rose-400" aria-hidden="true" />
                         <span className="w-2.5 h-2.5 rounded-full bg-amber-400" aria-hidden="true" />
@@ -204,90 +384,47 @@ export default function WebpageShowcase() {
                       </div>
                       <div className="flex-1 mx-3 bg-white dark:bg-[#0c0e14] rounded-md px-3 py-1 flex items-center gap-1.5 text-[11px] font-mono text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-white/10">
                         <LinkIcon className="w-3 h-3 text-emerald-500 shrink-0" aria-hidden="true" />
-                        <span className="truncate">barberos.app/b/barberia-elite-sas</span>
+                        <span className="truncate">barberos.app/b/barberia-elite</span>
                       </div>
                       <div className="w-6" />
                     </div>
                   )}
 
-                  {/* ── Screen area ── */}
-                  <div className={cfg.screenClass}>
-                    {device === 'mobile' ? (
-                      <div className="relative overflow-hidden w-full" style={{ height: '520px' }}>
-                        <Image
-                          src="/landing/pagina-web-mobile.png"
-                          alt="Página web de barbería en móvil"
-                          fill
-                          className="object-cover object-top dark:hidden"
-                          priority
-                          sizes="280px"
-                        />
-                        <Image
-                          src="/landing/pagina-web-mobile-dark.png"
-                          alt="Página web de barbería en móvil modo oscuro"
-                          fill
-                          className="object-cover object-top hidden dark:block"
-                          priority
-                          sizes="280px"
-                        />
-                        <div className="absolute top-0 left-0 right-0 z-10 flex justify-center pt-2.5 pointer-events-none">
-                          <div className="w-20 h-4 bg-zinc-950 rounded-full border border-zinc-800" />
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        className="relative w-full overflow-hidden"
-                        style={{ aspectRatio: cfg.aspectRatio }}
-                      >
-                        <Image
-                          src="/landing/pagina-web-real.png"
-                          alt="Página web de barbería generada por BarberOS"
-                          fill
-                          className="object-cover object-top dark:hidden"
-                          priority
-                          sizes="(max-width: 1024px) 100vw, 700px"
-                        />
-                        <Image
-                          src="/landing/pagina-web-real-dark.png"
-                          alt="Página web de barbería generada por BarberOS modo oscuro"
-                          fill
-                          className="object-cover object-top hidden dark:block"
-                          priority
-                          sizes="(max-width: 1024px) 100vw, 700px"
-                        />
-                      </div>
-                    )}
+                  {/* Mobile Dynamic Island Notch */}
+                  {device === 'mobile' && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                      <div className="w-20 h-4 bg-zinc-950 rounded-full border border-zinc-800" />
+                    </div>
+                  )}
+
+                  {/* Screen View Area */}
+                  <div
+                    className={`rounded-xl overflow-hidden shadow-inner ${
+                      device === 'mobile'
+                        ? 'h-[500px] rounded-[30px] pt-4'
+                        : device === 'tablet'
+                        ? 'h-[440px] rounded-[22px]'
+                        : 'h-[400px]'
+                    }`}
+                  >
+                    <WebpageInteractivePreview device={device} />
                   </div>
                 </div>
 
+                {/* Bottom Home Indicator for Mobile & Tablet */}
                 {device === 'mobile' && (
-                  <div className="flex justify-center mt-2">
-                    <div className="w-24 h-1 bg-zinc-600 rounded-full" aria-hidden="true" />
+                  <div className="flex justify-center mt-2.5">
+                    <div className="w-24 h-1 bg-zinc-500/60 rounded-full" aria-hidden="true" />
                   </div>
                 )}
                 {device === 'tablet' && (
                   <div className="flex justify-center mt-2">
-                    <div className="w-10 h-1 bg-zinc-600 rounded-full" aria-hidden="true" />
+                    <div className="w-12 h-1 bg-zinc-500/60 rounded-full" aria-hidden="true" />
                   </div>
                 )}
               </motion.div>
             </AnimatePresence>
           </div>
-        </div>
-
-        {/* ── Bottom trust bar ── */}
-        <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 border-t border-zinc-200/80 dark:border-white/10 pt-8">
-          {[
-            'Dominio oficial autogenerado al registrarte',
-            'Optimizada para celulares, tablets y computadores',
-            'Catálogo de servicios con precios y tiempos transparentes',
-            'Personalización de colores, portada, galería y eslogan',
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" />
-              <span>{item}</span>
-            </div>
-          ))}
         </div>
 
       </div>

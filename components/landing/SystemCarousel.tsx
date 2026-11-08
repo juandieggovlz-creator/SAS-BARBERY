@@ -70,7 +70,7 @@ const slides: SlideItem[] = [
     icon: DollarSign,
     title: 'Cierre de caja ciego y control financiero anti-fugas',
     tagline: 'Cero descuadres entre recepción, barberos y cuenta bancaria',
-    description: 'Registra cobros en efectivo, transferencias Nequi/Bancolombia y datáfono. Al terminar el día o turno, realiza el cierre de caja con arqueo preciso para garantizar que el dinero contado coincida exactamente con las citas registradas.',
+    description: 'Registra cobros en efectivo, transferencias digitales y datáfono. Al terminar el día o turno, realiza el cierre de caja con arqueo preciso para garantizar que el dinero contado coincida exactamente con las citas registradas.',
     highlights: [
       'Cierre de caja por turnos o diario con un solo clic',
       'Control estricto de medios de pago (Efectivo, Tarjeta, Transferencia)',

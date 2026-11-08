@@ -21,6 +21,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/terminos-y-condiciones') ||
     pathname.startsWith('/politica-de-privacidad') ||
     pathname.startsWith('/politica-de-cookies') ||
+    pathname.startsWith('/seguridad') ||
+    pathname.startsWith('/sla') ||
     pathname.startsWith('/cookies')
 
   if (isPublicPage) {

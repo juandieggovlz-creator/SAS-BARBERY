@@ -131,7 +131,7 @@ export default function Metrics() {
             end={500}
             prefix="+"
             label="Barberías Afiliadas"
-            sublabel="En Bogotá, Medellín, Cali, Barranquilla y más"
+            sublabel="En todo Colombia · Sincelejo, Bogotá, Medellín y más"
             Icon={TrendingUp}
             iconBg="bg-amber-500/15"
             iconColor="text-amber-600 dark:text-amber-400"

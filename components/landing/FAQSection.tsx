@@ -15,7 +15,7 @@ const faqs = [
   },
   {
     q: '¿Cómo funciona el cierre de caja ciego y por qué evita fugas de dinero?',
-    a: 'En el cierre ciego, el recepcionista o encargado digita la cantidad de dinero físico que contó en la caja sin que el sistema le revele el total esperado. Una vez enviado, BarberOS cruza el conteo con las citas pagadas en efectivo, tarjetas y transferencias (Nequi/Bancolombia) y genera el arqueo oficial con la diferencia exacta en segundos.'
+    a: 'En el cierre ciego, el recepcionista o encargado digita la cantidad de dinero físico que contó en la caja sin que el sistema le revele el total esperado. Una vez enviado, BarberOS cruza el conteo con las citas pagadas en efectivo, tarjetas y transferencias bancarias o códigos QR y genera el arqueo oficial con la diferencia exacta en segundos.'
   },
   {
     q: '¿Qué pasa si ya tengo clientes y servicios? ¿Es difícil configurarlo?',
