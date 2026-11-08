@@ -35,6 +35,8 @@ import { DEFAULT_SCHEDULE, DayScheduleItem } from '@/lib/schedule'
 import LocationSelector from '@/components/ui/LocationSelector'
 import Image from 'next/image'
 import { getPublicPageUrl } from '@/lib/url'
+import { useTheme } from '@/lib/theme'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 type PresetColor = {
   id: string
@@ -58,13 +60,11 @@ const QUICK_SERVICE_PRESETS = [
 
 export default function RegisterWizardPage() {
   const router = useRouter()
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
   const [step, setStep] = useState<number>(1)
   const [loading, setLoading] = useState<boolean>(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  // UI Theme (independent from dashboardTheme which is the business preference)
-  const [pageTheme, setPageTheme] = useState<'light' | 'dark'>('dark')
-  const isDark = pageTheme === 'dark'
 
   // Step 1: User Account
   const [fullName, setFullName] = useState('')
@@ -402,15 +402,7 @@ export default function RegisterWizardPage() {
             className="flex items-center gap-4"
           >
             {/* Theme Toggle */}
-            <motion.button
-              onClick={() => setPageTheme(isDark ? 'light' : 'dark')}
-              title={isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-10 h-10 rounded-xl glass border-border-subtle flex items-center justify-center text-text-tertiary hover:text-accent transition-colors"
-            >
-              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </motion.button>
+            <ThemeToggle variant="navbar" />
 
             <motion.div className="text-xs text-text-tertiary">
               ¿Ya tienes cuenta?{' '}
@@ -614,7 +606,7 @@ export default function RegisterWizardPage() {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="Ej. Juan Pérez"
-                        className="input-base pl-11 pr-4"
+                        className="input-base !pl-11 !pr-4"
                         autoComplete="name"
                       />
                     </div>
@@ -635,7 +627,7 @@ export default function RegisterWizardPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="juan@barberia.com"
-                        className="input-base pl-11 pr-4"
+                        className="input-base !pl-11 !pr-4"
                         autoComplete="email"
                       />
                     </div>
@@ -656,7 +648,7 @@ export default function RegisterWizardPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="input-base pl-11 pr-4"
+                        className="input-base !pl-11 !pr-4"
                         autoComplete="new-password"
                       />
                     </div>
@@ -677,7 +669,7 @@ export default function RegisterWizardPage() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="input-base pl-11 pr-4"
+                        className="input-base !pl-11 !pr-4"
                         autoComplete="new-password"
                       />
                     </div>
@@ -728,7 +720,7 @@ export default function RegisterWizardPage() {
                     onClick={handleNext}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    className="btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer"
+                    className="px-8 py-3.5 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Continuar</span>
                     <motion.span
@@ -863,7 +855,7 @@ export default function RegisterWizardPage() {
                         value={businessName}
                         onChange={(e) => handleBusinessNameChange(e.target.value)}
                         placeholder="Ej. Barbería Elite SAS"
-                        className="input-base pl-11 pr-4"
+                        className="input-base !pl-11 !pr-4"
                       />
                     </div>
                     {slug && (
@@ -892,7 +884,7 @@ export default function RegisterWizardPage() {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="+57 300 123 4567"
-                        className="input-base pl-11 pr-4"
+                        className="input-base !pl-11 !pr-4"
                       />
                     </div>
                   </motion.div>
@@ -911,7 +903,7 @@ export default function RegisterWizardPage() {
                         value={whatsapp}
                         onChange={(e) => setWhatsapp(e.target.value)}
                         placeholder="+57 324 206 3393"
-                        className="input-base pl-11 pr-4"
+                        className="input-base !pl-11 !pr-4"
                       />
                     </div>
                   </motion.div>
@@ -942,7 +934,7 @@ export default function RegisterWizardPage() {
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         placeholder="Ej. Calle 85 # 14-20, Local 102"
-                        className="input-base pl-11 pr-4"
+                        className="input-base !pl-11 !pr-4"
                       />
                     </div>
                   </motion.div>
@@ -972,7 +964,7 @@ export default function RegisterWizardPage() {
                     onClick={handleNext}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    className="btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer"
+                    className="px-8 py-3.5 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Continuar</span>
                     <motion.span
@@ -1222,7 +1214,7 @@ export default function RegisterWizardPage() {
                     onClick={handleNext}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    className="btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer"
+                    className="px-8 py-3.5 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Continuar</span>
                     <motion.span
@@ -1384,7 +1376,7 @@ export default function RegisterWizardPage() {
                     onClick={handleNext}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    className="btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer"
+                    className="px-8 py-3.5 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Continuar</span>
                     <motion.span
@@ -1585,7 +1577,7 @@ export default function RegisterWizardPage() {
                     onClick={handleNext}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    className="btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer"
+                    className="px-8 py-3.5 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Continuar</span>
                     <motion.span
@@ -1653,7 +1645,7 @@ export default function RegisterWizardPage() {
                         value={barberName}
                         onChange={(e) => setBarberName(e.target.value)}
                         placeholder="Ej. Carlos 'The Blade' Ruiz"
-                        className="input-base pl-11 pr-4"
+                        className="input-base !pl-11 !pr-4"
                       />
                     </div>
                   </div>
@@ -1726,7 +1718,7 @@ export default function RegisterWizardPage() {
                       onClick={() => handleCompleteRegistration(false)}
                       whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
-                      className="flex-1 sm:flex-initial btn-primary text-sm py-4 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 sm:flex-initial px-8 py-3.5 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? (
                         <motion.div
