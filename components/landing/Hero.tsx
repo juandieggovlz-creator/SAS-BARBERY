@@ -274,24 +274,84 @@ export default function Hero() {
                   </div>
                 </div>
 
-                {/* Dashboard Image View */}
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-                  <Image
-                    src="/landing/dashboard-admin.jpg"
-                    alt="BarberOS Dashboard Administrador"
-                    fill
-                    className="object-cover object-top dark:hidden"
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 650px"
-                  />
-                  <Image
-                    src="/landing/dashboard-admin-dark.jpg"
-                    alt="BarberOS Dashboard Administrador Modo Oscuro"
-                    fill
-                    className="object-cover object-top hidden dark:block"
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 650px"
-                  />
+                {/* Native High-DPI Dashboard Cockpit View */}
+                <div className="p-4 sm:p-5 bg-[#090b10] text-zinc-100 select-none font-sans space-y-3.5">
+                  {/* Top Stats Strip */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10">
+                      <p className="text-[9px] uppercase font-bold text-zinc-400">Ventas Hoy</p>
+                      <p className="text-sm sm:text-base font-black text-amber-400 font-mono mt-0.5">$1.840.000</p>
+                      <p className="text-[9px] text-emerald-400 font-medium">↑ +24.5% vs ayer</p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10">
+                      <p className="text-[9px] uppercase font-bold text-zinc-400">Citas Hoy</p>
+                      <p className="text-sm sm:text-base font-black text-white font-mono mt-0.5">38 <span className="text-[10px] text-zinc-400 font-normal">/ 42</span></p>
+                      <p className="text-[9px] text-emerald-400 font-medium">90.4% asistencia</p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10">
+                      <p className="text-[9px] uppercase font-bold text-zinc-400">Sillones</p>
+                      <p className="text-sm sm:text-base font-black text-emerald-400 font-mono mt-0.5">3 / 3</p>
+                      <p className="text-[9px] text-emerald-400 font-medium">100% capacidad</p>
+                    </div>
+                  </div>
+
+                  {/* 3 Live Barber Agenda Columns Preview */}
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center justify-between">
+                      <span>Monitoreo de Sillones en Vivo</span>
+                      <span className="text-emerald-400 flex items-center gap-1 font-mono">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Sincronizado
+                      </span>
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {/* Barber 1 */}
+                      <div className="p-2.5 rounded-xl bg-white/[0.02] border border-emerald-500/30 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white">Carlos Ruiz</span>
+                          <span className="text-[8px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded">En Sillón</span>
+                        </div>
+                        <p className="text-[11px] font-medium text-zinc-300 truncate">Andrés Gómez · Skin Fade</p>
+                        <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden">
+                          <div className="bg-emerald-400 h-full rounded-full" style={{ width: '70%' }} />
+                        </div>
+                      </div>
+
+                      {/* Barber 2 */}
+                      <div className="p-2.5 rounded-xl bg-white/[0.02] border border-emerald-500/30 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white">Mateo Valencia</span>
+                          <span className="text-[8px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded">En Sillón</span>
+                        </div>
+                        <p className="text-[11px] font-medium text-zinc-300 truncate">Luis Martínez · Combo VIP</p>
+                        <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden">
+                          <div className="bg-emerald-400 h-full rounded-full" style={{ width: '85%' }} />
+                        </div>
+                      </div>
+
+                      {/* Barber 3 */}
+                      <div className="p-2.5 rounded-xl bg-white/[0.02] border border-amber-500/30 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white">Julián Fade</span>
+                          <span className="text-[8px] font-black uppercase text-amber-400 bg-amber-500/10 px-1 py-0.5 rounded">Color</span>
+                        </div>
+                        <p className="text-[11px] font-medium text-zinc-300 truncate">Sebastián Mora · Platinado</p>
+                        <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden">
+                          <div className="bg-amber-400 h-full rounded-full" style={{ width: '45%' }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cockpit Bottom Micro Telemetry */}
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      Arqueo de caja: $0 descuadre
+                    </span>
+                    <span className="text-amber-400 font-bold">Próxima cita en 12 min</span>
+                  </div>
                 </div>
               </div>
 
