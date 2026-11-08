@@ -36,10 +36,8 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "sonner";
-import Script from "next/script";
-import { ThemeProvider, themeInitScript } from "@/lib/theme";
+import { ThemeProvider } from "@/lib/theme";
 import AccentColorProvider from "@/components/ui/AccentColorProvider";
-import { accentInitScript } from "@/lib/accent-colors";
 import CookieConsentBanner from "@/components/ui/CookieConsentBanner";
 
 export default function RootLayout({
@@ -54,18 +52,6 @@ export default function RootLayout({
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col">
-        {/* Anti-flash theme script */}
-        <Script
-          id="barberos-theme-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: themeInitScript }}
-        />
-        {/* Anti-flash accent color script */}
-        <Script
-          id="barberos-accent-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: accentInitScript }}
-        />
         <ThemeProvider>
           <AccentColorProvider>
             {children}
