@@ -50,8 +50,8 @@ function StatCounter({ end, prefix = '', suffix = '', label, sublabel, Icon, ico
       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto shrink-0 ${iconBg} ${iconColor}`}>
         <Icon className="w-6 h-6" aria-hidden="true" />
       </div>
-      <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-zinc-950 dark:text-white font-mono tracking-tight">
-        {prefix}{count.toLocaleString('es-CO')}{suffix}
+      <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-zinc-950 dark:text-white font-mono tracking-tight" suppressHydrationWarning>
+        {prefix}{count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}{suffix}
       </div>
       <p className="text-xs sm:text-sm font-black text-zinc-900 dark:text-zinc-100 uppercase tracking-wide">{label}</p>
       <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">{sublabel}</p>

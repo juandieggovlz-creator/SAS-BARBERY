@@ -109,12 +109,9 @@ export default function PricingPlans() {
     fetchPlans()
   }, [])
 
-  const formatCOP = (amount: number) =>
-    new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      maximumFractionDigits: 0
-    }).format(amount)
+  const formatNumber = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+
+  const formatCOP = (amount: number) => `$${formatNumber(amount)}`
 
   return (
     <section
@@ -217,21 +214,21 @@ export default function PricingPlans() {
                     <h3 className="text-xl sm:text-2xl font-bold text-zinc-950 dark:text-white mt-3">
                       {plan.name}
                     </h3>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                      Hasta {plan.maxBarbers} barberos y {plan.maxAppointments.toLocaleString()} citas/mes.
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1" suppressHydrationWarning>
+                      Hasta {plan.maxBarbers} barberos y {formatNumber(plan.maxAppointments)} citas/mes.
                     </p>
                   </div>
 
                   <div className="pt-2">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-black font-mono text-zinc-950 dark:text-white">
+                      <span className="text-4xl font-black font-mono text-zinc-950 dark:text-white" suppressHydrationWarning>
                         {formatCOP(displayPrice)}
                       </span>
                       <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400">
                         COP / mes
                       </span>
                     </div>
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1" suppressHydrationWarning>
                       {annual
                         ? `Facturado anualmente (${formatCOP(yearlyTotal)} COP)`
                         : 'Sin permanencia mínima'}
