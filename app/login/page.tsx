@@ -195,9 +195,16 @@ export default function LoginPage() {
                   whileHover={{ scale: 1.05, rotate: 3 }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                  className="w-10 h-10 rounded-xl overflow-hidden shadow-md shrink-0 bg-gradient-to-br from-accent to-primary"
+                  className="relative w-10 h-10 rounded-xl overflow-hidden shadow-md shrink-0"
                 >
-                  <Image src="/logo.png" alt="BarberOS" fill sizes="40px" className="object-cover" />
+                  <Image
+                    src="/logo.png"
+                    alt="BarberOS"
+                    width={40}
+                    height={40}
+                    priority
+                    className="w-full h-full object-cover"
+                  />
                 </motion.div>
                 <span className="text-xl sm:text-2xl font-black tracking-tight text-text-primary uppercase">
                   Barber<span className="font-light text-text-tertiary">OS</span>
@@ -568,9 +575,15 @@ export default function LoginPage() {
                     whileHover={{ scale: 1.05, rotate: 2 }}
                     whileTap={{ scale: 0.95 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                    className="w-9 h-9 rounded-lg overflow-hidden border border-border-subtle relative"
+                    className="relative w-9 h-9 rounded-lg overflow-hidden border border-border-subtle shrink-0"
                   >
-                    <Image src="/logo.png" alt="BarberOS" fill sizes="36px" className="object-cover" />
+                    <Image
+                      src="/logo.png"
+                      alt="BarberOS"
+                      width={36}
+                      height={36}
+                      className="w-full h-full object-cover"
+                    />
                   </motion.div>
                   <div>
                     <h3 className="text-sm font-black text-text-primary">Barbería Elite SAS</h3>

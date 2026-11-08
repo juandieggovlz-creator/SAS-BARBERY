@@ -378,9 +378,16 @@ export default function RegisterWizardPage() {
                 whileHover={{ scale: 1.05, rotate: 3 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                className="w-9 h-9 rounded-xl overflow-hidden shadow-md shrink-0 bg-gradient-to-br from-accent to-primary"
+                className="relative w-9 h-9 rounded-xl overflow-hidden shadow-md shrink-0"
               >
-                <Image src="/logo.png" alt="BarberOS" fill sizes="36px" className="object-cover" />
+                <Image
+                  src="/logo.png"
+                  alt="BarberOS"
+                  width={36}
+                  height={36}
+                  priority
+                  className="w-full h-full object-cover"
+                />
               </motion.div>
               <span className="text-xl font-black tracking-tight text-text-primary uppercase">
                 Barber<span className="font-light text-text-tertiary">OS</span>
