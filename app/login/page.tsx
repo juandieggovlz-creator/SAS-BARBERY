@@ -281,7 +281,7 @@ export default function LoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="admin@barberia.com"
-                      className="input-base pl-11 pr-4"
+                      className="input-base !pl-11 !pr-4"
                       autoComplete="email"
                     />
                   </div>
@@ -313,7 +313,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="input-base pl-11 pr-12"
+                      className="input-base !pl-11 !pr-12"
                       autoComplete="current-password"
                     />
                     <motion.button

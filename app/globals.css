@@ -850,6 +850,16 @@ html.dark .btn-ghost:hover {
   transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
 }
 
+.input-base.pl-11,
+.input-base[class*="pl-11"] {
+  padding-left: 2.75rem !important;
+}
+
+.input-base.pr-12,
+.input-base[class*="pr-12"] {
+  padding-right: 3rem !important;
+}
+
 .input-base::placeholder {
   color: var(--text-muted);
 }
