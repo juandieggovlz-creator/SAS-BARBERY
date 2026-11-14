@@ -7,6 +7,7 @@ import { Search, Plus } from 'lucide-react'
 
 import NotificationBell from '@/components/notifications/NotificationBell'
 import BranchSelector from '@/components/owner/BranchSelector'
+import ImpersonationBanner from '@/components/ImpersonationBanner'
 
 const routeTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'Centro de Operaciones', subtitle: 'Resumen ejecutivo y control del negocio' },
@@ -59,10 +60,12 @@ export default function TopBar({ onOpenSearch }: TopBarProps) {
   }, [])
 
   return (
-    <header
-      className="h-16 bg-white dark:bg-[#09090b] border-b border-zinc-100 dark:border-zinc-800/80 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-20"
-      style={{ fontFamily: "'Inter', sans-serif" }}
-    >
+    <>
+      <ImpersonationBanner />
+      <header
+        className="h-16 bg-white dark:bg-[#09090b] border-b border-zinc-100 dark:border-zinc-800/80 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-20"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
       {/* Title & Subtitle */}
       <div className="min-w-0 flex-1">
         <h1 className="text-base sm:text-lg font-black tracking-tight text-zinc-950 dark:text-white flex items-center gap-2 truncate" style={{ letterSpacing: '-0.02em' }}>
@@ -108,5 +111,6 @@ export default function TopBar({ onOpenSearch }: TopBarProps) {
         </Link>
       </div>
     </header>
+    </>
   )
 }
