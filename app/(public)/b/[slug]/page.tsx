@@ -123,7 +123,7 @@ export default function PublicBusinessPage() {
   const [submittingBooking, setSubmittingBooking] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState<any | null>(null)
   const [bookingError, setBookingError] = useState<string | null>(null)
-  const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null)
+  const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | 'cancelacion' | 'datos' | null>(null)
 
   const [navScrolled, setNavScrolled] = useState(false)
   const reserveRef = useRef<HTMLDivElement>(null)
@@ -2036,7 +2036,10 @@ export default function PublicBusinessPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black tracking-tight" style={{ fontFamily: fontConfig.headingFont }}>
-                    {legalModal === 'terms' ? 'Términos y Condiciones del Servicio' : 'Política de Privacidad & Protección de Datos'}
+                    {legalModal === 'terms' && 'Términos y Condiciones del Servicio'}
+                    {legalModal === 'privacy' && 'Política de Privacidad & Protección de Datos'}
+                    {legalModal === 'cancelacion' && 'Política de Cancelación & Reagendamientos'}
+                    {legalModal === 'datos' && 'Tratamiento de Datos Personales (Habeas Data)'}
                   </h3>
                   <p className="text-xs opacity-60 font-medium">
                     {data.name} • Actualizado para la vigencia actual
@@ -2054,38 +2057,60 @@ export default function PublicBusinessPage() {
             </div>
 
             {/* Pestañas rápidas */}
-            <div className="px-6 pt-3 pb-1 border-b flex gap-2 shrink-0 text-xs font-bold" style={{ borderColor: colors.border }}>
+            <div className="px-6 pt-3 pb-1 border-b flex gap-2 shrink-0 text-xs font-bold overflow-x-auto" style={{ borderColor: colors.border }}>
               <button
                 type="button"
                 onClick={() => setLegalModal('terms')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${legalModal === 'terms' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'
-                  }`}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${legalModal === 'terms' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'}`}
                 style={{
                   backgroundColor: legalModal === 'terms' ? `${colors.accent}20` : 'transparent',
                   borderColor: legalModal === 'terms' ? colors.accent : 'transparent',
                   color: legalModal === 'terms' ? colors.accent : colors.textPrimary
                 }}
               >
-                Términos del Servicio
+                Términos
               </button>
               <button
                 type="button"
                 onClick={() => setLegalModal('privacy')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${legalModal === 'privacy' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'
-                  }`}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${legalModal === 'privacy' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'}`}
                 style={{
                   backgroundColor: legalModal === 'privacy' ? `${colors.accent}20` : 'transparent',
                   borderColor: legalModal === 'privacy' ? colors.accent : 'transparent',
                   color: legalModal === 'privacy' ? colors.accent : colors.textPrimary
                 }}
               >
-                Política de Privacidad
+                Privacidad
+              </button>
+              <button
+                type="button"
+                onClick={() => setLegalModal('cancelacion')}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${legalModal === 'cancelacion' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'}`}
+                style={{
+                  backgroundColor: legalModal === 'cancelacion' ? `${colors.accent}20` : 'transparent',
+                  borderColor: legalModal === 'cancelacion' ? colors.accent : 'transparent',
+                  color: legalModal === 'cancelacion' ? colors.accent : colors.textPrimary
+                }}
+              >
+                Cancelaciones
+              </button>
+              <button
+                type="button"
+                onClick={() => setLegalModal('datos')}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${legalModal === 'datos' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'}`}
+                style={{
+                  backgroundColor: legalModal === 'datos' ? `${colors.accent}20` : 'transparent',
+                  borderColor: legalModal === 'datos' ? colors.accent : 'transparent',
+                  color: legalModal === 'datos' ? colors.accent : colors.textPrimary
+                }}
+              >
+                Habeas Data
               </button>
             </div>
 
             {/* Contenido scrolleable */}
             <div className="p-6 overflow-y-auto space-y-5 text-xs opacity-90 leading-relaxed font-normal">
-              {legalModal === 'terms' ? (
+              {legalModal === 'terms' && (
                 <>
                   <div className="space-y-1.5">
                     <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
@@ -2123,7 +2148,9 @@ export default function PublicBusinessPage() {
                     </p>
                   </div>
                 </>
-              ) : (
+              )}
+
+              {legalModal === 'privacy' && (
                 <>
                   <div className="space-y-1.5">
                     <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
@@ -2163,6 +2190,59 @@ export default function PublicBusinessPage() {
                     </h5>
                     <p>
                       En cualquier momento puedes solicitar la actualización, rectificación o eliminación definitiva de tus datos de nuestro sistema poniéndote en contacto directo con la administración de <strong>{data.name}</strong> a través de nuestros canales oficiales de contacto.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {legalModal === 'cancelacion' && (
+                <>
+                  <div className="space-y-1.5">
+                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
+                      1. Tiempo de Tolerancia de Espera
+                    </h5>
+                    <p>
+                      Contamos con un margen de cortesía de <strong>10 minutos</strong>. Pasado dicho tiempo sin aviso previo, el barbero podrá disponer del turno para atender a clientes en espera presencial.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
+                      2. Cancelación Oportuna
+                    </h5>
+                    <p>
+                      Puedes cancelar o modificar el horario de tu cita de forma gratuita hasta <strong>1 hora antes</strong> de la hora acordada a través del enlace de autoservicio o escribiendo a nuestro WhatsApp.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
+                      3. Anticipos o Depósitos de Reserva
+                    </h5>
+                    <p>
+                      Si tu cita requiere anticipo previo (según la política del servicio), dicho depósito será acreditado al valor total de tu corte en el establecimiento. En caso de inasistencia sin previo aviso, el anticipo compensa el tiempo reservado del profesional.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {legalModal === 'datos' && (
+                <>
+                  <div className="space-y-1.5">
+                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
+                      1. Autorización de Tratamiento (Ley 1581 de 2012)
+                    </h5>
+                    <p>
+                      Al agendar tu turno en <strong>{data.name}</strong>, autorizas de manera previa, expresa e informada el tratamiento de tus datos de contacto básicos (nombre, teléfono y preferencias de servicio).
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
+                      2. Ejercicio de Derechos ARCO
+                    </h5>
+                    <p>
+                      Tienes derecho a conocer, actualizar, rectificar y suprimir tus datos personales registrados en el sistema, así como a revocar la autorización enviando un mensaje directo a los canales oficiales del establecimiento o al correo legal de la plataforma.
                     </p>
                   </div>
                 </>

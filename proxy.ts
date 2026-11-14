@@ -24,7 +24,13 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/politica-de-cookies') ||
     pathname.startsWith('/seguridad') ||
     pathname.startsWith('/sla') ||
-    pathname.startsWith('/cookies')
+    pathname.startsWith('/cookies') ||
+    pathname.startsWith('/tratamiento-de-datos') ||
+    pathname.startsWith('/habeas-data') ||
+    pathname.startsWith('/cancelacion-y-reembolsos') ||
+    pathname.startsWith('/reembolsos') ||
+    pathname.startsWith('/suscripciones-y-pagos') ||
+    pathname.startsWith('/pagos-y-suscripciones')
 
   if (isPublicPage) {
     return NextResponse.next()
@@ -44,6 +50,7 @@ export async function proxy(request: NextRequest) {
     '/api/auth/validate-invite',
     '/api/auth/barber-access',
     '/api/public',
+    '/api/platform/settings',
     '/api/user/accent',
     '/api/webhooks',
     '/api/whatsapp/webhook'

@@ -16,13 +16,15 @@ import {
   Cpu,
   Clock,
   ShieldCheck,
-  Zap
+  Zap,
+  MessageSquare,
+  PauseCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ServiceHealth {
   name: string
-  status: 'OPERATIONAL' | 'DEGRADED' | 'DOWN'
+  status: 'OPERATIONAL' | 'DEGRADED' | 'DOWN' | 'STANDBY'
   latencyMs: number
   details: string
 }
@@ -83,6 +85,12 @@ export default function SuperAdminSystemPage() {
           text: '🟡 Degradado',
           className: 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 font-bold'
         }
+      case 'STANDBY':
+        return {
+          icon: PauseCircle,
+          text: '⚪ Opcional / Standby',
+          className: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-700 font-bold'
+        }
       case 'DOWN':
       default:
         return {
@@ -107,6 +115,7 @@ export default function SuperAdminSystemPage() {
     api: Server,
     auth: KeyRound,
     storage: HardDrive,
+    whatsapp: MessageSquare,
     email: Mail
   }
 

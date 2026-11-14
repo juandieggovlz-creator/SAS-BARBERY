@@ -61,6 +61,7 @@ export default function SuperAdminSidebar() {
       items: [
         { label: 'Bitácora de Auditoría', href: '/superadmin/audit', icon: FileText },
         { label: 'Comunicados Globales', href: '/superadmin/announcements', icon: Bell },
+        { label: 'Políticas & Legal', href: '/superadmin/legal', icon: ShieldCheck },
         { label: 'Configuración Global', href: '/superadmin/settings', icon: Settings },
       ]
     }

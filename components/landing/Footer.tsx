@@ -1,12 +1,25 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Phone, MapPin, Heart, ShieldCheck, Globe, ExternalLink } from 'lucide-react'
+import { getPublicSettings, getWhatsAppUrl, type PublicPlatformSettings } from '@/lib/platform-config'
+
+const FALLBACK_WA = '+57 324 2063393'
+const FALLBACK_WA_URL = 'https://wa.me/573242063393'
 
 export default function Footer() {
+  const [settings, setSettings] = useState<PublicPlatformSettings | null>(null)
+
+  useEffect(() => {
+    getPublicSettings().then(setSettings).catch(() => {})
+  }, [])
+
+  const waNumber = settings?.support_whatsapp || FALLBACK_WA
+  const waUrl = settings ? getWhatsAppUrl(settings.support_whatsapp) : FALLBACK_WA_URL
+
   return (
     <footer id="footer" className="relative overflow-hidden bg-white dark:bg-[#06070a] border-t border-zinc-200/80 dark:border-white/10 transition-colors duration-300" aria-labelledby="footer-title">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 relative z-10">
@@ -41,7 +54,7 @@ export default function Footer() {
             {/* Direct WhatsApp button */}
             <div className="pt-2">
               <a
-                href="https://wa.me/573242063393"
+                href={waUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs transition-colors"
@@ -90,9 +103,13 @@ export default function Footer() {
                 { href: '#faq', label: 'Centro de Ayuda & FAQ', isExternal: false },
                 { href: '/terminos-y-condiciones', label: 'Términos y Condiciones', isExternal: false },
                 { href: '/politica-de-privacidad', label: 'Política de Privacidad', isExternal: false },
+                { href: '/tratamiento-de-datos', label: 'Habeas Data & Tratamiento de Datos', isExternal: false },
+                { href: '/cancelacion-y-reembolsos', label: 'Cancelación y Reembolsos', isExternal: false },
+                { href: '/suscripciones-y-pagos', label: 'Suscripciones y Tarifas', isExternal: false },
+                { href: '/politica-de-cookies', label: 'Política de Cookies', isExternal: false },
                 { href: '/seguridad', label: 'Seguridad y Protección de Datos', isExternal: false },
                 { href: '/sla', label: 'Acuerdo de Nivel de Servicio (SLA)', isExternal: false },
-                { href: 'https://wa.me/573242063393', label: 'Canal de Soporte Oficial', isExternal: true },
+                { href: waUrl, label: 'Canal de Soporte Oficial', isExternal: true },
               ].map((item) => (
                 <li key={item.label}>
                   {item.isExternal ? (
@@ -131,12 +148,12 @@ export default function Footer() {
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" />
                 <a
-                  href="https://wa.me/573242063393"
+                  href={waUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-emerald-500 transition-colors"
                 >
-                  WhatsApp: +57 324 206 3393
+                  WhatsApp: {waNumber}
                 </a>
               </li>
               <li className="flex items-start gap-2">

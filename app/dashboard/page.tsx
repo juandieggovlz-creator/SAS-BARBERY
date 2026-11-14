@@ -32,6 +32,7 @@ import {
   Crown
 } from 'lucide-react'
 import { getPublicPageUrl, getBookingUrl } from '@/lib/url'
+import AnnouncementsBanner from '@/components/owner/AnnouncementsBanner'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -380,6 +381,7 @@ export default function OwnerDashboardPage() {
 
   return (
     <div className="space-y-6 pb-10">
+      <AnnouncementsBanner />
 
       {/* ── BANNER DESTACADO DE BIENVENIDA / MES GRATIS A FULL ── */}
       {isTrialActive && (

@@ -18,7 +18,9 @@ import {
   Sparkles,
   Phone,
   CheckCircle2,
-  Palette
+  Palette,
+  Upload,
+  Trash2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import AccentColorPicker from '@/components/ui/AccentColorPicker'
@@ -27,7 +29,50 @@ export default function SuperAdminSettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [activeTab, setActiveTab] = useState<'general' | 'businesses' | 'security' | 'emails'>('general')
+
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Formato no válido. Usa JPG, PNG o WEBP.')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('El archivo supera los 5MB permitidos.')
+      return
+    }
+
+    setUploadingLogo(true)
+    const toastId = toast.loading('Subiendo logo oficial a Cloudinary...')
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/superadmin/settings/logo', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await res.json()
+      if (res.ok && data.logoUrl) {
+        setSettings(prev => ({ ...prev, platform_logo: data.logoUrl }))
+        toast.success('Logo oficial actualizado con éxito', { id: toastId })
+      } else {
+        toast.error(data.error || 'Error al subir el logo', { id: toastId })
+      }
+    } catch {
+      toast.error('Error de conexión al subir la imagen', { id: toastId })
+    } finally {
+      setUploadingLogo(false)
+      // reset file input value
+      e.target.value = ''
+    }
+  }
 
   const fetchSettings = async () => {
     setLoading(true)
@@ -178,17 +223,59 @@ export default function SuperAdminSettingsPage() {
                   <p className="text-[10px] text-zinc-400 mt-1">Nombre comercial visible en landing, emails y barra de título.</p>
                 </div>
 
-                <div>
-                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">
-                    Logo Oficial (URL o path)
+                <div className="sm:col-span-2 p-5 bg-zinc-50 border border-zinc-200 rounded-2xl">
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-wider block mb-2">
+                    Logo Oficial de BarberOS (Cloudinary)
                   </label>
-                  <input
-                    type="text"
-                    value={settings.platform_logo || '/logo.png'}
-                    onChange={e => handleChange('platform_logo', e.target.value)}
-                    className="w-full mt-1.5 px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-xs font-bold text-zinc-900 outline-none focus:border-zinc-950 font-mono"
-                  />
-                  <p className="text-[10px] text-zinc-400 mt-1">Ubicación del isotipo corporativo.</p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                    <div className="w-20 h-20 rounded-2xl bg-white border border-zinc-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs relative group">
+                      {settings.platform_logo ? (
+                        <img
+                          src={settings.platform_logo}
+                          alt="Logo BarberOS"
+                          className="w-full h-full object-contain p-2"
+                        />
+                      ) : (
+                        <ImageIcon className="w-8 h-8 text-zinc-300" />
+                      )}
+                    </div>
+
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs">
+                          {uploadingLogo ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Upload className="w-3.5 h-3.5 text-amber-400" />
+                          )}
+                          <span>{uploadingLogo ? 'Subiendo...' : 'Subir logo desde PC'}</span>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            onChange={handleLogoFileChange}
+                            disabled={uploadingLogo}
+                            className="hidden"
+                          />
+                        </label>
+                        <span className="text-[10px] font-mono text-zinc-400">
+                          Formatos: PNG, JPG, WEBP (Máx. 5MB)
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={settings.platform_logo || '/logo.png'}
+                          onChange={e => handleChange('platform_logo', e.target.value)}
+                          placeholder="https://... o /logo.png"
+                          className="w-full px-3 py-1.5 bg-white border border-zinc-200 rounded-xl text-[11px] font-mono text-zinc-700 outline-none focus:border-zinc-950"
+                        />
+                      </div>
+                      <p className="text-[10px] text-zinc-400">
+                        Al subirlo se optimiza y almacena de forma segura en Cloudinary bajo <code className="text-zinc-600 font-bold">barberos/platform/logo</code>.
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div>

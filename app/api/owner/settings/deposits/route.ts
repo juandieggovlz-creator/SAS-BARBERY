@@ -134,3 +134,4 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Error al actualizar configuración de anticipos' }, { status: 500 })
   }
 }
+
