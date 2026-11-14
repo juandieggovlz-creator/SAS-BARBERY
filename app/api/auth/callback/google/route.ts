@@ -1,5 +1,6 @@
 import { getGoogleOAuthRedirectUri } from '@/lib/url'
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { createSession } from '@/lib/auth'
 
@@ -9,7 +10,18 @@ export async function GET(request: Request) {
   const loginUrl = new URL('/login', requestUrl.origin)
 
   const code = requestUrl.searchParams.get('code')
+  const state = requestUrl.searchParams.get('state')
   const error = requestUrl.searchParams.get('error')
+
+  // Verificación anti-CSRF del parámetro state
+  const cookieStore = await cookies()
+  const savedState = cookieStore.get('oauth_state')?.value
+  cookieStore.delete('oauth_state')
+
+  if (!state || !savedState || state !== savedState) {
+    loginUrl.searchParams.set('error', 'invalid_oauth_state')
+    return NextResponse.redirect(loginUrl)
+  }
 
   if (error) {
     loginUrl.searchParams.set('error', 'google_access_denied')
@@ -81,6 +93,11 @@ export async function GET(request: Request) {
 
     if (!email) {
       loginUrl.searchParams.set('error', 'google_no_email')
+      return NextResponse.redirect(loginUrl)
+    }
+
+    if (googleProfile.verified_email === false || googleProfile.email_verified === false) {
+      loginUrl.searchParams.set('error', 'google_unverified_email')
       return NextResponse.redirect(loginUrl)
     }
 

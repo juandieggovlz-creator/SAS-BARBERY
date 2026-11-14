@@ -16,7 +16,6 @@ export async function POST(req: NextRequest) {
 
     const appId = process.env.META_APP_ID || process.env.NEXT_PUBLIC_META_APP_ID
     const appSecret = process.env.META_APP_SECRET
-    const configId = process.env.META_CONFIG_ID || process.env.NEXT_PUBLIC_META_CONFIG_ID
 
     if (!appId || !appSecret) {
       return NextResponse.json(

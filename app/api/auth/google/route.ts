@@ -16,6 +16,8 @@ export async function GET(request: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || requestUrl.origin
   const redirectUri = `${appUrl}/api/auth/callback/google`
 
+  const state = crypto.randomUUID()
+
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -23,9 +25,19 @@ export async function GET(request: Request) {
     scope: 'openid email profile',
     access_type: 'offline',
     prompt: 'select_account',
+    state,
   })
 
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
 
-  return NextResponse.redirect(googleAuthUrl)
+  const response = NextResponse.redirect(googleAuthUrl)
+  response.cookies.set('oauth_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 15, // 15 minutos
+  })
+
+  return response
 }

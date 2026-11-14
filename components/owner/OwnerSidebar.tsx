@@ -196,14 +196,19 @@ export default function OwnerSidebar() {
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-black text-base tracking-tight text-zinc-950 dark:text-white" style={{ letterSpacing: '-0.02em' }}>
-                Barber<span className="text-amber-500">OS</span>
+                Barber<span style={{ color: 'var(--accent, #F59E0B)' }}>OS</span>
               </span>
             </div>
             <div className="flex items-center gap-1 mt-0.5">
               <span
-                className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1.5 truncate max-w-[150px] border border-amber-400/30 bg-amber-400/15 text-amber-500 dark:text-amber-400 transition-all duration-200 shadow-xs"
+                className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1.5 truncate max-w-[150px] transition-all duration-200 shadow-xs border"
+                style={{
+                  backgroundColor: 'var(--accent-op15, rgba(245,158,11,0.15))',
+                  borderColor: 'var(--accent-op30, rgba(245,158,11,0.30))',
+                  color: 'var(--accent, #F59E0B)',
+                }}
               >
-                <Store className="w-2.5 h-2.5 shrink-0 text-amber-500 dark:text-amber-400" />
+                <Store className="w-2.5 h-2.5 shrink-0" style={{ color: 'var(--accent, #F59E0B)' }} />
                 <span className="truncate">{business?.name || 'Mi Barbería'}</span>
               </span>
             </div>
@@ -243,20 +248,34 @@ export default function OwnerSidebar() {
                       setMobileOpen(false)
                     }}
                     className={`
-                      flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 group
+                      flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 group border
                       ${active
-                        ? 'bg-zinc-950 text-white dark:bg-amber-400/15 dark:text-amber-300 dark:border dark:border-amber-400/30 shadow-xs'
-                        : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#18181b] hover:text-zinc-950 dark:hover:text-white'
+                        ? 'shadow-xs font-bold'
+                        : 'border-transparent text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#18181b] hover:text-zinc-950 dark:hover:text-white'
                       }
                     `}
+                    style={active ? {
+                      backgroundColor: 'var(--accent-op15, rgba(245, 158, 11, 0.15))',
+                      borderColor: 'var(--accent-op30, rgba(245, 158, 11, 0.30))',
+                      color: 'var(--accent, #F59E0B)',
+                    } : undefined}
                   >
                     <Icon
-                      className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-amber-400' : 'text-zinc-400 dark:text-zinc-400 group-hover:text-amber-400 dark:group-hover:text-amber-400'}`}
+                      className="w-4 h-4 shrink-0 transition-colors"
+                      style={{
+                        color: active ? 'var(--accent, #F59E0B)' : undefined
+                      }}
                       strokeWidth={active ? 2.5 : 2}
                     />
                     <span className="truncate">{item.label}</span>
                     {active ? (
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)] shrink-0" />
+                      <span
+                        className="ml-auto w-1.5 h-1.5 rounded-full shrink-0 transition-all"
+                        style={{
+                          backgroundColor: 'var(--accent, #F59E0B)',
+                          boxShadow: '0 0 8px var(--accent-op60, rgba(245, 158, 11, 0.6))',
+                        }}
+                      />
                     ) : item.external ? (
                       <ChevronRight className="ml-auto w-3.5 h-3.5 text-zinc-400 opacity-60 group-hover:text-white group-hover:opacity-100 transition-opacity" />
                     ) : null}
@@ -272,7 +291,11 @@ export default function OwnerSidebar() {
       <div className="shrink-0 p-3 pb-6 border-t border-zinc-100 dark:border-zinc-800/80">
         {/* Profile Card */}
         <div
-          className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-xl border border-amber-400/30 bg-amber-400/15 transition-all duration-200 shadow-xs"
+          className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-xl transition-all duration-200 shadow-xs border"
+          style={{
+            backgroundColor: 'var(--accent-op15, rgba(245, 158, 11, 0.15))',
+            borderColor: 'var(--accent-op30, rgba(245, 158, 11, 0.30))',
+          }}
         >
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs overflow-hidden relative bg-zinc-950 dark:bg-[#151518] border border-zinc-200 dark:border-zinc-800"
@@ -300,13 +323,18 @@ export default function OwnerSidebar() {
               {business?.name || 'Mi Barbería'}
             </div>
             <div
-              className="text-[10px] font-bold truncate text-amber-500 dark:text-amber-400"
+              className="text-[10px] font-bold truncate"
+              style={{ color: 'var(--accent, #F59E0B)' }}
             >
               Panel Propietario
             </div>
           </div>
           <div
-            className="w-2 h-2 rounded-full shrink-0 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
+            className="w-2 h-2 rounded-full shrink-0 transition-all"
+            style={{
+              backgroundColor: 'var(--accent, #F59E0B)',
+              boxShadow: '0 0 8px var(--accent-op60, rgba(245, 158, 11, 0.6))',
+            }}
             title="Activo"
           />
         </div>

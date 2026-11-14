@@ -128,6 +128,11 @@ export default function BusinessDetailPage() {
   const [additionalPriceInput, setAdditionalPriceInput] = useState<number>(50000)
   const [savingMultiBranch, setSavingMultiBranch] = useState(false)
 
+  // Branch exception state
+  const [branchException, setBranchException] = useState<{ hasException: boolean; grantedAt?: string; notes?: string } | null>(null)
+  const [loadingBranchException, setLoadingBranchException] = useState(false)
+  const [branchExceptionNotes, setBranchExceptionNotes] = useState('')
+
   // Subscription action modals
   const [customDaysModal, setCustomDaysModal] = useState(false)
   const [customDays, setCustomDays] = useState(30)
@@ -137,10 +142,11 @@ export default function BusinessDetailPage() {
 
   const fetchBusiness = async () => {
     try {
-      const [bRes, pRes, permRes] = await Promise.all([
+      const [bRes, pRes, permRes, branchExRes] = await Promise.all([
         fetch(`/api/superadmin/businesses/${businessId}`),
         fetch('/api/superadmin/plans'),
-        fetch(`/api/superadmin/businesses/${businessId}/permissions`)
+        fetch(`/api/superadmin/businesses/${businessId}/permissions`),
+        fetch(`/api/superadmin/businesses/${businessId}/branch-exception`)
       ])
 
       if (bRes.ok) {
@@ -170,6 +176,12 @@ export default function BusinessDetailPage() {
         if (permJson.permissions) {
           setPermissions(permJson.permissions)
         }
+      }
+
+      if (branchExRes.ok) {
+        const branchExJson = await branchExRes.json()
+        setBranchException(branchExJson)
+        setBranchExceptionNotes(branchExJson.notes || '')
       }
     } catch {
       toast.error('Error al cargar la información del negocio')
@@ -317,6 +329,50 @@ export default function BusinessDetailPage() {
     }
   }
 
+  const handleGrantBranchException = async () => {
+    if (!business) return
+    setLoadingBranchException(true)
+    try {
+      const res = await fetch(`/api/superadmin/businesses/${business.id}/branch-exception`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: branchExceptionNotes || 'Excepción temporal para pruebas' })
+      })
+      const json = await res.json()
+      if (res.ok) {
+        toast.success(json.message || 'Excepción de Sedes concedida')
+        setBranchException({ hasException: true, grantedAt: new Date().toISOString(), notes: branchExceptionNotes })
+      } else {
+        toast.error(json.error || 'Error al conceder la excepción')
+      }
+    } catch {
+      toast.error('Error de conexión')
+    } finally {
+      setLoadingBranchException(false)
+    }
+  }
+
+  const handleRevokeBranchException = async () => {
+    if (!business) return
+    setLoadingBranchException(true)
+    try {
+      const res = await fetch(`/api/superadmin/businesses/${business.id}/branch-exception`, {
+        method: 'DELETE'
+      })
+      const json = await res.json()
+      if (res.ok) {
+        toast.success(json.message || 'Excepción revocada')
+        setBranchException({ hasException: false })
+      } else {
+        toast.error(json.error || 'Error al revocar la excepción')
+      }
+    } catch {
+      toast.error('Error de conexión')
+    } finally {
+      setLoadingBranchException(false)
+    }
+  }
+
   const handleToggleBranchStatus = async (branchId: string, currentStatus: string) => {
     try {
       const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
@@ -445,14 +501,14 @@ export default function BusinessDetailPage() {
                   {business.name}
                 </h1>
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                     business.status === 'ACTIVE'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 font-bold'
                       : business.status === 'TRIAL'
-                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 font-bold'
                       : business.status === 'SUSPENDED'
-                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                      : 'bg-zinc-100 text-zinc-700 border-zinc-200'
+                      ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40 font-bold'
+                      : 'bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100 border-zinc-400 dark:border-zinc-700 font-bold'
                   }`}
                 >
                   <span
@@ -475,7 +531,7 @@ export default function BusinessDetailPage() {
                     : '⚫ Cancelado'}
                 </span>
 
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200">
+                <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-300 dark:border-zinc-700">
                   Plan: {business.plan?.name || (isTrial ? 'Prueba Gratuita' : 'Sin Plan')}
                 </span>
               </div>
@@ -867,6 +923,71 @@ export default function BusinessDetailPage() {
         </div>
       </div>
 
+      {/* ── 5.5. EXCEPCIÓN MÓDULO SEDES ── */}
+      <div className="p-6 bg-white border border-zinc-200 rounded-3xl shadow-xs space-y-4">
+        <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-black uppercase tracking-tight text-zinc-950 flex items-center gap-2">
+              <Layers className="w-5 h-5 text-amber-500" /> Excepción Módulo Sedes
+            </h3>
+            <p className="text-xs text-zinc-400">
+              Permite acceso al módulo Sedes independientemente del plan contratado. Máx. 5 sedes.
+            </p>
+          </div>
+          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border uppercase ${
+            branchException?.hasException
+              ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 border-emerald-500/40'
+              : 'text-zinc-600 dark:text-zinc-400 bg-zinc-200 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700'
+          }`}>
+            {branchException?.hasException ? '✓ Activa' : 'Sin excepción'}
+          </span>
+        </div>
+
+        <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200 space-y-3">
+          {branchException?.hasException && branchException.grantedAt && (
+            <div className="text-[11px] text-zinc-500 space-y-1">
+              <div>Concedida el: <strong className="text-zinc-800">{new Date(branchException.grantedAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}</strong></div>
+              {branchException.notes && <div>Nota: <strong className="text-zinc-800">{branchException.notes}</strong></div>}
+            </div>
+          )}
+
+          <div>
+            <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block mb-1">
+              Notas de la excepción
+            </label>
+            <input
+              type="text"
+              value={branchExceptionNotes}
+              onChange={e => setBranchExceptionNotes(e.target.value)}
+              placeholder="Ej: Cliente en prueba piloto multisedes"
+              className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-black"
+            />
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            {!branchException?.hasException ? (
+              <button
+                onClick={handleGrantBranchException}
+                disabled={loadingBranchException}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50"
+              >
+                {loadingBranchException ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                Conceder Excepción Temporal
+              </button>
+            ) : (
+              <button
+                onClick={handleRevokeBranchException}
+                disabled={loadingBranchException}
+                className="flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 font-black rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50"
+              >
+                {loadingBranchException ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                Revocar Excepción
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* ── 6. ESTRUCTURA CORPORATIVA MULTISEDES ── */}
       {business.company && (
         <div className="p-6 bg-white border border-zinc-200 rounded-3xl shadow-xs space-y-6">
@@ -952,19 +1073,19 @@ export default function BusinessDetailPage() {
                       <td className="px-4 py-3 font-bold text-zinc-900">
                         {br.name}
                         {br.isMainBranch && (
-                          <span className="ml-2 text-[9px] font-black uppercase text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                          <span className="ml-2 text-[9px] font-black uppercase text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/40 px-1.5 py-0.5 rounded-full">
                             Principal
                           </span>
                         )}
                       </td>
                       <td className="px-3 py-3 font-mono text-zinc-500 text-[11px]">/{br.slug}</td>
-                      <td className="px-3 py-3 text-center text-zinc-700">{br._count.barbers}</td>
-                      <td className="px-3 py-3 text-center text-zinc-700">{br._count.appointments}</td>
+                      <td className="px-3 py-3 text-center text-zinc-700 dark:text-zinc-300">{br._count.barbers}</td>
+                      <td className="px-3 py-3 text-center text-zinc-700 dark:text-zinc-300">{br._count.appointments}</td>
                       <td className="px-3 py-3 text-center">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                           br.status === 'ACTIVE'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                            ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40'
+                            : 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/40'
                         }`}>
                           {br.status}
                         </span>
@@ -973,10 +1094,10 @@ export default function BusinessDetailPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleToggleBranchStatus(br.id, br.status)}
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                               br.status === 'ACTIVE'
-                                ? 'bg-zinc-100 hover:bg-rose-50 text-zinc-600 hover:text-rose-600'
-                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
+                                ? 'bg-zinc-100 dark:bg-zinc-800 hover:bg-rose-500/20 text-zinc-700 dark:text-zinc-300 hover:text-rose-600 dark:hover:text-rose-400 border border-zinc-200 dark:border-zinc-700'
+                                : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40'
                             }`}
                           >
                             {br.status === 'ACTIVE' ? 'Suspender' : 'Reactivar'}

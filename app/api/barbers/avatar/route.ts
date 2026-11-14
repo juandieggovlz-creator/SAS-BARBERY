@@ -49,12 +49,16 @@ export async function POST(request: Request) {
         select: { id: true, businessId: true, avatar: true },
       })
 
-      if (!barberToUpdate || barberToUpdate.businessId !== session.businessId) {
-        if (session.role === 'BARBER' && session.barberId === barberId) {
-          // Permitido si es su propio perfil
-        } else if (session.role !== 'OWNER' && session.role !== 'SUPER_ADMIN') {
-          return NextResponse.json({ error: 'No autorizado para modificar este barbero' }, { status: 403 })
-        }
+      if (!barberToUpdate) {
+        return NextResponse.json({ error: 'Barbero no encontrado' }, { status: 404 })
+      }
+
+      const isSuperAdmin = session.role === 'SUPER_ADMIN'
+      const isOwnerOfSameBiz = (session.role === 'OWNER' || session.role === 'BRANCH_ADMIN') && barberToUpdate.businessId === session.businessId
+      const isSelfBarber = session.role === 'BARBER' && session.barberId === barberId && barberToUpdate.businessId === session.businessId
+
+      if (!isSuperAdmin && !isOwnerOfSameBiz && !isSelfBarber) {
+        return NextResponse.json({ error: 'No autorizado para modificar este barbero' }, { status: 403 })
       }
     }
 
@@ -123,10 +127,16 @@ export async function DELETE(request: Request) {
       select: { id: true, businessId: true, avatar: true },
     })
 
-    if (!barber || barber.businessId !== session.businessId) {
-      if (!(session.role === 'BARBER' && session.barberId === barberId) && session.role !== 'OWNER' && session.role !== 'SUPER_ADMIN') {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
-      }
+    if (!barber) {
+      return NextResponse.json({ error: 'Barbero no encontrado' }, { status: 404 })
+    }
+
+    const isSuperAdmin = session.role === 'SUPER_ADMIN'
+    const isOwnerOfSameBiz = (session.role === 'OWNER' || session.role === 'BRANCH_ADMIN') && barber.businessId === session.businessId
+    const isSelfBarber = session.role === 'BARBER' && session.barberId === barberId && barber.businessId === session.businessId
+
+    if (!isSuperAdmin && !isOwnerOfSameBiz && !isSelfBarber) {
+      return NextResponse.json({ error: 'No autorizado para eliminar la foto de este barbero' }, { status: 403 })
     }
 
     if (barber?.avatar) {

@@ -139,7 +139,7 @@ export default function SeguridadPage() {
             <div className="flex items-center gap-2.5">
               <KeyRound className="w-5 h-5 text-amber-500" />
               <h2 className="text-lg font-bold text-zinc-950 dark:text-white">
-                3. Control de Acceso por Roles (RBAC) y PIN de Barbero
+                3. Control de Acceso por Roles (RBAC) y Credenciales Cifradas
               </h2>
             </div>
             <p>
@@ -148,7 +148,7 @@ export default function SeguridadPage() {
             <ul className="list-disc pl-5 space-y-1.5 text-xs">
               <li><strong>Propietario / Dueño:</strong> Acceso total a reportes consolidados, auditoría de caja, utilidades y administración de equipo.</li>
               <li><strong>Administrador de Sede:</strong> Acceso restringido a la sede asignada sin visibilidad de las demás sedes.</li>
-              <li><strong>Portal del Barbero:</strong> Acceso individual protegido por PIN o token único. El profesional únicamente visualiza sus turnos asignados y sus comisiones pactadas, permaneciendo las finanzas globales de la empresa completamente ocultas.</li>
+              <li><strong>Portal del Barbero:</strong> Acceso individual protegido por credenciales cifradas y tokens criptográficos de un solo uso. El profesional únicamente visualiza sus turnos asignados y sus comisiones pactadas, permaneciendo las finanzas globales de la empresa completamente ocultas.</li>
             </ul>
           </section>
 

@@ -1602,11 +1602,38 @@ export default function PublicBusinessPage() {
                         <span className="font-bold text-amber-400">{selectedDate} a las {selectedSlot}</span>
                       </div>
                       <div className="flex justify-between pt-2 border-t font-black text-sm" style={{ borderColor: `${colors.border}60` }}>
-                        <span>Total:</span>
+                        <span>Total del Servicio:</span>
                         <span style={{ color: colors.accent }}>
                           {formatCOP(totalAccumulatedPrice)}
                         </span>
                       </div>
+
+                      {data.depositEnabled && (
+                        <>
+                          <div className="flex justify-between text-amber-400 font-bold">
+                            <span>Anticipo Requerido:</span>
+                            <span>
+                              {data.depositType === 'PERCENTAGE'
+                                ? `${formatCOP(Math.round((totalAccumulatedPrice * data.depositPercentage) / 100))} (${data.depositPercentage}%)`
+                                : formatCOP(Math.min(totalAccumulatedPrice, Number(data.depositFixedAmount) || 0))}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-zinc-300">
+                            <span>Saldo al Llegar al Local:</span>
+                            <span>
+                              {data.depositType === 'PERCENTAGE'
+                                ? formatCOP(Math.max(0, totalAccumulatedPrice - Math.round((totalAccumulatedPrice * data.depositPercentage) / 100)))
+                                : formatCOP(Math.max(0, totalAccumulatedPrice - Math.min(totalAccumulatedPrice, Number(data.depositFixedAmount) || 0)))}
+                            </span>
+                          </div>
+                          {data.depositInstructions && (
+                            <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-[11px] text-amber-200 mt-2">
+                              <strong className="block text-amber-300 mb-0.5">Instrucciones de Pago:</strong>
+                              {data.depositInstructions}
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -1668,6 +1695,33 @@ export default function PublicBusinessPage() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Desglose de Anticipo si el negocio lo tiene activo */}
+                    {data.depositEnabled && (
+                      <div className="p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 space-y-2 text-xs">
+                        <div className="flex items-center justify-between font-black text-amber-400 uppercase tracking-wider text-[11px]">
+                          <span>Anticipo Requerido para Confirmar</span>
+                          <span>
+                            {data.depositType === 'PERCENTAGE'
+                              ? `${formatCOP(Math.round((totalAccumulatedPrice * data.depositPercentage) / 100))} (${data.depositPercentage}%)`
+                              : formatCOP(Math.min(totalAccumulatedPrice, Number(data.depositFixedAmount) || 0))}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-zinc-300 text-[11px]">
+                          <span>Saldo Restante a Pagar en el Local:</span>
+                          <span className="font-bold">
+                            {data.depositType === 'PERCENTAGE'
+                              ? formatCOP(Math.max(0, totalAccumulatedPrice - Math.round((totalAccumulatedPrice * data.depositPercentage) / 100)))
+                              : formatCOP(Math.max(0, totalAccumulatedPrice - Math.min(totalAccumulatedPrice, Number(data.depositFixedAmount) || 0)))}
+                          </span>
+                        </div>
+                        {data.depositInstructions && (
+                          <div className="text-[11px] text-amber-200/90 pt-2 border-t border-amber-500/20 leading-relaxed">
+                            <strong className="text-amber-300">Abono:</strong> {data.depositInstructions}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>

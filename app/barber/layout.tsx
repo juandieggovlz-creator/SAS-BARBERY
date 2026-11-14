@@ -8,7 +8,7 @@ import {
   LayoutDashboard, 
   Calendar, 
   Scissors, 
-  Percent, 
+  DollarSign, 
   TrendingUp, 
   Clock, 
   MessageSquare, 
@@ -18,11 +18,13 @@ import {
   LifeBuoy,
   Menu,
   X,
-  UserCheck,
-  Store
+  Store,
+  ChevronRight
 } from 'lucide-react'
 import NotificationBell from '@/components/notifications/NotificationBell'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import BarberTopBar from '@/components/barber/BarberTopBar'
+import PanelAccentProvider from '@/components/ui/PanelAccentProvider'
 
 interface BarberProfile {
   name: string
@@ -63,51 +65,91 @@ export default function BarberLayout({ children }: { children: React.ReactNode }
     fetchProfile()
   }, [])
 
-  const navItems = [
-    { name: 'Inicio', href: '/barber/dashboard', icon: LayoutDashboard },
-    { name: 'Mi Agenda', href: '/barber/calendar', icon: Calendar },
-    { name: 'Catálogo de Servicios', href: '/barber/services', icon: Scissors },
-    { name: 'Comisiones', href: '/barber/commissions', icon: Percent },
-    { name: 'Rendimiento', href: '/barber/performance', icon: TrendingUp },
-    { name: 'Horarios', href: '/barber/schedule', icon: Clock },
-    { name: 'Chat', href: '/barber/chat', icon: MessageSquare },
-    { name: 'Notificaciones', href: '/barber/notifications', icon: Bell },
-    { name: 'Perfil', href: '/barber/profile', icon: User },
-    { name: 'Soporte', href: '/barber/support', icon: LifeBuoy },
-  ]
-
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
     window.location.href = '/login'
   }
 
+  const navGroups: {
+    title: string
+    items: { label: string; href: string; icon: React.ElementType }[]
+  }[] = [
+    {
+      title: 'OPERACIONES',
+      items: [
+        { label: 'Inicio', href: '/barber/dashboard', icon: LayoutDashboard },
+        { label: 'Mi Agenda', href: '/barber/calendar', icon: Calendar },
+        { label: 'Servicios', href: '/barber/services', icon: Scissors },
+      ]
+    },
+    {
+      title: 'RENDIMIENTO',
+      items: [
+        { label: 'Comisiones', href: '/barber/commissions', icon: DollarSign },
+        { label: 'Rendimiento', href: '/barber/performance', icon: TrendingUp },
+        { label: 'Horarios', href: '/barber/schedule', icon: Clock },
+      ]
+    },
+    {
+      title: 'COMUNICACIÓN',
+      items: [
+        { label: 'Chat Interno', href: '/barber/chat', icon: MessageSquare },
+        { label: 'Notificaciones', href: '/barber/notifications', icon: Bell },
+      ]
+    },
+    {
+      title: 'CUENTA',
+      items: [
+        { label: 'Mi Perfil', href: '/barber/profile', icon: User },
+        { label: 'Soporte BarberOS', href: '/barber/support', icon: LifeBuoy },
+      ]
+    }
+  ]
+
   const sidebarContent = (
-    <div className="h-full flex flex-col bg-[var(--sidebar-bg)] border-r border-[var(--sidebar-border)] selection:bg-black selection:text-white transition-colors duration-200" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* ── BRAND HEADER ── */}
-      <div className="px-6 py-4.5 border-b border-[var(--sidebar-border)] flex items-center justify-between shrink-0">
+    <div
+      className="h-full flex flex-col bg-white dark:bg-[#09090b] border-r border-zinc-100 dark:border-zinc-800/80 selection:bg-black selection:text-white"
+      style={{ fontFamily: "'Inter', sans-serif" }}
+    >
+      {/* ── BRAND HEADER (Idéntico a OwnerSidebar) ── */}
+      <div className="px-6 py-4.5 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between shrink-0">
         <Link href="/barber/dashboard" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-zinc-950 dark:bg-zinc-800 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform overflow-hidden relative border border-zinc-200 dark:border-zinc-800 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-zinc-950 dark:bg-[#151518] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform overflow-hidden relative border border-zinc-200 dark:border-zinc-800 shrink-0">
             {profile?.business?.logo ? (
               <Image
                 src={profile.business.logo}
-                alt={profile.business.name}
+                alt={profile.business.name || 'Barbería'}
+                fill
+                sizes="36px"
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <Image
+                src="/logo.png"
+                alt="BarberOS"
                 fill
                 sizes="36px"
                 className="object-cover"
               />
-            ) : (
-              <Scissors className="w-4 h-4 text-amber-400" strokeWidth={2.5} />
             )}
           </div>
-          <div className="min-w-0">
+          <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-black text-base tracking-tight text-[var(--sidebar-text)]" style={{ letterSpacing: '-0.02em' }}>
-                Barber<span className="text-amber-500">OS</span>
+              <span className="font-black text-base tracking-tight text-zinc-950 dark:text-white" style={{ letterSpacing: '-0.02em' }}>
+                Barber<span style={{ color: 'var(--accent, #F59E0B)' }}>OS</span>
               </span>
             </div>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1 truncate max-w-[150px] border border-amber-400/30 bg-amber-400/15 text-amber-500 dark:text-amber-400 shadow-xs">
-                <Store className="w-2.5 h-2.5 shrink-0 text-amber-500 dark:text-amber-400" />
+              <span
+                className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1.5 truncate max-w-[150px] transition-all duration-200 shadow-xs border"
+                style={{
+                  backgroundColor: 'var(--accent-op15, rgba(245,158,11,0.15))',
+                  borderColor: 'var(--accent-op30, rgba(245,158,11,0.30))',
+                  color: 'var(--accent, #F59E0B)',
+                }}
+              >
+                <Store className="w-2.5 h-2.5 shrink-0" style={{ color: 'var(--accent, #F59E0B)' }} />
                 <span className="truncate">{profile?.business?.name || 'Mi Barbería'}</span>
               </span>
             </div>
@@ -117,138 +159,180 @@ export default function BarberLayout({ children }: { children: React.ReactNode }
         {mobileOpen && (
           <button
             onClick={() => setMobileOpen(false)}
-            className="md:hidden text-[var(--sidebar-text-muted)] hover:text-[var(--sidebar-text)] p-1 rounded-lg hover:bg-[var(--sidebar-hover)] transition-colors"
+            className="md:hidden text-zinc-400 hover:text-zinc-700 dark:hover:text-white p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* ── NAVIGATION ── */}
+      {/* ── NAVIGATION (Misma línea que OwnerSidebar) ── */}
       <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
-        <div>
-          <div className="px-3 mb-2 text-[9px] font-black uppercase tracking-widest text-[var(--sidebar-text-muted)]">
-            MENÚ BARBERO
-          </div>
-          <div className="space-y-0.5">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const active = pathname === item.href
+        {navGroups.map((group) => (
+          <div key={group.title}>
+            <div className="px-3 mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-400">
+              {group.title}
+            </div>
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const Icon = item.icon
+                const active = pathname === item.href || (item.href !== '/barber/dashboard' && pathname?.startsWith(item.href))
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150
-                    ${active
-                      ? 'bg-[var(--sidebar-active-bg)] text-[var(--sidebar-active-text)] shadow-xs'
-                      : 'text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)]'
-                    }
-                  `}
-                >
-                  <Icon
-                    className={`w-4 h-4 shrink-0 ${active ? 'text-amber-400 dark:text-zinc-950' : 'text-[var(--sidebar-text-muted)]'}`}
-                    strokeWidth={active ? 2.5 : 2}
-                  />
-                  <span className="truncate">{item.name}</span>
-                  {active && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400 dark:bg-zinc-950 shrink-0" />
-                  )}
-                </Link>
-              )
-            })}
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`
+                      flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 group border
+                      ${active
+                        ? 'shadow-xs font-bold'
+                        : 'border-transparent text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#18181b] hover:text-zinc-950 dark:hover:text-white'
+                      }
+                    `}
+                    style={active ? {
+                      backgroundColor: 'var(--accent-op15, rgba(245, 158, 11, 0.15))',
+                      borderColor: 'var(--accent-op30, rgba(245, 158, 11, 0.30))',
+                      color: 'var(--accent, #F59E0B)',
+                    } : undefined}
+                  >
+                    <Icon
+                      className="w-4 h-4 shrink-0 transition-colors"
+                      style={{
+                        color: active ? 'var(--accent, #F59E0B)' : undefined
+                      }}
+                      strokeWidth={active ? 2.5 : 2}
+                    />
+                    <span className="truncate">{item.label}</span>
+                    {active && (
+                      <span
+                        className="ml-auto w-1.5 h-1.5 rounded-full shrink-0 transition-all"
+                        style={{
+                          backgroundColor: 'var(--accent, #F59E0B)',
+                          boxShadow: '0 0 8px var(--accent-op60, rgba(245, 158, 11, 0.6))',
+                        }}
+                      />
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
 
-      {/* ── FOOTER / PROFILE ── */}
-      <div className="shrink-0 p-3 pb-6 border-t border-[var(--sidebar-border)]">
-        {/* Profile Card */}
-        {profile && profile.name && (
-          <div className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40">
-            <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0 overflow-hidden shadow-xs relative text-white font-black text-xs">
-              {profile.avatar ? (
-                <Image src={profile.avatar} alt={profile.name} fill className="object-cover" unoptimized />
-              ) : (
-                profile.name.charAt(0).toUpperCase()
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-black text-zinc-900 dark:text-zinc-100 truncate">
-                {profile.name}
-              </div>
-              <div className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold truncate">
-                {profile.specialty || 'Barbero Profesional'}
-              </div>
-            </div>
-            <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="En línea" />
+      {/* ── FOOTER / PROFILE (Misma línea que OwnerSidebar) ── */}
+      <div className="shrink-0 p-3 pb-6 border-t border-zinc-100 dark:border-zinc-800/80">
+        <div
+          className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-xl transition-all duration-200 shadow-xs border"
+          style={{
+            backgroundColor: 'var(--accent-op15, rgba(245, 158, 11, 0.15))',
+            borderColor: 'var(--accent-op30, rgba(245, 158, 11, 0.30))',
+          }}
+        >
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs overflow-hidden relative bg-zinc-950 dark:bg-[#151518] border border-zinc-200 dark:border-zinc-800">
+            {profile?.avatar ? (
+              <Image src={profile.avatar} alt={profile.name || 'Barbero'} fill sizes="28px" className="object-cover" unoptimized />
+            ) : (
+              <span className="text-[11px] font-black" style={{ color: 'var(--accent, #F59E0B)' }}>
+                {profile?.name?.charAt(0) || 'B'}
+              </span>
+            )}
           </div>
-        )}
-
-        {/* Theme Toggle in sidebar */}
-        <div className="px-3 py-2 mb-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-[var(--sidebar-text-muted)] uppercase tracking-wider">Tema</span>
-            <ThemeToggle />
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-black text-zinc-900 dark:text-white truncate">
+              {profile?.name || 'Barbero'}
+            </div>
+            <div
+              className="text-[10px] font-bold truncate"
+              style={{ color: 'var(--accent, #F59E0B)' }}
+            >
+              {profile?.specialty || 'Barbero Profesional'}
+            </div>
           </div>
+          <div className="w-2 h-2 rounded-full shrink-0 bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.6)]" title="En línea" />
         </div>
 
-        {/* Logout Button */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center w-full gap-2.5 px-3 py-2 text-xs font-semibold text-[var(--sidebar-text-muted)] hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all rounded-xl"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span>Cerrar Sesión</span>
-        </button>
+        <div className="flex items-center justify-between px-1 pt-1">
+          <div className="flex items-center gap-2">
+            <ThemeToggle variant="navbar" />
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider hidden sm:inline">Tema</span>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all rounded-lg cursor-pointer"
+            title="Cerrar sesión"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Salir</span>
+          </button>
+        </div>
       </div>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col md:flex-row selection:bg-black selection:text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* Mobile Toggle Button Header */}
-      <div className="md:hidden sticky top-0 z-40 bg-white border-b border-zinc-100 px-4 py-3 flex items-center justify-between">
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="p-2 rounded-xl bg-white border border-zinc-200 shadow-xs text-zinc-700 hover:bg-zinc-50 transition-colors"
-          aria-label="Abrir menú"
-        >
-          <Menu className="w-4 h-4" />
-        </button>
-        <div className="flex items-center gap-2">
-          <span className="font-black text-sm text-zinc-950 tracking-tight">Barber<span className="text-amber-500">OS</span></span>
-        </div>
-        <NotificationBell />
-      </div>
-
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:block w-64 h-screen fixed top-0 left-0 z-30">
-        {sidebarContent}
-      </aside>
-
-      {/* Mobile Drawer */}
-      {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs"
-            onClick={() => setMobileOpen(false)}
-          />
-          <div className="relative w-72 max-w-[85vw] h-full shadow-2xl z-10">
-            {sidebarContent}
+    <PanelAccentProvider>
+      <div className="min-h-screen bg-[#f8fafc] dark:bg-[#09090b] font-sans selection:bg-black selection:text-white flex">
+        {/* Mobile Toggle Button Header */}
+        <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white dark:bg-[#09090b] border-b border-zinc-100 dark:border-zinc-800/80 px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            aria-label="Abrir menú"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-zinc-950 dark:bg-zinc-900 flex items-center justify-center overflow-hidden relative border border-zinc-200 dark:border-zinc-800">
+              {profile?.business?.logo ? (
+                <Image src={profile.business.logo} alt={profile.business.name || 'Barbería'} fill sizes="24px" className="object-cover" unoptimized />
+              ) : (
+                <Image src="/logo.png" alt="BarberOS" fill sizes="24px" className="object-cover" />
+              )}
+            </div>
+            <span className="font-black text-sm text-zinc-950 dark:text-white tracking-tight">
+              Barber<span style={{ color: 'var(--accent, #F59E0B)' }}>OS</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle variant="navbar" />
+            <NotificationBell />
           </div>
         </div>
-      )}
 
-      {/* Main Content Area */}
-      <main className={`flex-1 md:ml-64 bg-[var(--background)] transition-colors duration-200 ${pathname === '/barber/chat' ? 'h-screen overflow-hidden flex flex-col p-2 sm:p-3' : 'overflow-x-hidden overflow-y-auto max-h-screen'}`}>
-        <div className={pathname === '/barber/chat' ? 'w-full h-full flex-1 flex flex-col min-h-0' : 'p-4 sm:p-6 md:p-8 w-full'}>
-          {children}
+        {/* Desktop Sidebar */}
+        <aside className="hidden md:block w-64 h-screen fixed top-0 left-0 z-30">
+          {sidebarContent}
+        </aside>
+
+        {/* Mobile Drawer */}
+        {mobileOpen && (
+          <div className="md:hidden fixed inset-0 z-50 flex">
+            <div
+              className="fixed inset-0 bg-black/40 backdrop-blur-xs"
+              onClick={() => setMobileOpen(false)}
+            />
+            <div className="relative w-72 max-w-[85vw] h-full shadow-2xl z-10">
+              {sidebarContent}
+            </div>
+          </div>
+        )}
+
+        {/* Main Content Area */}
+        <div className="flex-1 md:ml-64 flex flex-col min-h-screen bg-[#f8fafc] dark:bg-[#09090b] pt-14 md:pt-0">
+          <BarberTopBar profile={profile} />
+          <main
+            className={`flex-1 w-full ${
+              pathname === '/barber/chat'
+                ? 'h-[calc(100vh-4rem)] p-2 sm:p-3 overflow-hidden flex flex-col'
+                : 'p-4 sm:p-6 md:p-8'
+            }`}
+          >
+            {children}
+          </main>
         </div>
-      </main>
-    </div>
+      </div>
+    </PanelAccentProvider>
   )
 }
-

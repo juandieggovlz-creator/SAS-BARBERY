@@ -23,13 +23,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Código de autorización de Meta (code) requerido.' }, { status: 400 })
     }
 
-    const appId = process.env.META_APP_ID || process.env.NEXT_PUBLIC_META_APP_ID || '1798187644961786'
+    const appId = process.env.META_APP_ID || process.env.NEXT_PUBLIC_META_APP_ID
     const appSecret = process.env.META_APP_SECRET
-    const configId = process.env.META_CONFIG_ID || process.env.NEXT_PUBLIC_META_CONFIG_ID || '2369676903865189'
 
-    if (!appSecret) {
+    if (!appId || !appSecret) {
       return NextResponse.json(
-        { error: 'Clave secreta META_APP_SECRET no configurada en las variables de entorno del servidor.' },
+        { error: 'Variables META_APP_ID o META_APP_SECRET no configuradas en las variables de entorno del servidor.' },
         { status: 500 }
       )
     }

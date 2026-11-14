@@ -18,10 +18,10 @@ const integrations = [
 ]
 
 const stats = [
-  { value: '+500', label: 'Barberías activas' },
-  { value: '4.9/5', label: 'Valoración promedio' },
-  { value: '98%', label: 'Tasa de satisfacción' },
-  { value: '24/7', label: 'Disponibilidad online' },
+  { value: '30 Días', label: 'Prueba gratuita completa' },
+  { value: '< 3 min', label: 'Puesta en marcha' },
+  { value: '100%', label: 'Control de comisiones y caja' },
+  { value: '24/7', label: 'Portal de reservas activo' },
 ]
 
 export default function TrustedBy() {

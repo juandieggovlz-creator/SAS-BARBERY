@@ -33,7 +33,22 @@ export class WhatsAppConversationEngine {
       where: { businessId },
       include: {
         business: {
-          select: { id: true, name: true, slug: true, phone: true }
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            phone: true,
+            address: true,
+            companyId: true,
+            company: {
+              include: {
+                branches: {
+                  where: { status: 'ACTIVE' },
+                  select: { id: true, name: true, slug: true, phone: true, address: true, isMainBranch: true }
+                }
+              }
+            }
+          }
         }
       }
     })
@@ -41,6 +56,31 @@ export class WhatsAppConversationEngine {
     if (!integration || !integration.isEnabled || !integration.botEnabled) {
       return { handled: false }
     }
+
+    // Determinar qué sedes atiende este número (Soporte completo Modalidades A, B y C):
+    // Sedes de la misma empresa que NO tengan una integración propia activa con otro número
+    const otherIntegrations = integration.business.companyId
+      ? await prisma.whatsAppIntegration.findMany({
+          where: {
+            business: { companyId: integration.business.companyId },
+            isEnabled: true,
+            id: { not: integration.id }
+          },
+          select: { businessId: true, metaPhoneNumberId: true }
+        })
+      : []
+
+    const exclusiveOtherBranchIds = new Set(
+      otherIntegrations
+        .filter(o => o.metaPhoneNumberId && o.metaPhoneNumberId !== integration.metaPhoneNumberId)
+        .map(o => o.businessId)
+    )
+
+    const companyBranches = integration.business.company?.branches || [integration.business]
+    const servedBranches = companyBranches.filter(
+      b => b.id === integration.businessId || !exclusiveOtherBranchIds.has(b.id)
+    )
+    const hasMultipleBranches = servedBranches.length > 1
 
     // 2. Obtener o crear la sesión de conversación persistente
     let conv = await prisma.whatsAppConversation.findUnique({
@@ -65,6 +105,13 @@ export class WhatsAppConversationEngine {
       })
     }
 
+    // Metadata y contexto de sede seleccionada
+    const currentMeta = (conv.metadata as Record<string, any>) || {}
+    let selectedBranchId: string | null = currentMeta.selectedBranchId || (!hasMultipleBranches ? servedBranches[0]?.id : null)
+    let selectedBranch = servedBranches.find(b => b.id === selectedBranchId) || (servedBranches.length === 1 ? servedBranches[0] : null)
+    const targetBusinessId = selectedBranchId || businessId
+    const targetBranch = selectedBranch || integration.business
+
     // Deduplicación contra reintentos rápidos de webhooks
     if (messageId && conv.lastMessageId === messageId) {
       return { handled: true }
@@ -78,6 +125,103 @@ export class WhatsAppConversationEngine {
         lastActivityAt: new Date()
       }
     })
+
+    // ── GESTIÓN DE SELECCIÓN DE SEDE PENDIENTE (Modalidad A y C) ──
+    if (currentMeta.branchSelectionPending && currentMeta.branchMap) {
+      if (rawText === '0') {
+        await prisma.whatsAppConversation.update({
+          where: { id: conv.id },
+          data: {
+            metadata: {
+              ...currentMeta,
+              branchSelectionPending: false
+            }
+          }
+        })
+        const reply = await this.renderMainMenu(
+          integration.business.company?.name || integration.business.name,
+          integration.bookingEnabled,
+          selectedBranch?.name,
+          hasMultipleBranches
+        )
+        await this.sendReply(businessId, cleanFrom, reply)
+        return { handled: true, replyText: reply }
+      }
+
+      const chosenBranchId = currentMeta.branchMap[rawText]
+      if (chosenBranchId) {
+        const chosen = servedBranches.find(b => b.id === chosenBranchId)
+        selectedBranchId = chosenBranchId
+        selectedBranch = chosen || null
+
+        await prisma.whatsAppConversation.update({
+          where: { id: conv.id },
+          data: {
+            state: 'MAIN_MENU',
+            metadata: {
+              ...currentMeta,
+              branchSelectionPending: false,
+              selectedBranchId: chosenBranchId,
+              branchName: chosen?.name
+            }
+          }
+        })
+
+        const reply = `✅ Has seleccionado la *Sede ${chosen?.name}* 📍\n\n` +
+          await this.renderMainMenu(
+            integration.business.company?.name || integration.business.name,
+            integration.bookingEnabled,
+            chosen?.name,
+            hasMultipleBranches
+          )
+        await this.sendReply(businessId, cleanFrom, reply)
+        return { handled: true, replyText: reply }
+      } else {
+        const reply = `⚠️ Opción de sede no válida. Por favor responde con el número de una de las sedes listadas o *0* para volver.`
+        await this.sendReply(businessId, cleanFrom, reply)
+        return { handled: true, replyText: reply }
+      }
+    }
+
+    // ── CAMBIO EXPLÍCITO DE SEDE (Modalidad A y C) ──
+    if (
+      hasMultipleBranches &&
+      (lowerText === '4' ||
+       lowerText.includes('cambiar sede') ||
+       lowerText.includes('cambiar sucursal') ||
+       lowerText === 'sedes' ||
+       lowerText === 'sede')
+    ) {
+      const branchMap: Record<string, string> = {}
+      let branchMenu = `🏢 *${integration.business.company?.name || integration.business.name}*\n`
+      branchMenu += `¿En cuál de nuestras sedes deseas gestionar tu cita?\n\n`
+      servedBranches.forEach((b, idx) => {
+        const num = (idx + 1).toString()
+        branchMap[num] = b.id
+        const addr = b.address ? ` — _${b.address}_` : ''
+        branchMenu += `*${num}.* ${b.name}${addr}\n`
+      })
+      branchMenu += `\n*0.* Cancelar y volver al menú\n\n_Escribe el número de la sede:_`
+
+      await prisma.whatsAppConversation.update({
+        where: { id: conv.id },
+        data: {
+          state: 'MAIN_MENU',
+          selectedServiceId: null,
+          selectedBarberId: null,
+          selectedDate: null,
+          selectedTime: null,
+          metadata: {
+            ...currentMeta,
+            branchSelectionPending: true,
+            branchMap
+          }
+        }
+      })
+
+      await this.sendReply(businessId, cleanFrom, branchMenu)
+      return { handled: true, replyText: branchMenu }
+    }
 
     // 3. Control de "Choque": Si el bot está pausado para esta conversación (isBotActive === false) o asignado a humano
     if (!conv.isBotActive || conv.isHumanAgent) {
@@ -134,7 +278,12 @@ export class WhatsAppConversationEngine {
           metadata: undefined
         }
       })
-      const reply = await this.renderMainMenu(integration.business.name, integration.bookingEnabled)
+      const reply = await this.renderMainMenu(
+        integration.business.company?.name || integration.business.name,
+        integration.bookingEnabled,
+        selectedBranch?.name,
+        hasMultipleBranches
+      )
       await this.sendReply(businessId, cleanFrom, reply)
       return { handled: true, replyText: reply }
     }
@@ -145,26 +294,55 @@ export class WhatsAppConversationEngine {
       case 'MAIN_MENU': {
         // Opción 1: Reservar cita
         if (rawText === '1' || lowerText.includes('reservar') || lowerText.includes('agendar') || lowerText.includes('cita')) {
+          // Si hay múltiples sedes y el usuario aún no ha elegido sede, preguntar primero por la sede
+          if (hasMultipleBranches && !selectedBranchId) {
+            const branchMap: Record<string, string> = {}
+            let branchMenu = `👋 ¡Hola! Bienvenido a *${integration.business.company?.name || integration.business.name}* 💈\n\n`
+            branchMenu += `Contamos con varias sedes para tu atención. ¿En cuál de ellas deseas reservar?\n\n`
+            servedBranches.forEach((b, idx) => {
+              const num = (idx + 1).toString()
+              branchMap[num] = b.id
+              const addr = b.address ? ` — _${b.address}_` : ''
+              branchMenu += `*${num}.* ${b.name}${addr}\n`
+            })
+            branchMenu += `\n_Responde con el número de la sede deseada:_`
+
+            await prisma.whatsAppConversation.update({
+              where: { id: conv.id },
+              data: {
+                state: 'MAIN_MENU',
+                metadata: {
+                  ...currentMeta,
+                  branchSelectionPending: true,
+                  branchMap
+                }
+              }
+            })
+
+            await this.sendReply(businessId, cleanFrom, branchMenu)
+            return { handled: true, replyText: branchMenu }
+          }
+
           if (!integration.bookingEnabled) {
-            const reply = `ℹ️ En este momento las reservas directas por WhatsApp están en mantenimiento o deshabilitadas temporalmente.\n\nPuedes reservar a través de nuestra web oficial:\n${getPublicPageUrl(integration.business.slug)}\n\nO responde *3* para hablar con un asesor.`
+            const reply = `ℹ️ En este momento las reservas directas por WhatsApp están en mantenimiento o deshabilitadas temporalmente.\n\nPuedes reservar a través de nuestra web oficial:\n${getPublicPageUrl(targetBranch.slug)}\n\nO responde *3* para hablar con un asesor.`
             await this.sendReply(businessId, cleanFrom, reply)
             return { handled: true, replyText: reply }
           }
 
-          // Cargar servicios activos reales
+          // Cargar servicios activos reales de la sede seleccionada
           const services = await prisma.service.findMany({
-            where: { businessId, isActive: true },
+            where: { businessId: targetBusinessId, isActive: true },
             orderBy: { price: 'asc' }
           })
 
           if (services.length === 0) {
-            const reply = `💈 No hay servicios disponibles en este momento. Por favor contacta a un asesor respondiendo *3*.`
+            const reply = `💈 No hay servicios disponibles en este momento en ${targetBranch.name}. Por favor contacta a un asesor respondiendo *3*.`
             await this.sendReply(businessId, cleanFrom, reply)
             return { handled: true, replyText: reply }
           }
 
           const serviceMap: Record<string, string> = {}
-          let menuText = `💇‍♂️ *Elige el servicio que deseas:* ✂️\n\n`
+          let menuText = `💇‍♂️ *Servicios disponibles en ${targetBranch.name}:* ✂️\n\n`
           services.forEach((s, idx) => {
             const num = (idx + 1).toString()
             serviceMap[num] = s.id
@@ -177,7 +355,12 @@ export class WhatsAppConversationEngine {
             where: { id: conv.id },
             data: {
               state: 'SELECTING_SERVICE',
-              metadata: { services: serviceMap }
+              metadata: {
+                ...currentMeta,
+                services: serviceMap,
+                selectedBranchId: targetBusinessId,
+                branchName: targetBranch.name
+              }
             }
           })
 
@@ -185,9 +368,14 @@ export class WhatsAppConversationEngine {
           return { handled: true, replyText: menuText }
         }
 
-        // Opción 2: Mis Citas
+        // Opción 2: Mis Citas (consulta citas en todas las sedes asociadas a la empresa)
         if (rawText === '2' || lowerText.includes('mis citas') || lowerText.includes('consultar')) {
-          return await this.handleViewAppointments(businessId, cleanFrom, conv.id)
+          return await this.handleViewAppointments(
+            businessId,
+            cleanFrom,
+            conv.id,
+            servedBranches.map(b => b.id)
+          )
         }
 
         // Opción 3 o solicitud de Reprogramar / Hablar con un asesor
@@ -201,8 +389,13 @@ export class WhatsAppConversationEngine {
           )
         }
 
-        // Si escribió un saludo general u otra cosa, mostrar el menú
-        const welcome = await this.renderMainMenu(integration.business.name, integration.bookingEnabled)
+        // Si escribió un saludo general u otra cosa, mostrar el menú con la sede actual si existe
+        const welcome = await this.renderMainMenu(
+          integration.business.company?.name || integration.business.name,
+          integration.bookingEnabled,
+          selectedBranch?.name,
+          hasMultipleBranches
+        )
         await this.sendReply(businessId, cleanFrom, welcome)
         return { handled: true, replyText: welcome }
       }
@@ -231,13 +424,13 @@ export class WhatsAppConversationEngine {
         // Si la barbería permite selección de barbero
         if (integration.allowBarberSelection) {
           const barbers = await prisma.barber.findMany({
-            where: { businessId, status: 'ACTIVE' },
+            where: { businessId: targetBusinessId, status: 'ACTIVE' },
             orderBy: { name: 'asc' }
           })
 
           if (barbers.length > 1) {
             const barberMap: Record<string, string> = { '0': 'ANY' }
-            let barberText = `💈 *Selecciona tu Barbero preferido:*\n\n`
+            let barberText = `💈 *Selecciona tu Barbero preferido en ${targetBranch.name}:*\n\n`
             barberText += `*0.* ⚡ Cualquiera disponible (Más rápido)\n`
             barbers.forEach((b, idx) => {
               const num = (idx + 1).toString()
@@ -251,7 +444,12 @@ export class WhatsAppConversationEngine {
               data: {
                 state: 'SELECTING_BARBER',
                 selectedServiceId: service.id,
-                metadata: { barbers: barberMap }
+                metadata: {
+                  ...currentMeta,
+                  barbers: barberMap,
+                  selectedBranchId: targetBusinessId,
+                  branchName: targetBranch.name
+                }
               }
             })
 
@@ -280,7 +478,16 @@ export class WhatsAppConversationEngine {
 
       case 'SELECTING_DATE': {
         if (rawText === '0') {
-          return await this.returnToMainMenu(businessId, cleanFrom, conv.id, integration.business.name, integration.bookingEnabled)
+          return await this.returnToMainMenu(
+            businessId,
+            cleanFrom,
+            conv.id,
+            integration.business.company?.name || integration.business.name,
+            integration.bookingEnabled,
+            undefined,
+            selectedBranch?.name,
+            hasMultipleBranches
+          )
         }
 
         const metadata = (conv.metadata as { dates?: Record<string, string> }) || {}
@@ -292,22 +499,22 @@ export class WhatsAppConversationEngine {
           return { handled: true, replyText: reply }
         }
 
-        // Consultar turnos disponibles reales en BarberOS
+        // Consultar turnos disponibles reales en BarberOS para la sede objetivo
         const slots = await WhatsAppAvailabilityHelper.getAvailableSlots({
-          businessId,
+          businessId: targetBusinessId,
           serviceId: conv.selectedServiceId!,
           barberId: conv.selectedBarberId,
           dateStr: chosenDate
         })
 
         if (slots.length === 0) {
-          const reply = `😔 No quedan turnos disponibles para esa fecha. Por favor responde *0* para elegir otra fecha u otro barbero.`
+          const reply = `😔 No quedan turnos disponibles para esa fecha en ${targetBranch.name}. Por favor responde *0* para elegir otra fecha u otro barbero.`
           await this.sendReply(businessId, cleanFrom, reply)
           return { handled: true, replyText: reply }
         }
 
         const slotMap: Record<string, { timeStr: string; barberId: string; displayTime: string }> = {}
-        let slotText = `⏰ *Horarios disponibles para el ${chosenDate}:*\n\n`
+        let slotText = `⏰ *Horarios disponibles en ${targetBranch.name} (${chosenDate}):*\n\n`
         // Mostrar hasta 10 turnos
         slots.slice(0, 10).forEach((slot, idx) => {
           const num = (idx + 1).toString()
@@ -325,7 +532,12 @@ export class WhatsAppConversationEngine {
           data: {
             state: 'SELECTING_TIME',
             selectedDate: chosenDate,
-            metadata: { slots: slotMap }
+            metadata: {
+              ...currentMeta,
+              slots: slotMap,
+              selectedBranchId: targetBusinessId,
+              branchName: targetBranch.name
+            }
           }
         })
 
@@ -352,7 +564,7 @@ export class WhatsAppConversationEngine {
 
         const summary = `📋 *Resumen de tu Reserva:*
 ───────────────────
-💈 *Barbería:* ${integration.business.name}
+💈 *Sede:* ${targetBranch.name}${targetBranch.address ? ` (${targetBranch.address})` : ''}
 💇‍♂️ *Servicio:* ${service?.name}
 ✂️ *Barbero:* ${barber?.name || 'Asignado automáticamente'}
 📅 *Fecha:* ${conv.selectedDate}
@@ -370,7 +582,12 @@ export class WhatsAppConversationEngine {
             state: 'CONFIRMING_BOOKING',
             selectedTime: chosenSlot.timeStr,
             selectedBarberId: chosenSlot.barberId,
-            metadata: { confirmedSlot: chosenSlot }
+            metadata: {
+              ...currentMeta,
+              confirmedSlot: chosenSlot,
+              selectedBranchId: targetBusinessId,
+              branchName: targetBranch.name
+            }
           }
         })
 
@@ -380,7 +597,16 @@ export class WhatsAppConversationEngine {
 
       case 'CONFIRMING_BOOKING': {
         if (rawText === '0') {
-          return await this.returnToMainMenu(businessId, cleanFrom, conv.id, integration.business.name, integration.bookingEnabled, '❌ Proceso de reserva cancelado.')
+          return await this.returnToMainMenu(
+            businessId,
+            cleanFrom,
+            conv.id,
+            integration.business.company?.name || integration.business.name,
+            integration.bookingEnabled,
+            '❌ Proceso de reserva cancelado.',
+            selectedBranch?.name,
+            hasMultipleBranches
+          )
         }
 
         if (rawText === '2') {
@@ -393,29 +619,33 @@ export class WhatsAppConversationEngine {
           const [hour, min] = conv.selectedTime!.split(':').map(Number)
           const appointmentDate = new Date(year, month - 1, day, hour, min, 0)
 
-          // 1. Servicio activo en la base de datos
+          // 1. Servicio activo en la base de datos para la sede objetivo
           const service = await prisma.service.findUnique({ where: { id: conv.selectedServiceId! } })
-          if (!service || !service.isActive || service.businessId !== businessId) {
+          if (!service || !service.isActive || service.businessId !== targetBusinessId) {
             return await this.returnToMainMenu(
               businessId,
               cleanFrom,
               conv.id,
-              integration.business.name,
+              targetBranch.name,
               integration.bookingEnabled,
-              '⚠️ El servicio seleccionado ya no se encuentra disponible. Por favor elige otro servicio.'
+              '⚠️ El servicio seleccionado ya no se encuentra disponible. Por favor elige otro servicio.',
+              targetBranch.name,
+              hasMultipleBranches
             )
           }
 
-          // 2. Barbero activo en la base de datos
+          // 2. Barbero activo en la base de datos para la sede objetivo
           const barber = await prisma.barber.findUnique({ where: { id: conv.selectedBarberId! } })
-          if (!barber || barber.status !== 'ACTIVE' || barber.businessId !== businessId) {
+          if (!barber || barber.status !== 'ACTIVE' || barber.businessId !== targetBusinessId) {
             return await this.returnToMainMenu(
               businessId,
               cleanFrom,
               conv.id,
-              integration.business.name,
+              targetBranch.name,
               integration.bookingEnabled,
-              '⚠️ El barbero seleccionado ya no se encuentra activo. Por favor elige otro barbero.'
+              '⚠️ El barbero seleccionado ya no se encuentra activo. Por favor elige otro barbero.',
+              targetBranch.name,
+              hasMultipleBranches
             )
           }
 
@@ -504,10 +734,10 @@ export class WhatsAppConversationEngine {
             }).catch(e => console.error('Error cancelando cita previa en reprogramación:', e))
           }
 
-          // Buscar o crear cliente por teléfono dentro de la barbería
+          // Buscar o crear cliente por teléfono dentro de la sede objetivo
           let client = await prisma.client.findFirst({
             where: {
-              businessId,
+              businessId: targetBusinessId,
               phone: cleanFrom
             }
           })
@@ -515,7 +745,7 @@ export class WhatsAppConversationEngine {
           if (!client) {
             client = await prisma.client.create({
               data: {
-                businessId,
+                businessId: targetBusinessId,
                 name: ctx.senderName || 'Cliente WhatsApp',
                 phone: cleanFrom
               }
@@ -526,7 +756,7 @@ export class WhatsAppConversationEngine {
           const reservationCode = generateReservationCode()
           const newAppointment = await prisma.appointment.create({
             data: {
-              businessId,
+              businessId: targetBusinessId,
               clientId: client.id,
               barberId: barber.id,
               serviceId: service.id,
@@ -536,7 +766,7 @@ export class WhatsAppConversationEngine {
             }
           })
 
-          // Resetear conversación
+          // Resetear conversación conservando la sede seleccionada
           await prisma.whatsAppConversation.update({
             where: { id: conv.id },
             data: {
@@ -546,7 +776,10 @@ export class WhatsAppConversationEngine {
               selectedDate: null,
               selectedTime: null,
               selectedAppointmentId: null,
-              metadata: undefined
+              metadata: {
+                selectedBranchId: targetBusinessId,
+                branchName: targetBranch.name
+              }
             }
           })
 
@@ -656,17 +889,21 @@ export class WhatsAppConversationEngine {
   }
 
   /**
-   * Genera el menú principal
+   * Genera el menú principal con soporte para contexto de sede (Modalidad A, B y C)
    */
-  private static async renderMainMenu(businessName: string, bookingEnabled: boolean): Promise<string> {
-    return `💈 ¡Hola! Bienvenido a *${businessName}* 💈
-
-¿En qué te podemos ayudar hoy?
-1️⃣ 📅 Reservar cita ${bookingEnabled ? '' : '(En mantenimiento)'}
-2️⃣ 📋 Mis citas (Consultar / Reprogramar / Cancelar)
-3️⃣ 👤 Hablar con un asesor
-
-_Responde con el número de tu opción (1, 2 o 3)_`
+  private static async renderMainMenu(
+    businessName: string,
+    bookingEnabled: boolean,
+    branchName?: string,
+    hasMultipleBranches?: boolean
+  ): Promise<string> {
+    const branchLine = branchName ? ` · Sede ${branchName}` : ''
+    let text = `💈 ¡Hola! Bienvenido a *${businessName}${branchLine}* 💈\n\n¿En qué te podemos ayudar hoy?\n1️⃣ 📅 Reservar cita ${bookingEnabled ? '' : '(En mantenimiento)'}\n2️⃣ 📋 Mis citas (Consultar / Reprogramar / Cancelar)\n3️⃣ 👤 Hablar con un asesor`
+    if (hasMultipleBranches) {
+      text += `\n4️⃣ 🏢 Cambiar de Sede`
+    }
+    text += `\n\n_Responde con el número de tu opción (1, 2, 3${hasMultipleBranches ? ' o 4' : ''})_`
+    return text
   }
 
   /**
@@ -690,13 +927,22 @@ _Responde con el número de tu opción (1, 2 o 3)_`
     })
     dateText += `\n*0.* Volver al menú\n\n_Escribe el número del día:_`
 
+    const convRecord = await prisma.whatsAppConversation.findUnique({
+      where: { id: convId },
+      select: { metadata: true }
+    })
+    const existingMeta = (convRecord?.metadata as Record<string, any>) || {}
+
     await prisma.whatsAppConversation.update({
       where: { id: convId },
       data: {
         state: 'SELECTING_DATE',
         selectedServiceId: serviceId,
         selectedBarberId: barberId,
-        metadata: { dates: dateMap }
+        metadata: {
+          ...existingMeta,
+          dates: dateMap
+        }
       }
     })
 
@@ -705,18 +951,27 @@ _Responde con el número de tu opción (1, 2 o 3)_`
   }
 
   /**
-   * Consulta las citas activas del cliente
+   * Consulta las citas activas del cliente en las sedes correspondientes
    */
-  private static async handleViewAppointments(businessId: string, customerPhone: string, convId: string) {
+  private static async handleViewAppointments(
+    businessId: string,
+    customerPhone: string,
+    convId: string,
+    branchIds: string[] = [businessId]
+  ) {
     const now = new Date()
     const appointments = await prisma.appointment.findMany({
       where: {
-        businessId,
+        businessId: { in: branchIds },
         client: { phone: customerPhone },
         status: { in: ['PENDING', 'CONFIRMED'] },
         date: { gte: now }
       },
-      include: { service: true, barber: true },
+      include: {
+        service: true,
+        barber: true,
+        business: { select: { id: true, name: true, slug: true, address: true } }
+      },
       orderBy: { date: 'asc' }
     })
 
@@ -732,15 +987,25 @@ _Responde con el número de tu opción (1, 2 o 3)_`
       const num = (idx + 1).toString()
       apptMap[num] = appt.id
       const { formattedDate, formattedTime } = WhatsAppService.formatDateTime(new Date(appt.date))
-      listText += `*${num}.* ${appt.service.name} con ${appt.barber.name}\n   🗓️ ${formattedDate} — ⏰ ${formattedTime}\n   🔖 Código: ${appt.reservationCode}\n\n`
+      const branchNotice = branchIds.length > 1 ? `\n   📍 Sede: *${appt.business.name}*` : ''
+      listText += `*${num}.* ${appt.service.name} con ${appt.barber.name}${branchNotice}\n   🗓️ ${formattedDate} — ⏰ ${formattedTime}\n   🔖 Código: ${appt.reservationCode}\n\n`
     })
     listText += `*0.* Volver al menú\n\n_Escribe el número de la cita que deseas gestionar:_`
+
+    const convRecord = await prisma.whatsAppConversation.findUnique({
+      where: { id: convId },
+      select: { metadata: true }
+    })
+    const existingMeta = (convRecord?.metadata as Record<string, any>) || {}
 
     await prisma.whatsAppConversation.update({
       where: { id: convId },
       data: {
         state: 'VIEWING_APPOINTMENTS',
-        metadata: { appointments: apptMap }
+        metadata: {
+          ...existingMeta,
+          appointments: apptMap
+        }
       }
     })
 
@@ -783,7 +1048,7 @@ _Si deseas reactivar el asistente automático en cualquier momento, solo escribe
   }
 
   /**
-   * Resetea la conversación al menú principal
+   * Resetea la conversación al menú principal preservando el contexto de sede
    */
   private static async returnToMainMenu(
     businessId: string,
@@ -791,8 +1056,16 @@ _Si deseas reactivar el asistente automático en cualquier momento, solo escribe
     convId: string,
     businessName: string,
     bookingEnabled: boolean,
-    prefixMsg?: string
+    prefixMsg?: string,
+    branchName?: string,
+    hasMultipleBranches?: boolean
   ) {
+    const convRecord = await prisma.whatsAppConversation.findUnique({
+      where: { id: convId },
+      select: { metadata: true }
+    })
+    const existingMeta = (convRecord?.metadata as Record<string, any>) || {}
+
     await prisma.whatsAppConversation.update({
       where: { id: convId },
       data: {
@@ -802,11 +1075,19 @@ _Si deseas reactivar el asistente automático en cualquier momento, solo escribe
         selectedDate: null,
         selectedTime: null,
         selectedAppointmentId: null,
-        metadata: undefined
+        metadata: existingMeta.selectedBranchId ? {
+          selectedBranchId: existingMeta.selectedBranchId,
+          branchName: existingMeta.branchName
+        } : undefined
       }
     })
 
-    const menu = await this.renderMainMenu(businessName, bookingEnabled)
+    const menu = await this.renderMainMenu(
+      businessName,
+      bookingEnabled,
+      branchName || existingMeta.branchName,
+      hasMultipleBranches
+    )
     const reply = prefixMsg ? `${prefixMsg}\n\n${menu}` : menu
     await this.sendReply(businessId, customerPhone, reply)
     return { handled: true, replyText: reply }

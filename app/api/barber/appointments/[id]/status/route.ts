@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensurePaymentForAppointment } from '@/lib/payments'
+import { WhatsAppService } from '@/lib/whatsapp/whatsapp-service'
 
 export async function PATCH(
   request: Request,
@@ -46,6 +47,15 @@ export async function PATCH(
 
     if (status === 'COMPLETED') {
       await ensurePaymentForAppointment(id, { status: 'PENDING' })
+      if (appointment.status !== 'COMPLETED') {
+        WhatsAppService.sendPostServiceThankYou(id).catch(err => {
+          console.error('[WhatsApp] Error enviando agradecimiento post-servicio:', err)
+        })
+      }
+    } else if (status === 'CANCELLED' && appointment.status !== 'CANCELLED') {
+      WhatsAppService.sendAppointmentCancellation(id).catch(err => {
+        console.error('[WhatsApp] Error enviando cancelación:', err)
+      })
     }
 
     return NextResponse.json(updated)

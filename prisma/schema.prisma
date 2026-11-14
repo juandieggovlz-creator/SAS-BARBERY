@@ -30,6 +30,12 @@ model Business {
   maxBarbers         Int?               @default(10)
   maxClients         Int?               @default(1000)
   maxAppointments    Int?               @default(5000)
+  // Anticipos y señas de reserva (Opcional por negocio)
+  depositEnabled     Boolean            @default(false)
+  depositType        String             @default("PERCENTAGE") // "PERCENTAGE" o "FIXED"
+  depositPercentage  Int                @default(30)
+  depositFixedAmount Decimal?           @default(0) @db.Decimal(10, 2)
+  depositInstructions String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @default(now()) @updatedAt
   users              User[]
@@ -225,6 +231,8 @@ model Appointment {
   paymentMethod   PaymentMethod?
   paidAt          DateTime?
   notes           String?
+  depositRequired Decimal?          @default(0) @db.Decimal(10, 2)
+  depositPaid     Boolean           @default(false)
   createdAt       DateTime          @default(now())
   reservationCode String            @unique @default(cuid())
   business        Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)

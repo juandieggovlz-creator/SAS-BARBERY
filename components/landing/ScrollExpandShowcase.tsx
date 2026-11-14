@@ -738,10 +738,9 @@ function WebpageView() {
               <p className="text-[11px] text-zinc-400">Carrera 20 # 25-18, Centro · Sincelejo</p>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-amber-400 text-xs font-bold">
-            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-            <span>4.9</span>
-            <span className="text-zinc-500">(240 reseñas)</span>
+          <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-zinc-300 font-semibold text-[11px]">Vista Previa de Cliente</span>
           </div>
         </div>
 

@@ -141,7 +141,7 @@ export default function BarberCommissionsPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-zinc-200 p-6 sm:p-8 rounded-3xl shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#121215] border border-zinc-200/80 dark:border-zinc-800 p-6 sm:p-8 rounded-3xl shadow-xs">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500 text-white">
@@ -149,19 +149,19 @@ export default function BarberCommissionsPage() {
             </span>
             <span className="text-xs text-zinc-400 font-medium">Datos 100% reales en tiempo real</span>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-zinc-950 mt-1">
+          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-zinc-950 dark:text-white mt-1">
             Mis Comisiones ({commissionRate}%)
           </h1>
-          <p className="text-xs font-medium text-zinc-500 mt-1">
+          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-1">
             Resumen de servicios completados y comisiones calculadas con base en pagos auditados.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 p-4 rounded-2xl">
-          <Percent className="w-8 h-8 text-zinc-900" />
+        <div className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl">
+          <Percent className="w-8 h-8 text-amber-500" />
           <div>
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Tasa Asignada</span>
-            <span className="text-xl font-black text-zinc-900">{commissionRate}% por servicio</span>
+            <span className="text-xl font-black text-zinc-900 dark:text-white">{commissionRate}% por servicio</span>
           </div>
         </div>
       </div>

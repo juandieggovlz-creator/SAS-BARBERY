@@ -7,44 +7,44 @@ import { Star, Quote, ChevronLeft, ChevronRight, CheckCircle2, Sparkles } from '
 
 const testimonials = [
   {
-    name: 'Carlos "The Blade" Ruiz',
-    role: 'Master Barber & Administrador',
-    business: 'Barbería Elite SAS',
-    city: 'Medellín (El Poblado)',
+    name: 'Carlos Ruiz',
+    role: 'Demostración de Rol: Administrador',
+    business: 'Caso Práctico: Barbería Urbana',
+    city: 'Control de Comisiones',
     avatar: '/landing/testimonial-1.png',
     rating: 5,
-    quote: 'Lo mejor es la transparencia con las comisiones. Antes teníamos discusiones quincenales porque algún corte no se había anotado en la libreta. Ahora cada barbero entra a su enlace privado y ve exactamente qué ha ganado en el día. Cero estrés.',
-    highlight: 'Cero discusiones de comisiones'
+    quote: 'La transparencia con las comisiones es fundamental: cada barbero entra a su enlace privado y consulta al instante sus servicios prestados y el saldo acumulado en el día sin necesidad de cuadernos manuales.',
+    highlight: 'Liquidación Transparente de Comisiones'
   },
   {
     name: 'Mateo Valencia',
-    role: 'Dueño de 2 Sedes',
-    business: 'Vintage Cuts Studio',
-    city: 'Cali (Granada)',
+    role: 'Demostración de Rol: Propietario',
+    business: 'Caso Práctico: Gestión Multisede',
+    city: 'Arqueo de Caja',
     avatar: '/landing/testimonial-2.png',
     rating: 5,
-    quote: 'El cierre de caja ciego es una genialidad. El cajero cuenta el dinero y el sistema le dice si cuadra o no sin mostrarle el número de antemano. Se acabaron los descuadres misteriosos de plata entre turnos.',
-    highlight: 'Cajas siempre cuadradas'
+    quote: 'El arqueo de caja ciego obliga a realizar el conteo físico del efectivo antes de comparar con el sistema, protegiendo las finanzas del negocio y evitando inconsistencias entre turnos.',
+    highlight: 'Caja Ciega y Cuadre Diario'
   },
   {
     name: 'Julián Mendoza',
-    role: 'Fade Specialist & Socio',
-    business: 'La Barbería Urbana',
-    city: 'Bucaramanga',
+    role: 'Demostración de Rol: Barbero',
+    business: 'Caso Práctico: Agenda Digital',
+    city: 'Autogestión de Horarios',
     avatar: '/landing/testimonial-3.png',
     rating: 5,
-    quote: 'Mis clientes reservan desde la bio de Instagram en segundos sin tener que esperar a que alguien les conteste por chat. La agenda se llena sola mientras nosotros nos enfocamos en cortar.',
-    highlight: 'Reservas 100% automáticas'
+    quote: 'Los clientes pueden ingresar al enlace público del negocio y agendar sus citas en tiempo real según la disponibilidad de cada profesional, sin llamadas ni demoras de respuesta.',
+    highlight: 'Reservas en Línea 24/7'
   },
   {
     name: 'Alejandro Morales',
-    role: 'Propietario Fundador',
-    business: 'The Gentlemen Club Barbershop',
-    city: 'Bogotá (Zona Rosa)',
+    role: 'Demostración de Rol: Dueño de Barbería',
+    business: 'Caso Práctico: Integración WhatsApp',
+    city: 'Recordatorios Automatizados',
     avatar: '/landing/testimonial-4.png',
     rating: 5,
-    quote: 'Antes perdíamos al menos 5 citas al día porque tardábamos en responder el WhatsApp. Desde que activamos BarberOS con el link en Instagram, los clientes agendan solos a cualquier hora. Mi facturación subió más de un 40% en 3 meses.',
-    highlight: '+40% en facturación'
+    quote: 'Las confirmaciones y recordatorios automáticos por WhatsApp reducen de manera drástica las inasistencias y permiten reprogramar turnos con anticipación.',
+    highlight: 'Menos Inasistencias con WhatsApp'
   },
 ]
 
@@ -79,23 +79,23 @@ export default function Testimonials() {
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-xs font-semibold text-amber-800 dark:text-amber-300">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
-            <span className="uppercase tracking-wider font-black text-[10px]">Casos de Éxito</span>
+            <span className="uppercase tracking-wider font-black text-[10px]">Demostración de Casos Prácticos</span>
             <span className="text-zinc-400 dark:text-zinc-600">·</span>
-            <span className="font-medium text-xs">Voz de los Barberos</span>
+            <span className="font-medium text-xs">Escenarios de Gestión</span>
           </div>
 
           <h2
             id="testimonials-title"
             className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-zinc-950 dark:text-white leading-[1.08]"
           >
-            Barberos y dueños que escalaron su{' '}
+            Cómo BarberOS resuelve los retos diarios de{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400 dark:from-amber-300 dark:via-amber-400 dark:to-amber-100">
-              negocio.
+              tu barbería.
             </span>
           </h2>
 
           <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed">
-            Historias reales de negocios que profesionalizaron su operación y fidelizaron a sus clientes con BarberOS.
+            Ejemplos y flujos típicos diseñados para garantizar orden administrativo, control financiero y puntualidad operativa.
           </p>
         </motion.div>
 

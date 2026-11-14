@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { randomBytes } from 'crypto'
 
 export const dynamic = 'force-dynamic'
@@ -13,6 +14,15 @@ function generateReservationCode() {
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request)
+    const limitCheck = rateLimit(`public-appointment:${ip}`, { limit: 10, windowSeconds: 10 * 60 })
+    if (!limitCheck.success) {
+      return NextResponse.json(
+        { error: `Has realizado demasiadas reservas en poco tiempo. Por favor espera ${Math.ceil(limitCheck.resetSeconds / 60)} minutos.` },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const { businessId, serviceId, barberId, date, clientName, clientPhone, totalDuration } = body
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensurePaymentForAppointment } from '@/lib/payments'
+import { WhatsAppService } from '@/lib/whatsapp/whatsapp-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,6 +89,24 @@ export async function PATCH(
 
     if (finalStatus === 'COMPLETED') {
       await ensurePaymentForAppointment(id, { status: 'PENDING' })
+      if (currentAppt.status !== 'COMPLETED') {
+        WhatsAppService.sendPostServiceThankYou(id).catch(err => {
+          console.error('[WhatsApp] Error enviando agradecimiento post-servicio:', err)
+        })
+      }
+    } else if (finalStatus === 'CANCELLED' && currentAppt.status !== 'CANCELLED') {
+      WhatsAppService.sendAppointmentCancellation(id).catch(err => {
+        console.error('[WhatsApp] Error enviando cancelación:', err)
+      })
+    } else if (
+      data.date &&
+      data.date instanceof Date &&
+      data.date.getTime() !== currentAppt.date.getTime() &&
+      ['PENDING', 'CONFIRMED'].includes(finalStatus)
+    ) {
+      WhatsAppService.sendAppointmentRescheduled(id, data.date).catch(err => {
+        console.error('[WhatsApp] Error enviando reprogramación:', err)
+      })
     }
 
     return NextResponse.json(appointment)

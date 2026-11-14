@@ -43,10 +43,10 @@ export default function ThemeToggle({ variant = 'topbar', className = '' }: Them
           className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 ${
             !isDark
               ? 'border-zinc-950 bg-zinc-50 dark:bg-zinc-900'
-              : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+              : 'border-zinc-200 bg-transparent dark:border-zinc-700 dark:bg-zinc-800/30 hover:border-zinc-300 dark:hover:border-zinc-600'
           }`}
         >
-          <div className="w-10 h-10 rounded-xl bg-white border border-zinc-200 flex items-center justify-center shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 flex items-center justify-center shadow-sm">
             <Sun className="w-5 h-5 text-amber-500" />
           </div>
           <span className="text-xs font-black text-zinc-950 dark:text-white">Modo Claro</span>

@@ -47,6 +47,8 @@ export default function BarbersPage() {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'INACTIVE'>('ALL')
+  const [maxBarbers, setMaxBarbers] = useState<number | null>(null)
+  const [planName, setPlanName] = useState<string>('')
 
   const filtered = barbers.filter(b => {
     const matchSearch = b.name.toLowerCase().includes(search.toLowerCase()) || b.user?.email?.toLowerCase().includes(search.toLowerCase())
@@ -58,6 +60,10 @@ export default function BarbersPage() {
     try {
       const res = await fetch('/api/barbers', { cache: 'no-store' })
       if (!res.ok) throw new Error()
+      const limitH = res.headers.get('x-plan-max-barbers')
+      if (limitH) setMaxBarbers(parseInt(limitH, 10))
+      const planH = res.headers.get('x-plan-name')
+      if (planH) setPlanName(planH)
       setBarbers(await res.json())
     } catch { toast.error('Error al cargar barberos') }
     finally { setLoading(false) }
@@ -342,35 +348,62 @@ export default function BarbersPage() {
           <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
             <Scissors className="w-5 h-5 text-white" />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div>
-              <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Equipo</p>
-              <p className="text-2xl font-black text-zinc-950">{barbers.length} barberos</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Equipo</p>
+                {maxBarbers !== null && (
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                    barbers.length >= maxBarbers
+                      ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40'
+                      : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                  }`}>
+                    {barbers.length} / {maxBarbers} {planName ? `(Plan ${planName})` : ''}
+                  </span>
+                )}
+              </div>
+              <p className="text-2xl font-black text-zinc-950 dark:text-white">{barbers.length} barberos</p>
             </div>
-            <div className="h-8 w-px bg-zinc-200" />
+            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-800" />
             <div>
               <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Activos</p>
               <p className="text-2xl font-black text-emerald-600">{activeCount}</p>
             </div>
-            <div className="h-8 w-px bg-zinc-200" />
+            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-800" />
             <div>
               <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Pendientes</p>
               <p className="text-2xl font-black text-amber-600">{pendingCount}</p>
             </div>
-            <div className="h-8 w-px bg-zinc-200" />
+            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-800" />
             <div>
               <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest">Inactivos</p>
               <p className="text-2xl font-black text-zinc-400">{inactiveCount}</p>
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-zinc-800 transition-all active:scale-95 shadow-lg"
-        >
-          <UserPlus className="w-4 h-4" />
-          Registrar Barbero
-        </button>
+        
+        {maxBarbers !== null && barbers.length >= maxBarbers ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/30 px-3 py-2 rounded-xl">
+              Límite de {maxBarbers} barberos alcanzado
+            </span>
+            <a
+              href="/subscription"
+              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-zinc-950 font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all shadow-md"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>Mejorar Plan</span>
+            </a>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 bg-black dark:bg-zinc-800 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-zinc-800 dark:hover:bg-zinc-700 transition-all active:scale-95 shadow-lg cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" />
+            Registrar Barbero
+          </button>
+        )}
       </div>
 
       {/* Invite Link Banner */}

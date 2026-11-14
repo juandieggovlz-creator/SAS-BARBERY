@@ -141,9 +141,9 @@ export async function POST(request: Request, context: RouteContext) {
       }
     })
 
-    // Generar token seguro
+    // Generar token seguro con expiración de 72 horas
     const token = crypto.randomBytes(32).toString('hex')
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 días
+    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000) // 72 horas (3 días)
 
     const invitation = await prisma.branchInvitation.create({
       data: {

@@ -46,11 +46,11 @@ export async function POST(request: Request) {
       }
     })
 
-    // If clientId is provided, optionally update Client.internalNotes
+    // If clientId is provided, optionally update Client.internalNotes (scoping strictly to this business)
     if (clientId) {
       try {
-        await prisma.client.update({
-          where: { id: clientId },
+        await prisma.client.updateMany({
+          where: { id: clientId, businessId: session.businessId },
           data: { internalNotes: content }
         })
       } catch (err) {

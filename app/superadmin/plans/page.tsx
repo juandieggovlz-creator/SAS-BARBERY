@@ -183,7 +183,7 @@ export default function SuperAdminSubscriptionsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-black uppercase tracking-widest text-amber-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">
               <CreditCard className="w-3 h-3" />
               Monetización & Suscripciones
             </span>
@@ -261,7 +261,7 @@ export default function SuperAdminSubscriptionsPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
-                    p.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-zinc-100 text-zinc-500 border-zinc-200'
+                    p.isActive ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 font-bold' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-700 font-bold'
                   }`}>
                     {p.isActive ? 'Activo' : 'Inactivo'}
                   </span>
@@ -361,8 +361,8 @@ export default function SuperAdminSubscriptionsPage() {
                       <td className="py-4 px-4">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${
                           s.status === 'ACTIVE'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                            ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 font-bold'
+                            : 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-500/40 font-bold'
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${s.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                           {s.status}

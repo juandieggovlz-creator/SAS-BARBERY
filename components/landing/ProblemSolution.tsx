@@ -97,7 +97,7 @@ export default function ProblemSolution() {
           </h2>
 
           <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed">
-            Descubre por qué más de 500 barberías en Colombia dejaron atrás las libretas y el desorden para operar como franquicias de élite con BarberOS.
+            Descubre cómo transformar la gestión de tu barbería: deja atrás las libretas y el desorden para operar con total claridad financiera y operativa.
           </p>
         </motion.div>
 

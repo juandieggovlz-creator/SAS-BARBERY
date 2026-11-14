@@ -51,23 +51,23 @@ export default function BarberServicesPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-zinc-200 p-6 sm:p-8 rounded-3xl shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#121215] border border-zinc-200/80 dark:border-zinc-800 p-6 sm:p-8 rounded-3xl shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-zinc-900 text-white">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-zinc-900 dark:bg-zinc-800 text-white border border-zinc-700">
               Catálogo Profesional
             </span>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-zinc-950 mt-1">
+          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-zinc-950 dark:text-white mt-1">
             Catálogo de Servicios ({services.length})
           </h1>
-          <p className="text-xs font-medium text-zinc-500 mt-1">
+          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-1">
             Catálogo oficial de servicios ofrecidos por la barbería con su duración y precios de lista.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200/80 rounded-2xl text-xs font-semibold text-amber-900">
-          <Info className="w-4 h-4 text-amber-600 shrink-0" />
+        <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/40 rounded-2xl text-xs font-semibold text-amber-900 dark:text-amber-300">
+          <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
           <span>Configurado por la administración del negocio</span>
         </div>
       </div>
@@ -78,36 +78,36 @@ export default function BarberServicesPage() {
           {services.map((srv) => (
             <div
               key={srv.id}
-              className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+              className="bg-white dark:bg-[#121215] border border-zinc-200/80 dark:border-zinc-800 rounded-3xl p-6 shadow-2xs hover:shadow-md hover:border-amber-400/40 transition-all flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shadow-xs">
-                    <Scissors className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-2xl bg-zinc-900 dark:bg-zinc-800 text-white flex items-center justify-center shadow-xs">
+                    <Scissors className="w-5 h-5 text-amber-400" />
                   </div>
                   {srv.category && (
-                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
                       {srv.category}
                     </span>
                   )}
                 </div>
 
                 <div>
-                  <h3 className="text-base font-black text-zinc-950 tracking-tight">{srv.name}</h3>
+                  <h3 className="text-base font-black text-zinc-950 dark:text-white tracking-tight">{srv.name}</h3>
                   {srv.description && (
-                    <p className="text-xs text-zinc-500 font-medium mt-1 leading-relaxed line-clamp-2">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1 leading-relaxed line-clamp-2">
                       {srv.description}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-zinc-100 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs text-zinc-500 font-semibold">
+              <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-semibold">
                   <Clock className="w-4 h-4 text-zinc-400" />
                   <span>{srv.duration} min</span>
                 </div>
-                <span className="text-base font-black text-zinc-900">
+                <span className="text-base font-black text-zinc-900 dark:text-amber-400">
                   {formatCOP(Number(srv.price))}
                 </span>
               </div>
@@ -115,10 +115,10 @@ export default function BarberServicesPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-white border border-zinc-200 rounded-3xl p-10 text-center space-y-3">
-          <Scissors className="w-10 h-10 text-zinc-300 mx-auto" />
-          <h3 className="text-sm font-bold text-zinc-800">No hay servicios registrados aún</h3>
-          <p className="text-xs text-zinc-400">Pide al administrador del negocio que agregue los servicios del catálogo.</p>
+        <div className="bg-white dark:bg-[#121215] border border-zinc-200/80 dark:border-zinc-800 rounded-3xl p-10 text-center space-y-3">
+          <Scissors className="w-10 h-10 text-zinc-300 dark:text-zinc-700 mx-auto" />
+          <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">No hay servicios registrados aún</h3>
+          <p className="text-xs text-zinc-400 dark:text-zinc-500">Pide al administrador del negocio que agregue los servicios del catálogo.</p>
         </div>
       )}
     </div>

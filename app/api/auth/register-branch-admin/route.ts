@@ -53,12 +53,29 @@ export async function POST(request: Request) {
     })
 
     if (user) {
-      // Actualizar usuario existente como BRANCH_ADMIN
+      // Protección de roles de alto privilegio: Nunca degradar un OWNER o SUPER_ADMIN
+      if (user.role === 'OWNER' || user.role === 'SUPER_ADMIN') {
+        return NextResponse.json({
+          error: 'Este correo electrónico pertenece a una cuenta de Propietario o Administrador Global. No puede ser modificado ni degradado a través de una invitación de sede.'
+        }, { status: 403 })
+      }
+
+      // Si ya tiene contraseña, verificar que la contraseña suministrada sea la suya para evitar secuestros de cuenta
+      if (user.password) {
+        const isMatch = await bcrypt.compare(password, user.password)
+        if (!isMatch) {
+          return NextResponse.json({
+            error: 'Esta cuenta ya existe. Por seguridad, debes ingresar tu contraseña actual correcta para vincular la sede.'
+          }, { status: 401 })
+        }
+      }
+
+      // Actualizar usuario existente como BRANCH_ADMIN vinculado a la sede
       user = await prisma.user.update({
         where: { id: user.id },
         data: {
           name: name?.trim() || user.name,
-          password: hashedPassword,
+          ...(user.password ? {} : { password: hashedPassword }),
           role: 'BRANCH_ADMIN',
           businessId: invitation.businessId,
           companyId: invitation.companyId

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createSession } from '@/lib/auth'
+import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import bcrypt from 'bcryptjs'
 import fs from 'fs'
 import { DEFAULT_SCHEDULE } from '@/lib/schedule'
@@ -8,6 +9,15 @@ import { uploadImageFromString } from '@/lib/cloudinary'
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request)
+    const limitCheck = rateLimit(`register-business:${ip}`, { limit: 5, windowSeconds: 60 * 60 })
+    if (!limitCheck.success) {
+      return NextResponse.json(
+        { error: `Demasiadas solicitudes de registro desde esta conexión. Reintenta en ${Math.ceil(limitCheck.resetSeconds / 60)} minutos.` },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const {
       fullName,

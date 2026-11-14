@@ -73,18 +73,24 @@ export function getAccentByHex(hex: string): AccentColor {
 export function buildAccentCSS(c: AccentColor): string {
   const { r, g, b } = c
   const main    = `rgb(${r},${g},${b})`
-  const dark1   = `rgb(${Math.round(r * 0.82)},${Math.round(g * 0.82)},${Math.round(b * 0.82)})`  // amber-600
-  const dark2   = `rgb(${Math.round(r * 0.67)},${Math.round(g * 0.67)},${Math.round(b * 0.67)})`  // amber-700
-  const light1  = `rgba(${r},${g},${b},0.10)` // amber-50
-  const light2  = `rgba(${r},${g},${b},0.20)` // amber-100 / border
-  const op15    = `rgba(${r},${g},${b},0.15)` // /15
-  const op30    = `rgba(${r},${g},${b},0.30)` // /30
-  const op60    = `rgba(${r},${g},${b},0.60)` // glow
+  const dark1   = `rgb(${Math.round(r * 0.82)},${Math.round(g * 0.82)},${Math.round(b * 0.82)})`
+  const dark2   = `rgb(${Math.round(r * 0.67)},${Math.round(g * 0.67)},${Math.round(b * 0.67)})`
+  const light1  = `rgba(${r},${g},${b},0.10)`
+  const light2  = `rgba(${r},${g},${b},0.20)`
+  const op15    = `rgba(${r},${g},${b},0.15)`
+  const op30    = `rgba(${r},${g},${b},0.30)`
+  const op60    = `rgba(${r},${g},${b},0.60)`
   const contrast = c.contrastText
 
+  // IMPORTANT: ALL overrides are SCOPED to [data-panel="owner"] so they never
+  // bleed into the marketing landing, login, or public booking pages.
+  // CSS vars are also scoped — the landing/login use hardcoded Tailwind classes
+  // and the globals.css :root defaults (amber), not these dynamic vars.
+  const S = '[data-panel="owner"]' // scope selector
+
   return `
-/* ── BarberOS Accent Color Override ── */
-:root {
+/* ── BarberOS Accent Color Override (fully panel-scoped) ── */
+${S} {
   --accent: ${main};
   --accent-dark: ${dark1};
   --accent-darker: ${dark2};
@@ -94,10 +100,11 @@ export function buildAccentCSS(c: AccentColor): string {
   --accent-op30: ${op30};
   --accent-op60: ${op60};
   --accent-contrast: ${contrast};
+  --accent-hover: ${dark1};
   --sidebar-active-bg: ${main};
   --sidebar-active-text: ${contrast};
 }
-html.dark {
+html.dark ${S} {
   --accent: ${main};
   --accent-dark: ${dark1};
   --accent-darker: ${dark2};
@@ -107,102 +114,103 @@ html.dark {
   --accent-op30: ${op30};
   --accent-op60: ${op60};
   --accent-contrast: ${contrast};
+  --accent-hover: ${dark1};
   --sidebar-active-bg: ${main};
   --sidebar-active-text: ${contrast};
 }
 
 /* ─── text ─── */
-.text-amber-200,.dark .dark\\:text-amber-200{color:${main}!important}
-.text-amber-300,.dark .dark\\:text-amber-300{color:${main}!important}
-.text-amber-400,.dark .dark\\:text-amber-400{color:${main}!important}
-.text-amber-500,.dark .dark\\:text-amber-500{color:${main}!important}
-.text-amber-600,.dark .dark\\:text-amber-600{color:${dark1}!important}
-.text-amber-700,.dark .dark\\:text-amber-700{color:${dark2}!important}
-.text-amber-800,.dark .dark\\:text-amber-800{color:${dark2}!important}
-.text-amber-900,.dark .dark\\:text-amber-900{color:${dark2}!important}
-.group:hover .group-hover\\:text-amber-400,.group:hover .dark\\:group-hover\\:text-amber-400{color:${main}!important}
-.group\\/client:hover .group-hover\\/client\\:text-amber-600{color:${main}!important}
-.hover\\:text-amber-400:hover,.dark .dark\\:hover\\:text-amber-400:hover{color:${main}!important}
-.hover\\:text-amber-600:hover{color:${dark1}!important}
+${S} .text-amber-200,${S} .dark .dark\\:text-amber-200{color:${main}!important}
+${S} .text-amber-300,${S} .dark .dark\\:text-amber-300{color:${main}!important}
+${S} .text-amber-400,${S} .dark .dark\\:text-amber-400{color:${main}!important}
+${S} .text-amber-500,${S} .dark .dark\\:text-amber-500{color:${main}!important}
+${S} .text-amber-600,${S} .dark .dark\\:text-amber-600{color:${dark1}!important}
+${S} .text-amber-700,${S} .dark .dark\\:text-amber-700{color:${dark2}!important}
+${S} .text-amber-800,${S} .dark .dark\\:text-amber-800{color:${dark2}!important}
+${S} .text-amber-900,${S} .dark .dark\\:text-amber-900{color:${dark2}!important}
+${S} .group:hover .group-hover\\:text-amber-400,${S} .group:hover .dark\\:group-hover\\:text-amber-400{color:${main}!important}
+${S} .group\\/client:hover .group-hover\\/client\\:text-amber-600{color:${main}!important}
+${S} .hover\\:text-amber-400:hover,${S} .dark .dark\\:hover\\:text-amber-400:hover{color:${main}!important}
+${S} .hover\\:text-amber-600:hover{color:${dark1}!important}
 
 /* ─── bg ─── */
-.bg-amber-50,.dark .dark\\:bg-amber-50{background-color:${light1}!important}
-.bg-amber-100,.dark .dark\\:bg-amber-100{background-color:${light2}!important}
-.bg-amber-200,.dark .dark\\:bg-amber-200{background-color:${light2}!important}
-.bg-amber-400,.dark .dark\\:bg-amber-400{background-color:${main}!important}
-.bg-amber-500,.dark .dark\\:bg-amber-500{background-color:${main}!important}
-.bg-amber-600,.dark .dark\\:bg-amber-600{background-color:${dark1}!important}
+${S} .bg-amber-50,${S} .dark .dark\\:bg-amber-50{background-color:${light1}!important}
+${S} .bg-amber-100,${S} .dark .dark\\:bg-amber-100{background-color:${light2}!important}
+${S} .bg-amber-200,${S} .dark .dark\\:bg-amber-200{background-color:${light2}!important}
+${S} .bg-amber-400,${S} .dark .dark\\:bg-amber-400{background-color:${main}!important}
+${S} .bg-amber-500,${S} .dark .dark\\:bg-amber-500{background-color:${main}!important}
+${S} .bg-amber-600,${S} .dark .dark\\:bg-amber-600{background-color:${dark1}!important}
 
 /* ─── bg opacity ─── */
-.bg-amber-400\\/10,.dark .dark\\:bg-amber-400\\/10{background-color:${light1}!important}
-.bg-amber-400\\/15,.dark .dark\\:bg-amber-400\\/15{background-color:${op15}!important}
-.bg-amber-400\\/20,.dark .dark\\:bg-amber-400\\/20{background-color:${op30}!important}
-.bg-amber-500\\/10,.dark .dark\\:bg-amber-500\\/10{background-color:${light1}!important}
-.bg-amber-500\\/15,.dark .dark\\:bg-amber-500\\/15{background-color:${op15}!important}
-.bg-amber-500\\/20,.dark .dark\\:bg-amber-500\\/20{background-color:${op30}!important}
-.dark .dark\\:bg-amber-950\\/30,.dark .dark\\:bg-amber-950\\/40{background-color:${op15}!important}
+${S} .bg-amber-400\\/10,${S} .dark .dark\\:bg-amber-400\\/10{background-color:${light1}!important}
+${S} .bg-amber-400\\/15,${S} .dark .dark\\:bg-amber-400\\/15{background-color:${op15}!important}
+${S} .bg-amber-400\\/20,${S} .dark .dark\\:bg-amber-400\\/20{background-color:${op30}!important}
+${S} .bg-amber-500\\/10,${S} .dark .dark\\:bg-amber-500\\/10{background-color:${light1}!important}
+${S} .bg-amber-500\\/15,${S} .dark .dark\\:bg-amber-500\\/15{background-color:${op15}!important}
+${S} .bg-amber-500\\/20,${S} .dark .dark\\:bg-amber-500\\/20{background-color:${op30}!important}
+${S} .dark .dark\\:bg-amber-950\\/30,${S} .dark .dark\\:bg-amber-950\\/40{background-color:${op15}!important}
 
 /* ─── contrast on solid bg ─── */
-.bg-amber-400.text-zinc-950,.bg-amber-500.text-zinc-950,
-.dark .dark\\:bg-amber-400.dark\\:text-zinc-950,.dark .dark\\:bg-amber-500.dark\\:text-zinc-950,
-.dark .dark\\:bg-amber-400 .dark\\:text-zinc-950,.dark .dark\\:bg-amber-500 .dark\\:text-zinc-950 {
+${S} .bg-amber-400.text-zinc-950,${S} .bg-amber-500.text-zinc-950,
+${S} .dark .dark\\:bg-amber-400.dark\\:text-zinc-950,${S} .dark .dark\\:bg-amber-500.dark\\:text-zinc-950,
+${S} .dark .dark\\:bg-amber-400 .dark\\:text-zinc-950,${S} .dark .dark\\:bg-amber-500 .dark\\:text-zinc-950 {
   color: ${contrast}!important;
 }
 
 /* ─── border ─── */
-.border-amber-100,.dark .dark\\:border-amber-100{border-color:${light2}!important}
-.border-amber-200,.dark .dark\\:border-amber-200{border-color:${light2}!important}
-.border-amber-300,.dark .dark\\:border-amber-300{border-color:${light2}!important}
-.border-amber-400,.dark .dark\\:border-amber-400{border-color:${main}!important}
-.border-amber-500,.dark .dark\\:border-amber-500{border-color:${main}!important}
-.border-amber-400\\/30,.dark .dark\\:border-amber-400\\/30{border-color:${op30}!important}
-.border-amber-400\\/40,.dark .dark\\:border-amber-400\\/40{border-color:${op30}!important}
-.border-amber-400\\/60,.dark .dark\\:border-amber-400\\/60{border-color:${op30}!important}
-.border-amber-500\\/30,.dark .dark\\:border-amber-500\\/30{border-color:${op30}!important}
-.border-amber-500\\/40,.dark .dark\\:border-amber-500\\/40{border-color:${op30}!important}
-.border-amber-500\\/50,.dark .dark\\:border-amber-500\\/50{border-color:${op30}!important}
-.dark .dark\\:border-amber-900\\/40{border-color:${op30}!important}
+${S} .border-amber-100,${S} .dark .dark\\:border-amber-100{border-color:${light2}!important}
+${S} .border-amber-200,${S} .dark .dark\\:border-amber-200{border-color:${light2}!important}
+${S} .border-amber-300,${S} .dark .dark\\:border-amber-300{border-color:${light2}!important}
+${S} .border-amber-400,${S} .dark .dark\\:border-amber-400{border-color:${main}!important}
+${S} .border-amber-500,${S} .dark .dark\\:border-amber-500{border-color:${main}!important}
+${S} .border-amber-400\\/30,${S} .dark .dark\\:border-amber-400\\/30{border-color:${op30}!important}
+${S} .border-amber-400\\/40,${S} .dark .dark\\:border-amber-400\\/40{border-color:${op30}!important}
+${S} .border-amber-400\\/60,${S} .dark .dark\\:border-amber-400\\/60{border-color:${op30}!important}
+${S} .border-amber-500\\/30,${S} .dark .dark\\:border-amber-500\\/30{border-color:${op30}!important}
+${S} .border-amber-500\\/40,${S} .dark .dark\\:border-amber-500\\/40{border-color:${op30}!important}
+${S} .border-amber-500\\/50,${S} .dark .dark\\:border-amber-500\\/50{border-color:${op30}!important}
+${S} .dark .dark\\:border-amber-900\\/40{border-color:${op30}!important}
 
 /* ─── focus ─── */
-.focus\\:border-amber-400:focus,.dark .dark\\:focus\\:border-amber-400:focus{border-color:${main}!important}
-.focus-within\\:border-amber-400:focus-within,.dark .dark\\:focus-within\\:border-amber-400:focus-within{border-color:${main}!important}
-.focus\\:ring-amber-400\\/20:focus,.dark .dark\\:focus\\:ring-amber-400\\/20:focus,.ring-amber-400\\/20{--tw-ring-color:${op30}!important}
+${S} .focus\\:border-amber-400:focus,${S} .dark .dark\\:focus\\:border-amber-400:focus{border-color:${main}!important}
+${S} .focus-within\\:border-amber-400:focus-within,${S} .dark .dark\\:focus-within\\:border-amber-400:focus-within{border-color:${main}!important}
+${S} .focus\\:ring-amber-400\\/20:focus,${S} .dark .dark\\:focus\\:ring-amber-400\\/20:focus,${S} .ring-amber-400\\/20{--tw-ring-color:${op30}!important}
 
 /* ─── hover ─── */
-.hover\\:bg-amber-300:hover,.dark .dark\\:hover\\:bg-amber-300:hover{background-color:${dark1}!important}
-.hover\\:bg-amber-400:hover,.dark .dark\\:hover\\:bg-amber-400:hover{background-color:${dark1}!important}
-.hover\\:bg-amber-500:hover,.dark .dark\\:hover\\:bg-amber-500:hover{background-color:${dark1}!important}
-.hover\\:border-amber-400:hover,.dark .dark\\:hover\\:border-amber-400:hover{border-color:${main}!important}
+${S} .hover\\:bg-amber-300:hover,${S} .dark .dark\\:hover\\:bg-amber-300:hover{background-color:${dark1}!important}
+${S} .hover\\:bg-amber-400:hover,${S} .dark .dark\\:hover\\:bg-amber-400:hover{background-color:${dark1}!important}
+${S} .hover\\:bg-amber-500:hover,${S} .dark .dark\\:hover\\:bg-amber-500:hover{background-color:${dark1}!important}
+${S} .hover\\:border-amber-400:hover,${S} .dark .dark\\:hover\\:border-amber-400:hover{border-color:${main}!important}
 
 /* ─── svg fill & stroke ─── */
-.fill-amber-400,.dark .dark\\:fill-amber-400,.fill-amber-500,.dark .dark\\:fill-amber-500,
-.fill-amber-600,.dark .dark\\:fill-amber-600,.fill-amber-700,.dark .dark\\:fill-amber-700{fill:${main}!important}
-.stroke-amber-400,.dark .dark\\:stroke-amber-400,.stroke-amber-500,.dark .dark\\:stroke-amber-500{stroke:${main}!important}
+${S} .fill-amber-400,${S} .dark .dark\\:fill-amber-400,${S} .fill-amber-500,${S} .dark .dark\\:fill-amber-500,
+${S} .fill-amber-600,${S} .dark .dark\\:fill-amber-600,${S} .fill-amber-700,${S} .dark .dark\\:fill-amber-700{fill:${main}!important}
+${S} .stroke-amber-400,${S} .dark .dark\\:stroke-amber-400,${S} .stroke-amber-500,${S} .dark .dark\\:stroke-amber-500{stroke:${main}!important}
 
 /* ─── accent & shadow ─── */
-.accent-amber-500,.accent-amber-600{accent-color:${main}!important}
-.shadow-\\[0_0_8px_rgba\\(251\\,191\\,36\\,0\\.6\\)\\]{box-shadow:0 0 8px ${op60}!important}
-.shadow-amber-500\\/20,.shadow-amber-400\\/30{box-shadow:0 4px 14px ${op30}!important}
+${S} .accent-amber-500,${S} .accent-amber-600{accent-color:${main}!important}
+${S} .shadow-\\[0_0_8px_rgba\\(251\\,191\\,36\\,0\\.6\\)\\]{box-shadow:0 0 8px ${op60}!important}
+${S} .shadow-amber-500\\/20,${S} .shadow-amber-400\\/30{box-shadow:0 4px 14px ${op30}!important}
 
-/* ─── calendar overrides (react-big-calendar) ─── */
-.rbc-now .rbc-button-link,
-html.dark .rbc-now .rbc-button-link {
+/* ─── calendar overrides (react-big-calendar, inside panel only) ─── */
+${S} .rbc-now .rbc-button-link,
+html.dark ${S} .rbc-now .rbc-button-link {
   background-color: ${main} !important;
   color: ${contrast} !important;
   box-shadow: 0 0 12px ${op30} !important;
 }
-.rbc-today {
+${S} .rbc-today {
   background-color: ${light1} !important;
 }
-html.dark .rbc-today {
+html.dark ${S} .rbc-today {
   background-color: ${op15} !important;
 }
-.rbc-show-more,
-html.dark .rbc-show-more {
+${S} .rbc-show-more,
+html.dark ${S} .rbc-show-more {
   color: ${main} !important;
 }
-.rbc-current-time-indicator,
-.rbc-current-time-indicator::before {
+${S} .rbc-current-time-indicator,
+${S} .rbc-current-time-indicator::before {
   background-color: ${main} !important;
 }
 `

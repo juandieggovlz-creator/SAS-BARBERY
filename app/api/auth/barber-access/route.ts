@@ -4,13 +4,16 @@ import bcrypt from 'bcryptjs'
 import { createSession, getSession } from '@/lib/auth'
 
 async function findUserByToken(token: string) {
-  // 1. Search by inviteToken, barberId or user id
-  let user = await prisma.user.findFirst({
+  if (!token || typeof token !== 'string') return null
+  const now = new Date()
+
+  // Buscar estrictamente por inviteToken vigente (nunca por barberId ni user.id)
+  return await prisma.user.findFirst({
     where: {
+      inviteToken: token,
       OR: [
-        { inviteToken: token },
-        { barberId: token },
-        { id: token }
+        { inviteExpires: null },
+        { inviteExpires: { gt: now } }
       ]
     },
     include: { 
@@ -22,27 +25,6 @@ async function findUserByToken(token: string) {
       business: { select: { id: true, name: true } }
     }
   })
-
-  // 2. If not found, check if token is barber id
-  if (!user) {
-    const barber = await prisma.barber.findUnique({
-      where: { id: token },
-      include: {
-        user: true,
-        business: { select: { id: true, name: true } },
-        schedules: true
-      }
-    })
-    if (barber && barber.user) {
-      user = {
-        ...barber.user,
-        barber,
-        business: barber.business
-      }
-    }
-  }
-
-  return user
 }
 
 export async function GET(request: Request) {
@@ -138,19 +120,22 @@ export async function POST(request: Request) {
       }
     }
 
-    // Si es primera vez (o action === 'SET_PASSWORD')
-    if (!user.password || action === 'SET_PASSWORD') {
-      if (password.length < 4) {
-        return NextResponse.json({ error: 'La contraseña debe tener al menos 4 caracteres' }, { status: 400 })
+    // Si es primera vez creando contraseña (cuenta sin clave)
+    if (!user.password) {
+      if (password.length < 6) {
+        return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 })
       }
 
       const hashedPassword = await bcrypt.hash(password, 10)
 
+      // Actualizar contraseña y quemar el token de invitación (Single-Use Token)
       await prisma.user.update({
         where: { id: user.id },
         data: { 
           password: hashedPassword,
-          isActive: true
+          isActive: true,
+          inviteToken: null,
+          inviteExpires: null
         }
       })
 
@@ -164,6 +149,13 @@ export async function POST(request: Request) {
       })
       response.cookies.set('barber_session', sessionJwt, cookieOpts)
       return response
+    }
+
+    // Si ya tiene contraseña y pretendía forzar SET_PASSWORD sin autenticación
+    if (action === 'SET_PASSWORD') {
+      return NextResponse.json({
+        error: 'Esta cuenta ya tiene una contraseña activa. Por seguridad, ingresa con tu contraseña o solicita un nuevo enlace a tu administrador.'
+      }, { status: 403 })
     }
 
     // Si ya tiene contraseña (LOGIN)

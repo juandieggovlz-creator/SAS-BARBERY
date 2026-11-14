@@ -1,7 +1,6 @@
 import { getPublicPageUrl } from '@/lib/url'
 import { prisma } from '../prisma'
 import { MetaCloudProvider } from './meta-provider'
-import { BaileysProvider } from './baileys-provider'
 import { WhatsAppSendResult } from './types'
 
 export const DEFAULT_CONFIRM_TEMPLATE = `👋 ¡Hola *{clientName}*!
@@ -18,6 +17,18 @@ Tu reserva en *{businessName}* ha sido confirmada con éxito 💈✂️
 
 _Gracias por confiar en {businessName}._`
 
+export const DEFAULT_BUSINESS_ALERT_TEMPLATE = `🔔 *Nueva Cita Agendada en tu Barbería* 💈
+
+Se ha recibido una nueva reserva:
+👤 *Cliente:* {clientName} ({clientPhone})
+📅 *Fecha:* {date}
+⏰ *Hora:* {time}
+💈 *Barbero:* {barberName}
+✂️ *Servicio:* {serviceName} ({price})
+🔖 *Código:* {reservationCode}
+
+_Gestiona tus citas en tu panel de BarberOS._`
+
 export const DEFAULT_REMINDER_TEMPLATE = `🔔 *Recordatorio de tu Cita* 💈
 
 Hola *{clientName}*, te recordamos que tienes una cita programada en *{businessName}* en aproximadamente {hoursBefore} horas.
@@ -32,6 +43,35 @@ Por favor confirma tu asistencia respondiendo a este mensaje o gestiona tu cita 
 {bookingLink}
 
 ¡Nos vemos pronto!`
+
+export const DEFAULT_CANCELLATION_TEMPLATE = `❌ *Tu cita en {businessName} ha sido cancelada* 💈
+
+Hola *{clientName}*, te informamos que tu cita con *{barberName}* programada para el *{date}* a las *{time}* ha sido cancelada.
+
+Si deseas agendar un nuevo horario en nuestra barbería, puedes hacerlo directamente aquí:
+{bookingLink}
+
+_Lamentamos los inconvenientes ocasionados._`
+
+export const DEFAULT_RESCHEDULE_TEMPLATE = `🔄 *Tu cita en {businessName} ha sido reprogramada* 💈
+
+Hola *{clientName}*, tu cita con *{barberName}* ha sido actualizada a un nuevo horario:
+
+📅 *Nueva Fecha:* {date}
+⏰ *Nueva Hora:* {time}
+💇‍♂️ *Servicio:* {serviceName}
+🔖 *Código de cita:* {reservationCode}
+
+Puedes revisar los detalles de tu cita aquí:
+{bookingLink}
+
+¡Te esperamos puntualmente!`
+
+export const DEFAULT_THANKYOU_TEMPLATE = `✨ *¡Gracias por visitarnos en {businessName}!* 💈✂️
+
+Hola *{clientName}*, fue un placer atenderte hoy. Esperamos que hayas disfrutado de tu servicio de *{serviceName}* con *{barberName}*.
+
+Si te gustó tu atención, te esperamos pronto para tu próximo corte o perfilado. ¡Que tengas un excelente día!`
 
 export const DEFAULT_WELCOME_BOT_MESSAGE = `💈 ¡Hola! Bienvenido a *{businessName}* 💈
 
@@ -59,22 +99,22 @@ export class WhatsAppService {
   }
 
   /**
-   * Formatea fecha y hora en español
+   * Formatea fecha y hora en español utilizando la zona horaria de Colombia
    */
-  static formatDateTime(date: Date) {
+  static formatDateTime(date: Date, timeZone = 'America/Bogota') {
     const formattedDate = new Intl.DateTimeFormat('es-CO', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-      timeZone: 'America/Bogota'
+      timeZone
     }).format(date)
 
     const formattedTime = new Intl.DateTimeFormat('es-CO', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-      timeZone: 'America/Bogota'
+      timeZone
     }).format(date)
 
     return {
@@ -84,51 +124,80 @@ export class WhatsAppService {
   }
 
   /**
-   * Envía un mensaje usando el proveedor activo de la barbería
+   * Valida y normaliza un número de teléfono para envío
+   */
+  static normalizePhoneNumber(phone: string | null | undefined): string | null {
+    if (!phone) return null
+    const cleaned = phone.replace(/\D/g, '')
+    if (cleaned.length < 8) return null
+    if (cleaned.length === 10 && cleaned.startsWith('3')) {
+      return `57${cleaned}`
+    }
+    return cleaned
+  }
+
+  /**
+   * Envía un mensaje usando exclusivamente Meta Cloud API
    */
   static async sendDirectMessage({
     businessId,
     to,
     text,
-    appointmentId
+    appointmentId,
+    tag
   }: {
     businessId: string
     to: string
     text: string
     appointmentId?: string
+    tag?: string
   }): Promise<WhatsAppSendResult> {
     try {
-      const integration = await prisma.whatsAppIntegration.findUnique({
+      const normalizedTo = this.normalizePhoneNumber(to)
+      if (!normalizedTo) {
+        return { success: false, error: 'Número de teléfono de destinatario inválido' }
+      }
+
+      let integration = await prisma.whatsAppIntegration.findUnique({
         where: { businessId }
       })
 
-      if (!integration || !integration.isEnabled || integration.provider === 'NONE') {
+      // Fallback multisede: Si la sede no tiene integración propia, heredar la de la sede principal de la empresa
+      if (!integration || !integration.isEnabled) {
+        const branch = await prisma.business.findUnique({
+          where: { id: businessId },
+          select: { companyId: true }
+        })
+        if (branch?.companyId) {
+          integration = await prisma.whatsAppIntegration.findFirst({
+            where: {
+              business: { companyId: branch.companyId, isMainBranch: true },
+              isEnabled: true
+            }
+          })
+        }
+      }
+
+      if (!integration || !integration.isEnabled) {
         return { success: false, error: 'La integración de WhatsApp no está activada en este negocio' }
       }
 
-      let result: WhatsAppSendResult = { success: false, error: 'Proveedor no configurado' }
-
-      if (integration.provider === 'META') {
-        if (!integration.metaPhoneNumberId || !integration.metaAccessToken) {
-          return { success: false, error: 'Faltan credenciales de Meta Cloud API (Phone Number ID o Access Token)' }
-        }
-
-        result = await MetaCloudProvider.sendTextMessage({
-          phoneNumberId: integration.metaPhoneNumberId,
-          accessToken: integration.metaAccessToken,
-          to,
-          text
-        })
-      } else if (integration.provider === 'BAILEYS') {
-        result = await BaileysProvider.sendTextMessage({
-          endpoint: integration.baileysEndpoint,
-          sessionId: integration.baileysSessionId || `session_${businessId}`,
-          to,
-          text
-        })
+      if (integration.provider !== 'META') {
+        return { success: false, error: 'El proveedor configurado debe ser META' }
       }
 
-      // Registrar log de auditoría
+      if (!integration.metaPhoneNumberId || !integration.metaAccessToken) {
+        return { success: false, error: 'Faltan credenciales de Meta Cloud API (Phone Number ID o Access Token)' }
+      }
+
+      const result = await MetaCloudProvider.sendTextMessage({
+        phoneNumberId: integration.metaPhoneNumberId,
+        accessToken: integration.metaAccessToken,
+        to: normalizedTo,
+        text
+      })
+
+      // Registrar log de auditoría con tag para deduplicación estricta
       await prisma.whatsAppMessageLog.create({
         data: {
           businessId,
@@ -136,13 +205,17 @@ export class WhatsAppService {
           appointmentId: appointmentId || null,
           direction: 'OUTBOUND',
           status: result.success ? 'SENT' : 'FAILED',
-          provider: integration.provider,
+          provider: 'META',
           from: integration.phoneNumber || 'BARBEROS',
-          to,
+          to: normalizedTo,
           messageBody: text,
           errorDetails: result.error || null,
           sentAt: result.success ? new Date() : null,
-          rawPayload: result.rawResponse ? JSON.parse(JSON.stringify(result.rawResponse)) : undefined
+          rawPayload: {
+            tag: tag || 'DIRECT_MESSAGE',
+            metaMessageId: result.messageId || null,
+            ...(result.rawResponse ? { raw: result.rawResponse } : {})
+          }
         }
       })
 
@@ -155,7 +228,7 @@ export class WhatsAppService {
   }
 
   /**
-   * Envía confirmación automática de cita cuando se genera una reserva
+   * Envía confirmación automática de cita al cliente y alerta opcional a la barbería
    */
   static async sendAppointmentConfirmation(appointmentId: string): Promise<WhatsAppSendResult> {
     try {
@@ -178,18 +251,31 @@ export class WhatsAppService {
       }
 
       const integration = appt.business.whatsAppIntegration
-      if (!integration || !integration.isEnabled || !integration.notifyBusinessOnBooking) {
-        // La barbería no tiene WhatsApp activado o el flujo de confirmación está desactivado
-        return { success: false, error: 'Confirmación de citas por WhatsApp desactivada' }
+      if (!integration || !integration.isEnabled || integration.provider !== 'META') {
+        return { success: false, error: 'Integración Meta WhatsApp inactiva o no configurada' }
       }
 
-      if (!appt.client?.phone) {
-        return { success: false, error: 'El cliente no tiene número de teléfono registrado' }
+      // Deduplicación: no enviar confirmación duplicada si ya se envió exitosamente para esta cita
+      const existingSentLog = await prisma.whatsAppMessageLog.findFirst({
+        where: {
+          appointmentId: appt.id,
+          direction: 'OUTBOUND',
+          status: 'SENT',
+          messageBody: { contains: 'confirmada' }
+        }
+      })
+
+      if (existingSentLog) {
+        return { success: true, messageId: 'already_confirmed_deduplicated' }
+      }
+
+      const clientPhone = this.normalizePhoneNumber(appt.client?.phone)
+      if (!clientPhone) {
+        return { success: false, error: 'El cliente no tiene un teléfono válido registrado' }
       }
 
       const { formattedDate, formattedTime } = this.formatDateTime(new Date(appt.date))
       const reservationUrl = getPublicPageUrl(appt.business.slug)
-
       const templateToUse = integration.confirmTemplate || DEFAULT_CONFIRM_TEMPLATE
 
       const renderedBody = this.renderTemplate(templateToUse, {
@@ -215,12 +301,41 @@ export class WhatsAppService {
         enlace_agenda: reservationUrl
       })
 
-      return await this.sendDirectMessage({
+      // 1. Envío al cliente
+      const clientResult = await this.sendDirectMessage({
         businessId: appt.businessId,
-        to: appt.client.phone,
+        to: clientPhone,
         text: renderedBody,
-        appointmentId: appt.id
+        appointmentId: appt.id,
+        tag: 'CONFIRMATION'
       })
+
+      // 2. Notificación interna opcional al teléfono del negocio
+      if (integration.notifyBusinessOnBooking) {
+        const businessPhone = this.normalizePhoneNumber(integration.phoneNumber || appt.business.phone)
+        if (businessPhone && businessPhone !== clientPhone) {
+          const businessAlertBody = this.renderTemplate(DEFAULT_BUSINESS_ALERT_TEMPLATE, {
+            clientName: appt.client.name,
+            clientPhone: appt.client.phone,
+            date: formattedDate,
+            time: formattedTime,
+            barberName: appt.barber?.name || 'Cualquier barbero',
+            serviceName: appt.service.name,
+            price: `$${Number(appt.service.price).toLocaleString('es-CO')}`,
+            reservationCode: appt.reservationCode
+          })
+
+          this.sendDirectMessage({
+            businessId: appt.businessId,
+            to: businessPhone,
+            text: businessAlertBody,
+            appointmentId: appt.id,
+            tag: 'BUSINESS_NEW_BOOKING_ALERT'
+          }).catch((err) => console.error('Error notificando nueva cita al negocio:', err))
+        }
+      }
+
+      return clientResult
     } catch (err: unknown) {
       console.error('Error en sendAppointmentConfirmation:', err)
       return { success: false, error: err instanceof Error ? err.message : 'Error inesperado' }
@@ -228,7 +343,7 @@ export class WhatsAppService {
   }
 
   /**
-   * Envía recordatorio automático de cita (ej. 2 horas antes)
+   * Envía recordatorio automático de cita programada
    */
   static async sendAppointmentReminder(appointmentId: string): Promise<WhatsAppSendResult> {
     try {
@@ -246,14 +361,41 @@ export class WhatsAppService {
         }
       })
 
-      const integration = appt?.business?.whatsAppIntegration
-      if (!appt || !integration?.isEnabled || (integration.reminderHoursBefore || 0) <= 0 || !appt.client?.phone) {
-        return { success: false, error: 'No aplicable para recordatorio o flujo desactivado' }
+      if (!appt) {
+        return { success: false, error: 'Cita no encontrada' }
+      }
+
+      // Regla de oro: NO enviar recordatorios si la cita fue cancelada
+      if (appt.status === 'CANCELLED' || appt.status === 'COMPLETED') {
+        return { success: false, error: `No se envía recordatorio para citas con estado ${appt.status}` }
+      }
+
+      const integration = appt.business.whatsAppIntegration
+      if (!integration || !integration.isEnabled || integration.provider !== 'META' || (integration.reminderHoursBefore || 0) <= 0) {
+        return { success: false, error: 'Flujo de recordatorios desactivado o no configurado' }
+      }
+
+      const clientPhone = this.normalizePhoneNumber(appt.client?.phone)
+      if (!clientPhone) {
+        return { success: false, error: 'El cliente no tiene un teléfono válido' }
+      }
+
+      // Deduplicación estricta de recordatorios
+      const existingReminder = await prisma.whatsAppMessageLog.findFirst({
+        where: {
+          appointmentId: appt.id,
+          direction: 'OUTBOUND',
+          status: 'SENT',
+          messageBody: { contains: 'Recordatorio' }
+        }
+      })
+
+      if (existingReminder) {
+        return { success: true, messageId: 'already_reminded_deduplicated' }
       }
 
       const { formattedDate, formattedTime } = this.formatDateTime(new Date(appt.date))
       const reservationUrl = getPublicPageUrl(appt.business.slug)
-
       const templateToUse = integration.reminderTemplate || DEFAULT_REMINDER_TEMPLATE
 
       const renderedBody = this.renderTemplate(templateToUse, {
@@ -281,9 +423,10 @@ export class WhatsAppService {
 
       return await this.sendDirectMessage({
         businessId: appt.businessId,
-        to: appt.client.phone,
+        to: clientPhone,
         text: renderedBody,
-        appointmentId: appt.id
+        appointmentId: appt.id,
+        tag: 'REMINDER'
       })
     } catch (err: unknown) {
       console.error('Error en sendAppointmentReminder:', err)
@@ -292,7 +435,184 @@ export class WhatsAppService {
   }
 
   /**
-   * Procesa un mensaje entrante (ej. desde el Webhook) y responde con el bot de bienvenida
+   * Envía notificación de cancelación de cita al cliente
+   */
+  static async sendAppointmentCancellation(appointmentId: string): Promise<WhatsAppSendResult> {
+    try {
+      const appt = await prisma.appointment.findUnique({
+        where: { id: appointmentId },
+        include: {
+          client: true,
+          barber: true,
+          service: true,
+          business: {
+            include: {
+              whatsAppIntegration: true
+            }
+          }
+        }
+      })
+
+      if (!appt || !appt.business.whatsAppIntegration?.isEnabled) {
+        return { success: false, error: 'Cita no encontrada o WhatsApp desactivado' }
+      }
+
+      const clientPhone = this.normalizePhoneNumber(appt.client?.phone)
+      if (!clientPhone) return { success: false, error: 'Cliente sin teléfono válido' }
+
+      // Deduplicación: no enviar cancelación duplicada
+      const existingCancelLog = await prisma.whatsAppMessageLog.findFirst({
+        where: {
+          appointmentId: appt.id,
+          direction: 'OUTBOUND',
+          status: 'SENT',
+          messageBody: { contains: 'cancelada' }
+        }
+      })
+      if (existingCancelLog) {
+        return { success: true, messageId: 'already_cancelled_deduplicated' }
+      }
+
+      const { formattedDate, formattedTime } = this.formatDateTime(new Date(appt.date))
+      const reservationUrl = getPublicPageUrl(appt.business.slug)
+
+      const renderedBody = this.renderTemplate(DEFAULT_CANCELLATION_TEMPLATE, {
+        clientName: appt.client.name,
+        businessName: appt.business.name,
+        barberName: appt.barber?.name || 'tu barbero',
+        serviceName: appt.service.name,
+        date: formattedDate,
+        time: formattedTime,
+        bookingLink: reservationUrl
+      })
+
+      return await this.sendDirectMessage({
+        businessId: appt.businessId,
+        to: clientPhone,
+        text: renderedBody,
+        appointmentId: appt.id,
+        tag: 'CANCELLATION'
+      })
+    } catch (err) {
+      console.error('Error en sendAppointmentCancellation:', err)
+      return { success: false, error: 'Error al enviar cancelación' }
+    }
+  }
+
+  /**
+   * Envía notificación de reprogramación de cita al cliente con el nuevo horario
+   */
+  static async sendAppointmentRescheduled(appointmentId: string, newDate: Date): Promise<WhatsAppSendResult> {
+    try {
+      const appt = await prisma.appointment.findUnique({
+        where: { id: appointmentId },
+        include: {
+          client: true,
+          barber: true,
+          service: true,
+          business: {
+            include: {
+              whatsAppIntegration: true
+            }
+          }
+        }
+      })
+
+      if (!appt || !appt.business.whatsAppIntegration?.isEnabled) {
+        return { success: false, error: 'Cita no encontrada o WhatsApp desactivado' }
+      }
+
+      const clientPhone = this.normalizePhoneNumber(appt.client?.phone)
+      if (!clientPhone) return { success: false, error: 'Cliente sin teléfono' }
+
+      const { formattedDate, formattedTime } = this.formatDateTime(new Date(newDate))
+      const reservationUrl = getPublicPageUrl(appt.business.slug)
+
+      const renderedBody = this.renderTemplate(DEFAULT_RESCHEDULE_TEMPLATE, {
+        clientName: appt.client.name,
+        businessName: appt.business.name,
+        barberName: appt.barber?.name || 'tu barbero',
+        serviceName: appt.service.name,
+        date: formattedDate,
+        time: formattedTime,
+        reservationCode: appt.reservationCode,
+        bookingLink: reservationUrl
+      })
+
+      return await this.sendDirectMessage({
+        businessId: appt.businessId,
+        to: clientPhone,
+        text: renderedBody,
+        appointmentId: appt.id,
+        tag: 'RESCHEDULE'
+      })
+    } catch (err) {
+      console.error('Error en sendAppointmentRescheduled:', err)
+      return { success: false, error: 'Error al enviar reprogramación' }
+    }
+  }
+
+  /**
+   * Envía mensaje de agradecimiento y fidelización tras completar la atención
+   */
+  static async sendPostServiceThankYou(appointmentId: string): Promise<WhatsAppSendResult> {
+    try {
+      const appt = await prisma.appointment.findUnique({
+        where: { id: appointmentId },
+        include: {
+          client: true,
+          barber: true,
+          service: true,
+          business: {
+            include: {
+              whatsAppIntegration: true
+            }
+          }
+        }
+      })
+
+      if (!appt || !appt.business.whatsAppIntegration?.isEnabled) {
+        return { success: false, error: 'WhatsApp desactivado' }
+      }
+
+      const clientPhone = this.normalizePhoneNumber(appt.client?.phone)
+      if (!clientPhone) return { success: false, error: 'Cliente sin teléfono' }
+
+      // Deduplicación de agradecimiento
+      const existingThankYou = await prisma.whatsAppMessageLog.findFirst({
+        where: {
+          appointmentId: appt.id,
+          direction: 'OUTBOUND',
+          status: 'SENT',
+          messageBody: { contains: 'Gracias por visitarnos' }
+        }
+      })
+      if (existingThankYou) {
+        return { success: true, messageId: 'already_thanked_deduplicated' }
+      }
+
+      const renderedBody = this.renderTemplate(DEFAULT_THANKYOU_TEMPLATE, {
+        clientName: appt.client.name,
+        businessName: appt.business.name,
+        barberName: appt.barber?.name || 'tu barbero',
+        serviceName: appt.service.name
+      })
+
+      return await this.sendDirectMessage({
+        businessId: appt.businessId,
+        to: clientPhone,
+        text: renderedBody,
+        appointmentId: appt.id,
+        tag: 'POST_SERVICE_THANK_YOU'
+      })
+    } catch (err) {
+      console.error('Error en sendPostServiceThankYou:', err)
+      return { success: false, error: 'Error en mensaje post-servicio' }
+    }
+  }
+
+  /**
+   * Procesa un mensaje entrante desde el Webhook de Meta y responde con el bot de bienvenida
    */
   static async handleIncomingMessage({
     from,
@@ -306,7 +626,6 @@ export class WhatsAppService {
     phoneNumberId?: string
   }): Promise<{ replied: boolean; reason?: string }> {
     try {
-      // Buscar la integración por businessId o por metaPhoneNumberId / phoneNumber
       let integration = null
 
       if (businessId) {
@@ -335,7 +654,7 @@ export class WhatsAppService {
           integrationId: integration.id,
           direction: 'INBOUND',
           status: 'DELIVERED',
-          provider: integration.provider,
+          provider: 'META',
           from,
           to: integration.phoneNumber || 'BARBEROS',
           messageBody: text
@@ -345,7 +664,9 @@ export class WhatsAppService {
       // Generar respuesta del bot
       let responseBody = integration.welcomeMessage || DEFAULT_WELCOME_BOT_MESSAGE
       responseBody = this.renderTemplate(responseBody, {
+        businessName: business.name,
         barberia: business.name,
+        bookingLink: reservationUrl,
         enlace_agenda: reservationUrl
       })
 
@@ -353,17 +674,17 @@ export class WhatsAppService {
       const lowerText = text.toLowerCase()
       if (lowerText.includes('1') || lowerText.includes('servicio') || lowerText.includes('precio')) {
         const servicesList = business.services
-          .map(s => `• *${s.name}*: $${Number(s.price).toLocaleString('es-CO')} (${s.duration} min)`)
+          .map((s) => `• *${s.name}*: $${Number(s.price).toLocaleString('es-CO')} (${s.duration} min)`)
           .join('\n')
 
         responseBody = `✂️ *Nuestros Servicios en ${business.name}:*\n\n${servicesList || 'Consulta nuestros servicios en línea.'}\n\n👉 *Agenda tu cita aquí:* ${reservationUrl}`
       }
 
-      // Enviar respuesta automática
       await this.sendDirectMessage({
         businessId: business.id,
         to: from,
-        text: responseBody
+        text: responseBody,
+        tag: 'BOT_AUTO_REPLY'
       })
 
       return { replied: true }

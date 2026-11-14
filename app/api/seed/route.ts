@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getSession } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 
 export const dynamic = 'force-dynamic'
@@ -13,12 +14,21 @@ export async function GET(request: Request) {
     )
   }
 
-  // En desarrollo, exigir confirmación explícita
+  // En desarrollo/staging, exigir autenticación obligatoria de SUPER_ADMIN
+  const session = await getSession('SUPER_ADMIN')
+  if (!session || session.role !== 'SUPER_ADMIN') {
+    return NextResponse.json(
+      { error: 'Acceso restringido. Solo un Super Administrador autenticado puede ejecutar este endpoint en desarrollo.' },
+      { status: 403 }
+    )
+  }
+
+  // Exigir confirmación explícita
   const { searchParams } = new URL(request.url)
   const confirm = searchParams.get('confirm')
   if (confirm !== 'true') {
     return NextResponse.json(
-      { error: 'Para ejecutar el seed en desarrollo debes pasar ?confirm=true explícitamente.' },
+      { error: 'Para ejecutar el seed debes pasar ?confirm=true explícitamente.' },
       { status: 400 }
     )
   }

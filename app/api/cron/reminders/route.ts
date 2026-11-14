@@ -11,12 +11,14 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
-    // En producción, CRON_SECRET es estrictamente obligatorio para prevenir ataques de denegación o spam
-    if (process.env.NODE_ENV === 'production' && !cronSecret) {
-      return NextResponse.json({ error: 'CRON_SECRET no configurado en producción' }, { status: 500 })
+    // CRON_SECRET is required in ALL environments to prevent unauthenticated trigger of this endpoint.
+    // In production the absence of the secret is a misconfiguration; in other envs it still must be
+    // present so local testing is explicit.
+    if (!cronSecret) {
+      return NextResponse.json({ error: 'CRON_SECRET no está configurado en las variables de entorno' }, { status: 500 })
     }
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 

@@ -37,7 +37,6 @@ export const metadata: Metadata = {
 
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/lib/theme";
-import AccentColorProvider from "@/components/ui/AccentColorProvider";
 import CookieConsentBanner from "@/components/ui/CookieConsentBanner";
 
 export default function RootLayout({
@@ -51,13 +50,11 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body suppressHydrationWarning className="min-h-full flex flex-col">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-[#f8fafc] dark:bg-[#09090b]">
         <ThemeProvider>
-          <AccentColorProvider>
-            {children}
-            <CookieConsentBanner />
-            <Toaster position="top-right" richColors closeButton duration={4000} visibleToasts={3} />
-          </AccentColorProvider>
+          {children}
+          <CookieConsentBanner />
+          <Toaster position="top-right" richColors closeButton duration={4000} visibleToasts={3} />
         </ThemeProvider>
       </body>
     </html>

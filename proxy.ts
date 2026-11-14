@@ -9,6 +9,7 @@ export async function proxy(request: NextRequest) {
   const isPublicPage = 
     pathname === '/' ||
     pathname.startsWith('/login') ||
+    pathname.startsWith('/reset-password') ||
     pathname.startsWith('/register') ||
     pathname.startsWith('/invite') ||
     pathname.startsWith('/barber/access') ||
@@ -33,13 +34,15 @@ export async function proxy(request: NextRequest) {
   const publicApiPaths = [
     '/api/auth/login', 
     '/api/auth/logout',
+    '/api/auth/forgot-password',
+    '/api/auth/reset-password',
     '/api/auth/google',
     '/api/auth/callback/google',
     '/api/auth/register-business',
     '/api/auth/register-barber', 
+    '/api/auth/register-branch-admin',
     '/api/auth/validate-invite',
     '/api/auth/barber-access',
-    '/api/barbers/invite',
     '/api/public',
     '/api/user/accent',
     '/api/webhooks',
@@ -66,10 +69,10 @@ export async function proxy(request: NextRequest) {
     (genericPayload && genericPayload.role === 'SUPER_ADMIN')
   )
 
-  // Owner credentials
+  // Owner & Branch Admin credentials
   const hasOwnerAuth = Boolean(
-    (ownerPayload && (ownerPayload.role === 'OWNER' || ownerPayload.role === 'SUPER_ADMIN')) ||
-    (genericPayload && (genericPayload.role === 'OWNER' || genericPayload.role === 'SUPER_ADMIN'))
+    (ownerPayload && (ownerPayload.role === 'OWNER' || ownerPayload.role === 'BRANCH_ADMIN' || ownerPayload.role === 'SUPER_ADMIN')) ||
+    (genericPayload && (genericPayload.role === 'OWNER' || genericPayload.role === 'BRANCH_ADMIN' || genericPayload.role === 'SUPER_ADMIN'))
   )
 
   // Barber credentials
@@ -190,4 +193,7 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
+
+export default proxy
+
 

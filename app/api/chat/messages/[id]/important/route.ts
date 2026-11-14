@@ -54,14 +54,14 @@ function parseMessage(raw: {
 // PATCH /api/chat/messages/[id]/important — Toggle important
 export async function PATCH(
   _request: Request,
-  ctx: RouteContext<'/api/chat/messages/[id]/important'>
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession()
   if (!session || !session.businessId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
-  const { id } = await ctx.params
+  const { id } = await params
 
   try {
     const msg = await prisma.chatMessage.findFirst({

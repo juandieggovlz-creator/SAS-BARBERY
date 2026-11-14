@@ -103,15 +103,22 @@ export async function GET(request: Request) {
       take: since ? 60 : 150
     })
 
-    const parsedMessages = rawMessages.map(parseMessage)
-
-    // Filter by target channel
-    const channelMessages = parsedMessages.filter(m => m.channelId === targetChannel)
-
     // Current user identifier for client
     const currentMemberId = session.role === 'BARBER' && session.barberId
       ? `barber_${session.barberId}`
       : `user_${session.userId}`
+
+    // Control de privacidad: canales directos (DMs) solo accesibles para sus participantes
+    if (targetChannel.startsWith('direct_') && session.role !== 'SUPER_ADMIN') {
+      if (!targetChannel.includes(currentMemberId)) {
+        return NextResponse.json({ error: 'No tienes acceso a esta conversación privada' }, { status: 403 })
+      }
+    }
+
+    const parsedMessages = rawMessages.map(parseMessage)
+
+    // Filter by target channel
+    const channelMessages = parsedMessages.filter(m => m.channelId === targetChannel)
 
     return NextResponse.json({
       messages: channelMessages,

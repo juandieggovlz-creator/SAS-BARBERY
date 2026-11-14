@@ -91,19 +91,19 @@ export default function SchedulePage() {
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-zinc-950 text-white">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-zinc-950 dark:bg-zinc-800 text-white border border-zinc-700">
               Horario del Negocio
             </span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-black uppercase tracking-tighter mt-1">Mi Horario de Trabajo</h2>
-          <p className="text-xs text-zinc-500 font-medium mt-1">
+          <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 dark:text-white uppercase tracking-tighter mt-1">Mi Horario de Trabajo</h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
             Horario asignado por la administración de la barbería. Para solicitar días libres o cambios, utiliza el botón de solicitud.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setLeaveModalOpen(true)}
-            className="flex items-center gap-2 bg-black text-white px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-zinc-800 transition-all shadow-md active:scale-95"
+            className="flex items-center gap-2 bg-zinc-950 dark:bg-amber-400 text-white dark:text-zinc-950 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-zinc-800 dark:hover:bg-amber-300 transition-all shadow-md active:scale-95 cursor-pointer"
           >
             <CalendarIcon size={16} />
             <span>Solicitar Día Libre</span>
@@ -112,8 +112,8 @@ export default function SchedulePage() {
       </header>
 
       {/* BANNER INFORMATIVO */}
-      <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-center gap-3 text-xs text-amber-900 font-medium">
-        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/40 rounded-2xl p-4 flex items-center gap-3 text-xs text-amber-900 dark:text-amber-300 font-medium">
+        <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
         <span>
           <strong>Nota:</strong> Los turnos y días laborales son establecidos exclusivamente por el administrador de la barbería. Aquí solo puedes consultar tu horario vigente.
         </span>
@@ -121,13 +121,13 @@ export default function SchedulePage() {
 
       {/* HORARIO SEMANAL (SOLO LECTURA) */}
       <section className="space-y-4">
-        <h3 className="text-xs font-black text-zinc-400 uppercase tracking-widest ml-1">Jornada Semanal Asignada</h3>
+        <h3 className="text-xs font-black text-zinc-400 dark:text-zinc-400 uppercase tracking-widest ml-1">Jornada Semanal Asignada</h3>
 
         {schedules.length === 0 ? (
-          <div className="bg-zinc-50 border border-zinc-200 rounded-3xl p-10 text-center space-y-3">
-            <Clock className="w-10 h-10 text-zinc-300 mx-auto" />
-            <h4 className="text-sm font-bold text-zinc-700">Sin horario asignado aún</h4>
-            <p className="text-xs text-zinc-400">El administrador aún no ha configurado tu horario. Contáctalo para que lo defina.</p>
+          <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-10 text-center space-y-3">
+            <Clock className="w-10 h-10 text-zinc-300 dark:text-zinc-700 mx-auto" />
+            <h4 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Sin horario asignado aún</h4>
+            <p className="text-xs text-zinc-400 dark:text-zinc-500">El administrador aún no ha configurado tu horario. Contáctalo para que lo defina.</p>
           </div>
         ) : (
           <div className="grid gap-3">
@@ -135,19 +135,21 @@ export default function SchedulePage() {
               <div
                 key={s.dayOfWeek}
                 className={`p-5 rounded-2xl border flex flex-col md:flex-row items-center justify-between gap-4 ${
-                  s.isWorking ? 'bg-white border-zinc-200 shadow-2xs' : 'bg-zinc-50 border-zinc-200/60 opacity-60'
+                  s.isWorking
+                    ? 'bg-white dark:bg-[#121215] border-zinc-200 dark:border-zinc-800 shadow-2xs'
+                    : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200/60 dark:border-zinc-800/60 opacity-60'
                 }`}
               >
                 <div className="flex items-center gap-4 w-full md:w-56">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${
-                    s.isWorking ? 'bg-zinc-950 text-white' : 'bg-zinc-200 text-zinc-500'
+                    s.isWorking ? 'bg-zinc-950 dark:bg-amber-400 text-white dark:text-zinc-950' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
                   }`}>
                     {s.isWorking ? <Check size={18} /> : <X size={18} />}
                   </div>
                   <div>
-                    <div className="text-base font-black text-black uppercase">{DAYS[s.dayOfWeek]}</div>
+                    <div className="text-base font-black text-zinc-950 dark:text-white uppercase">{DAYS[s.dayOfWeek]}</div>
                     <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                      s.isWorking ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-200 text-zinc-600'
+                      s.isWorking ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                     }`}>
                       {s.isWorking ? 'Jornada Laboral' : 'Día Libre'}
                     </span>
@@ -155,8 +157,8 @@ export default function SchedulePage() {
                 </div>
 
                 {s.isWorking ? (
-                  <div className="flex items-center gap-2 text-sm font-black text-zinc-900 bg-zinc-50 border border-zinc-200 px-4 py-2.5 rounded-xl">
-                    <Clock size={16} className="text-zinc-500" />
+                  <div className="flex items-center gap-2 text-sm font-black text-zinc-900 dark:text-white bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-xl">
+                    <Clock size={16} className="text-zinc-500 dark:text-zinc-400" />
                     <span>{s.startTime} hrs</span>
                     <span className="text-zinc-400 font-normal">a</span>
                     <span>{s.endTime} hrs</span>
@@ -173,10 +175,10 @@ export default function SchedulePage() {
       </section>
 
       {/* VACACIONES Y AUSENCIAS */}
-      <section className="bg-white rounded-3xl border border-zinc-200 p-8 shadow-sm space-y-6">
+      <section className="bg-white dark:bg-[#121215] rounded-3xl border border-zinc-200/80 dark:border-zinc-800 p-8 shadow-sm space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-black text-black uppercase tracking-tight">Solicitudes de Días Libres</h3>
+            <h3 className="text-lg font-black text-zinc-950 dark:text-white uppercase tracking-tight">Solicitudes de Días Libres</h3>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Historial de tus solicitudes enviadas al dueño</p>
           </div>
         </div>

@@ -1,5 +1,5 @@
-export type WhatsAppProviderType = 'META' | 'BAILEYS' | 'NONE'
-export type WhatsAppConnectionStatusType = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'QR_READY' | 'FAILED'
+export type WhatsAppProviderType = 'META' | 'NONE'
+export type WhatsAppConnectionStatusType = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'FAILED'
 
 export interface WhatsAppSendResult {
   success: boolean
@@ -29,13 +29,11 @@ export interface WhatsAppConfigPayload {
   isEnabled: boolean
   provider: WhatsAppProviderType
   phoneNumber?: string | null
-  // Meta
+  // Meta Cloud API
   metaPhoneNumberId?: string | null
   metaWabaId?: string | null
   metaAccessToken?: string | null
   metaWebhookSecret?: string | null
-  // Baileys
-  baileysEndpoint?: string | null
   // Bot & Templates
   botEnabled: boolean
   welcomeMessage?: string | null

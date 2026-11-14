@@ -40,7 +40,19 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json(barbers)
+    const business = await prisma.business.findUnique({
+      where: { id: session.businessId },
+      include: { plan: true, company: { include: { plan: true } } }
+    })
+    const activePlan = business?.company?.plan || business?.plan
+    const effectiveMaxBarbers = activePlan?.maxBarbers || business?.maxBarbers || 3
+
+    return NextResponse.json(barbers, {
+      headers: {
+        'X-Plan-Max-Barbers': String(effectiveMaxBarbers),
+        'X-Plan-Name': activePlan?.name || 'Básico'
+      }
+    })
   } catch (error) {
     console.error("Prisma findMany failed:", error)
     return NextResponse.json({ error: 'Error de base de datos' }, { status: 500 })
@@ -61,6 +73,67 @@ export async function POST(request: Request) {
   }
 
   const businessId = session.businessId
+
+  // ── VALIDACIÓN ESTRICTA DE LÍMITES POR PLAN (FASE 3: ENTITLEMENTS) ──
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    include: { plan: true, company: { include: { plan: true } } }
+  })
+
+  if (!business) {
+    return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
+  }
+
+  // Verificar estado de suscripción: Negocios suspendidos no pueden crear barberos
+  if (business.status === 'SUSPENDED' || business.status === 'CANCELLED') {
+    return NextResponse.json({
+      error: `Tu cuenta se encuentra en estado ${business.status}. Contacta a soporte para reactivar tu servicio.`,
+      code: 'SUBSCRIPTION_INACTIVE'
+    }, { status: 403 })
+  }
+
+  // Comprobar excepciones manuales de SuperAdmin en PlatformSetting
+  let exceptionLimit: number | null = null
+  try {
+    const exSetting = await prisma.platformSetting.findFirst({
+      where: {
+        key: {
+          in: [
+            `exception_${businessId}_UNLIMITED_BARBERS`,
+            `exception_${businessId}_max_barbers`,
+            ...(business.companyId ? [
+              `exception_${business.companyId}_UNLIMITED_BARBERS`,
+              `exception_${business.companyId}_max_barbers`
+            ] : [])
+          ]
+        }
+      }
+    })
+    if (exSetting?.value) {
+      const exData = JSON.parse(exSetting.value)
+      if (exData.enabled && (!exData.expiresAt || new Date(exData.expiresAt) > new Date())) {
+        exceptionLimit = exData.maxCount || 999
+      }
+    }
+  } catch {}
+
+  const activePlan = business.company?.plan || business.plan
+  const baseLimit = activePlan?.maxBarbers || business.maxBarbers || 3
+  const effectiveMaxBarbers = exceptionLimit !== null ? exceptionLimit : baseLimit
+
+  const currentCount = await prisma.barber.count({
+    where: { businessId }
+  })
+
+  if (currentCount >= effectiveMaxBarbers) {
+    return NextResponse.json({
+      error: `Has alcanzado el límite de ${effectiveMaxBarbers} barbero(s) permitido(s) en tu plan actual (${activePlan?.name || 'Básico'}). Actualiza a un plan superior para ampliar tu equipo.`,
+      code: 'PLAN_LIMIT_REACHED',
+      currentCount,
+      maxAllowed: effectiveMaxBarbers
+    }, { status: 403 })
+  }
+
   const inviteToken = randomUUID()
   const inviteExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
 

@@ -156,7 +156,7 @@ export default function BarberProfilePage() {
     <div className="max-w-4xl mx-auto space-y-10">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-4xl font-black text-black uppercase tracking-tighter">Mi Perfil</h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 dark:text-white uppercase tracking-tighter">Mi Perfil</h2>
           <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-[0.3em] mt-2 ml-1">
             Información personal y redes que se muestran en la página pública
           </p>
@@ -165,10 +165,10 @@ export default function BarberProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* PROFILE EDITOR */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden">
-          <div className="bg-zinc-50 p-8 flex flex-col items-center border-b border-zinc-100">
+        <div className="lg:col-span-2 bg-white dark:bg-[#121215] rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm overflow-hidden">
+          <div className="bg-zinc-50 dark:bg-zinc-900/60 p-8 flex flex-col items-center border-b border-zinc-100 dark:border-zinc-800">
             <div className="relative group">
-              <div className="w-32 h-32 bg-black rounded-3xl flex items-center justify-center text-white text-5xl font-black shadow-2xl relative overflow-hidden">
+              <div className="w-32 h-32 bg-black dark:bg-zinc-800 rounded-3xl flex items-center justify-center text-white text-5xl font-black shadow-2xl relative overflow-hidden border border-zinc-200 dark:border-zinc-700">
                 {profile.avatar ? (
                   <Image src={profile.avatar} alt={profile.name || 'Barbero'} fill className="object-cover" unoptimized />
                 ) : (
@@ -194,7 +194,7 @@ export default function BarberProfilePage() {
                 type="button"
                 disabled={uploadingAvatar}
                 onClick={() => avatarInputRef.current?.click()}
-                className="flex items-center gap-1.5 bg-black hover:bg-zinc-800 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 bg-zinc-950 dark:bg-amber-400 hover:bg-zinc-800 dark:hover:bg-amber-300 text-white dark:text-zinc-950 px-3 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 {uploadingAvatar ? (
                   <>
@@ -211,7 +211,7 @@ export default function BarberProfilePage() {
                   type="button"
                   disabled={uploadingAvatar}
                   onClick={() => setShowDeleteAvatarConfirm(true)}
-                  className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 border border-zinc-200 rounded-xl transition-all cursor-pointer"
+                  className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-zinc-200 dark:border-zinc-700 rounded-xl transition-all cursor-pointer"
                   title="Quitar foto"
                 >
                   <Trash2 size={14} />
@@ -220,7 +220,7 @@ export default function BarberProfilePage() {
             </div>
 
             <div className="mt-4 text-center">
-              <h3 className="text-xl font-black text-black uppercase tracking-tight">{profile.name}</h3>
+              <h3 className="text-xl font-black text-zinc-950 dark:text-white uppercase tracking-tight">{profile.name}</h3>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">
                 {profile.specialty || 'Barbero Profesional'}
               </p>
@@ -238,7 +238,7 @@ export default function BarberProfilePage() {
                     type="text"
                     value={profile.name}
                     onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-black focus:border-black outline-none"
+                    className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-950 dark:text-white focus:border-amber-400 outline-none"
                     placeholder="Tu nombre"
                   />
                 </div>
@@ -252,7 +252,7 @@ export default function BarberProfilePage() {
                     type="text"
                     value={profile.phone || ''}
                     onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-black focus:border-black outline-none"
+                    className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-950 dark:text-white focus:border-amber-400 outline-none"
                     placeholder="+57 300 000 0000"
                   />
                 </div>
@@ -267,7 +267,7 @@ export default function BarberProfilePage() {
                   type="text"
                   value={profile.specialty || ''}
                   onChange={(e) => setProfile({ ...profile, specialty: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-black focus:border-black outline-none"
+                  className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-950 dark:text-white focus:border-amber-400 outline-none"
                   placeholder="Ej. Fade & Barba Tradicional"
                 />
               </div>
@@ -281,7 +281,7 @@ export default function BarberProfilePage() {
                   value={profile.bio || ''}
                   onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
                   rows={3}
-                  className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-black focus:border-black outline-none resize-none"
+                  className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-white focus:border-amber-400 outline-none resize-none"
                   placeholder="Escribe una breve descripción sobre tus años de experiencia, estilo de corte..."
                 />
               </div>
@@ -297,7 +297,7 @@ export default function BarberProfilePage() {
                     type="text"
                     value={profile.instagram || ''}
                     onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-black focus:border-black outline-none"
+                    className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-950 dark:text-white focus:border-amber-400 outline-none"
                     placeholder="@usuario_instagram"
                   />
                 </div>
@@ -307,7 +307,7 @@ export default function BarberProfilePage() {
                     type="text"
                     value={profile.whatsapp || ''}
                     onChange={(e) => setProfile({ ...profile, whatsapp: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-black focus:border-black outline-none"
+                    className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-950 dark:text-white focus:border-amber-400 outline-none"
                     placeholder="+57 300 000 0000"
                   />
                 </div>
@@ -317,7 +317,7 @@ export default function BarberProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full flex items-center justify-center gap-2 bg-black text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 bg-zinc-950 dark:bg-amber-400 text-white dark:text-zinc-950 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-zinc-800 dark:hover:bg-amber-300 transition-all shadow-xl disabled:opacity-50 cursor-pointer"
             >
               <Save size={16} />
               {saving ? 'Guardando...' : 'Guardar Cambios de Perfil'}
@@ -327,18 +327,18 @@ export default function BarberProfilePage() {
 
         {/* PUBLIC CARD PREVIEW */}
         <div className="space-y-6">
-          <div className="bg-white rounded-3xl border border-zinc-200 p-6 shadow-sm">
+          <div className="bg-white dark:bg-[#121215] rounded-3xl border border-zinc-200/80 dark:border-zinc-800 p-6 shadow-sm">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-6">
               <Eye size={16} />
               Vista Previa Página Pública
             </div>
 
-            <div className="bg-zinc-900 rounded-2xl p-6 text-white text-center space-y-4 shadow-xl">
+            <div className="bg-zinc-900 rounded-2xl p-6 text-white text-center space-y-4 shadow-xl border border-zinc-800">
               <div className="w-24 h-24 mx-auto rounded-2xl overflow-hidden bg-zinc-800 relative border-2 border-amber-500/40">
                 {profile.avatar ? (
                   <Image src={profile.avatar} alt={profile.name} fill className="object-cover" unoptimized />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-3xl font-black">{profile.name.charAt(0)}</div>
+                  <div className="w-full h-full flex items-center justify-center text-3xl font-black text-amber-400">{profile.name.charAt(0)}</div>
                 )}
               </div>
 

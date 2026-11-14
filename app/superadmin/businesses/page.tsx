@@ -276,22 +276,22 @@ export default function SuperAdminBusinessesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-black uppercase tracking-widest text-amber-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
               <Building2 className="w-3 h-3" />
               Centro Maestro
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-950" style={{ letterSpacing: '-0.03em' }}>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-950 dark:text-white" style={{ letterSpacing: '-0.03em' }}>
             Directorio de Negocios
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
             Administra suscripciones, accesos directos de soporte, estados comerciales y ciclo de vida de los clientes SaaS.
           </p>
         </div>
 
         <button
           onClick={fetchBusinesses}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-all cursor-pointer shadow-xs w-fit"
+          className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-xs w-fit"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>Actualizar</span>
@@ -299,7 +299,7 @@ export default function SuperAdminBusinessesPage() {
       </div>
 
       {/* ── FILTERS & SEARCH TOOLBAR ── */}
-      <div className="p-4 bg-white border border-zinc-200 rounded-2xl shadow-xs flex flex-col md:flex-row items-center gap-3">
+      <div className="p-4 bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs flex flex-col md:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
           <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -307,7 +307,7 @@ export default function SuperAdminBusinessesPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por nombre, slug, propietario, correo o teléfono..."
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-950 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 outline-none focus:border-amber-500 transition-all"
           />
         </div>
 
@@ -315,7 +315,7 @@ export default function SuperAdminBusinessesPage() {
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-800 outline-none cursor-pointer"
+            className="px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold text-zinc-900 dark:text-zinc-100 outline-none cursor-pointer"
           >
             <option value="ALL">Todos los Estados</option>
             <option value="ACTIVE">🟢 Activo</option>
@@ -327,7 +327,7 @@ export default function SuperAdminBusinessesPage() {
           <select
             value={planFilter}
             onChange={e => setPlanFilter(e.target.value)}
-            className="px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-2xl text-xs font-bold text-zinc-800 outline-none cursor-pointer"
+            className="px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-900 dark:text-zinc-100 outline-none cursor-pointer"
           >
             <option value="ALL">Todos los Planes</option>
             {plans.map(p => (
@@ -338,23 +338,23 @@ export default function SuperAdminBusinessesPage() {
       </div>
 
       {/* ── BUSINESSES TABLE ── */}
-      <div className="bg-white border border-zinc-200 rounded-3xl shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xs overflow-hidden">
         {loading ? (
           <div className="p-16 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-zinc-900" />
+            <Loader2 className="w-8 h-8 animate-spin text-zinc-900 dark:text-zinc-100" />
             <span className="text-xs font-bold text-zinc-400">Consultando base de datos SaaS...</span>
           </div>
         ) : businesses.length === 0 ? (
           <div className="p-16 text-center text-zinc-400 space-y-2">
             <Building2 className="w-10 h-10 mx-auto opacity-30" />
-            <p className="text-sm font-bold text-zinc-700">No se encontraron barberías</p>
+            <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">No se encontraron barberías</p>
             <p className="text-xs">Prueba cambiando los filtros de búsqueda.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                <tr className="border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/60 text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                   <th className="py-4 px-4">Nombre del Negocio</th>
                   <th className="py-4 px-3">Plan Actual</th>
                   <th className="py-4 px-3">Fecha de Inicio</th>
@@ -364,7 +364,7 @@ export default function SuperAdminBusinessesPage() {
                   <th className="py-4 px-5 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 text-xs">
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
                 {businesses.map((b) => {
                   const expInfo = getExpirationInfo(b)
                   const isTrial = b.status === 'TRIAL' || b.subscriptionStatus === 'TRIALING'
@@ -382,12 +382,12 @@ export default function SuperAdminBusinessesPage() {
                     : 'Cancelada'
 
                   const statusClass = isExpired
-                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                    ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40 font-bold'
                     : b.status === 'TRIAL'
-                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 font-bold'
                     : b.status === 'ACTIVE'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-zinc-100 text-zinc-700 border-zinc-300'
+                    ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 font-bold'
+                    : 'bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100 border-zinc-400 dark:border-zinc-700 font-bold'
 
                   const dotColor = isExpired
                     ? 'bg-rose-500'
@@ -400,12 +400,12 @@ export default function SuperAdminBusinessesPage() {
                   return (
                     <tr
                       key={b.id}
-                      className="hover:bg-zinc-50/80 transition-colors group"
+                      className="hover:bg-zinc-50/80 dark:hover:bg-zinc-900/60 transition-colors group"
                     >
                       {/* 1. Nombre del Negocio (con Logo y slug) */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-zinc-100 border border-zinc-200 flex items-center justify-center font-black text-xs uppercase text-zinc-800 shrink-0 overflow-hidden">
+                          <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center font-black text-xs uppercase text-zinc-800 dark:text-zinc-200 shrink-0 overflow-hidden">
                             {b.logo ? (
                               <img src={b.logo} alt={b.name} className="w-full h-full object-cover" />
                             ) : (
@@ -415,7 +415,7 @@ export default function SuperAdminBusinessesPage() {
                           <div className="min-w-0">
                             <Link
                               href={`/superadmin/businesses/${b.id}`}
-                              className="font-black text-zinc-950 hover:text-amber-600 transition-colors block truncate max-w-[200px]"
+                              className="font-black text-zinc-950 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition-colors block truncate max-w-[200px]"
                             >
                               {b.name}
                             </Link>
@@ -428,15 +428,15 @@ export default function SuperAdminBusinessesPage() {
 
                       {/* 2. Plan Actual */}
                       <td className="py-3.5 px-3">
-                        <span className="inline-flex items-center gap-1 font-bold text-xs text-zinc-900 bg-zinc-100 px-2.5 py-1 rounded-xl">
-                          <Crown size={12} className={b.plan ? 'text-amber-600' : 'text-zinc-400'} />
+                        <span className="inline-flex items-center gap-1.5 font-bold text-xs text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                          <Crown size={12} className={b.plan ? 'text-amber-500' : 'text-zinc-400'} />
                           {b.plan?.name || (isTrial ? 'Plan Prueba Full' : 'Sin Plan')}
                         </span>
                       </td>
 
                       {/* 3. Fecha de Inicio */}
                       <td className="py-3.5 px-3">
-                        <div className="font-mono font-bold text-xs text-zinc-700">
+                        <div className="font-mono font-bold text-xs text-zinc-800 dark:text-zinc-200">
                           {new Date(b.createdAt).toLocaleDateString('es-CO', {
                             day: '2-digit',
                             month: '2-digit',
@@ -448,16 +448,16 @@ export default function SuperAdminBusinessesPage() {
 
                       {/* 4. Fecha de Finalización (calculada sola) */}
                       <td className="py-3.5 px-3">
-                        <div className={`font-mono font-bold text-xs ${isExpired ? 'text-rose-600' : 'text-zinc-900'}`}>
+                        <div className={`font-mono font-bold text-xs ${isExpired ? 'text-rose-500' : 'text-zinc-900 dark:text-zinc-100'}`}>
                           {expInfo.text}
                         </div>
                         {expInfo.days !== null && (
-                          <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md inline-block mt-0.5 ${
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md inline-block mt-0.5 border ${
                             isExpired
-                              ? 'bg-rose-100 text-rose-800'
+                              ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40'
                               : expInfo.days <= 7
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-emerald-100 text-emerald-800'
+                              ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40'
+                              : 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/40'
                           }`}>
                             {isExpired ? 'Finalizó' : `${expInfo.days}d restantes`}
                           </span>
@@ -476,7 +476,7 @@ export default function SuperAdminBusinessesPage() {
 
                       {/* 6. Propietario / Contacto */}
                       <td className="py-3.5 px-4">
-                        <div className="text-zinc-800 font-semibold truncate max-w-[170px]" title={b.ownerEmail}>
+                        <div className="text-zinc-800 dark:text-zinc-200 font-semibold truncate max-w-[170px]" title={b.ownerEmail}>
                           {b.ownerEmail}
                         </div>
                         {b.phone && (
@@ -493,13 +493,13 @@ export default function SuperAdminBusinessesPage() {
                           <button
                             onClick={() => handleImpersonate(b)}
                             disabled={actionLoadingId === b.id}
-                            className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 text-[11px] font-black transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                            className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-900 dark:text-amber-300 text-[11px] font-black transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
                             title="Ingresar como propietario (Soporte directo con auditoría)"
                           >
                             {actionLoadingId === b.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin text-amber-700" />
+                              <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
                             ) : (
-                              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                              <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
                             )}
                             <span className="hidden sm:inline">Entrar</span>
                           </button>
@@ -507,7 +507,7 @@ export default function SuperAdminBusinessesPage() {
                           {/* Ver Detalle */}
                           <Link
                             href={`/superadmin/businesses/${b.id}`}
-                            className="p-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors"
+                            className="p-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-colors"
                             title="Ver detalle del negocio"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -516,7 +516,7 @@ export default function SuperAdminBusinessesPage() {
                           {/* Editar */}
                           <button
                             onClick={() => openEditModal(b)}
-                            className="p-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
                             title="Editar información"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -527,7 +527,7 @@ export default function SuperAdminBusinessesPage() {
                             <button
                               onClick={() => handleReactivate(b)}
                               disabled={actionLoadingId === b.id}
-                              className="p-1.5 rounded-xl bg-emerald-100 text-emerald-800 hover:bg-emerald-200 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-xl bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 transition-colors cursor-pointer"
                               title="Reactivar negocio"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -539,7 +539,7 @@ export default function SuperAdminBusinessesPage() {
                                 setSuspendModalOpen(true)
                               }}
                               disabled={actionLoadingId === b.id}
-                              className="p-1.5 rounded-xl bg-zinc-100 text-zinc-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
                               title="Suspender negocio"
                             >
                               <AlertOctagon className="w-3.5 h-3.5" />
@@ -552,7 +552,7 @@ export default function SuperAdminBusinessesPage() {
                               setDeletingBusiness(b)
                               setDeleteModalOpen(true)
                             }}
-                            className="p-1.5 rounded-xl bg-zinc-100 text-zinc-400 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
                             title="Eliminar de la plataforma"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

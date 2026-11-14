@@ -1,12 +1,22 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { rateLimit } from '@/lib/rate-limit'
 import { WhatsAppService } from '@/lib/whatsapp/whatsapp-service'
 
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session || !session.businessId || (session.role !== 'OWNER' && session.role !== 'SUPER_ADMIN')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
+  // Rate limit: máx 5 mensajes de prueba cada 10 minutos por negocio para evitar spam
+  const limitCheck = rateLimit(`whatsapp-test:${session.businessId}`, { limit: 5, windowSeconds: 10 * 60 })
+  if (!limitCheck.success) {
+    return NextResponse.json(
+      { error: `Has alcanzado el límite de pruebas de WhatsApp (5 por cada 10 min). Reintenta en ${Math.ceil(limitCheck.resetSeconds / 60)} minutos.` },
+      { status: 429 }
+    )
   }
 
   try {

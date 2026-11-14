@@ -49,8 +49,8 @@ interface WhatsAppData {
   businessName?: string
   businessSlug?: string
   isEnabled: boolean
-  provider: 'META' | 'BAILEYS' | 'NONE'
-  connectionStatus: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'QR_READY' | 'FAILED'
+  provider: 'META' | 'NONE'
+  connectionStatus: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'FAILED'
   phoneNumber: string | null
   metaPhoneNumberId: string | null
   metaWabaId: string | null
@@ -60,8 +60,6 @@ interface WhatsAppData {
   metaWebhookSecret: string | null
   metaAppId?: string | null
   metaAppSecret?: string | null
-  baileysEndpoint: string | null
-  baileysQrCode: string | null
   botEnabled: boolean
   bookingEnabled: boolean
   allowBarberSelection: boolean
@@ -130,13 +128,7 @@ export default function WhatsAppIntegrationSettings() {
     verifiedName?: string
   } | null>(null)
   const [metaVerifying, setMetaVerifying] = useState(false)
-  const [showQrModal, setShowQrModal] = useState(false)
   const [showTestModal, setShowTestModal] = useState(false)
-  const [qrLoading, setQrLoading] = useState(false)
-  const [currentQr, setCurrentQr] = useState<string | null>(null)
-  const [qrStep, setQrStep] = useState<0 | 1 | 2>(0) // 0=iniciando, 1=escanear, 2=conectado
-  const [qrCountdown, setQrCountdown] = useState(45)
-  const [qrExpired, setQrExpired] = useState(false)
   const [embeddedSignupLoading, setEmbeddedSignupLoading] = useState(false)
 
   // Testing
@@ -198,7 +190,8 @@ export default function WhatsAppIntegrationSettings() {
     if (typeof window === 'undefined') return
     if ((window as any).FB) return
 
-    const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID || '1798187644961786'
+    const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID
+    if (!metaAppId) return
 
     ;(window as any).fbAsyncInit = function () {
       try {
@@ -347,116 +340,21 @@ export default function WhatsAppIntegrationSettings() {
     }
   }
 
-  // Cambiar Proveedor
-  const handleSelectProvider = async (newProvider: 'META' | 'BAILEYS') => {
+  // Activar o pausar conexión de Meta WhatsApp
+  const handleSelectProvider = async (_provider?: 'META') => {
     if (!data) return
-    const isActivating = data.provider !== newProvider || !data.isEnabled
+    const isActivating = !data.isEnabled || data.provider !== 'META'
     const updated = {
       ...data,
-      provider: newProvider,
-      isEnabled: isActivating ? true : false,
-      connectionStatus: newProvider === 'META'
-        ? (data.hasMetaAccessToken && data.metaPhoneNumberId ? ('CONNECTED' as const) : ('DISCONNECTED' as const))
-        : (data.connectionStatus === 'CONNECTED' ? ('CONNECTED' as const) : ('DISCONNECTED' as const))
+      provider: 'META' as const,
+      isEnabled: isActivating,
+      connectionStatus: isActivating && data.hasMetaAccessToken && data.metaPhoneNumberId
+        ? ('CONNECTED' as const)
+        : ('DISCONNECTED' as const)
     }
     setData(updated)
     await handleSave(updated)
   }
-
-  // Generar QR de Baileys
-  // Generar QR de Baileys
-  const handleOpenQrModal = async (forceRefresh: boolean | unknown = false) => {
-    const isForce = typeof forceRefresh === 'boolean' ? forceRefresh : false
-    setShowQrModal(true)
-    setQrLoading(true)
-    setQrExpired(false)
-    setQrCountdown(45)
-    setQrStep(1)
-    try {
-      const url = isForce
-        ? '/api/owner/integrations/whatsapp/qr?refresh=true'
-        : '/api/owner/integrations/whatsapp/qr'
-      const res = await fetch(url)
-      if (res.ok) {
-        const resData = await res.json()
-        const qrImg = resData.qrCodeDataUrl || resData.qrString
-        if (qrImg) {
-          setCurrentQr(qrImg)
-        }
-        setData(prev => prev ? { ...prev, provider: 'BAILEYS', connectionStatus: resData.status || 'QR_READY' } : null)
-
-        if (resData.status === 'CONNECTED') {
-          setQrStep(2)
-          toast.success('¡WhatsApp ya está vinculado y activo! 🎉')
-          setTimeout(() => {
-            setShowQrModal(false)
-            fetchConfig()
-          }, 1500)
-        }
-      } else {
-        toast.error('Error al generar código QR')
-      }
-    } catch {
-      toast.error('Error de conexión con el servicio')
-    } finally {
-      setQrLoading(false)
-    }
-  }
-
-  // Sondeo del estado de escaneo mientras el modal QR está abierto
-  // Usa poll=true para SOLO verificar si cambió el estado a CONNECTED sin resetear el contador ni rotar el QR
-  useEffect(() => {
-    if (!showQrModal || qrStep === 2) return
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch('/api/owner/integrations/whatsapp/qr?poll=true')
-        if (res.ok) {
-          const resData = await res.json()
-          if (resData.status === 'CONNECTED') {
-            setQrStep(2)
-            toast.success('¡WhatsApp vinculado exitosamente! 🎉')
-            setTimeout(() => {
-              setShowQrModal(false)
-              fetchConfig()
-            }, 1800)
-          }
-        }
-      } catch {
-        // Silenciar errores temporales de red en el polling
-      }
-    }, 2500)
-
-    return () => clearInterval(interval)
-  }, [showQrModal, qrStep])
-
-  // Countdown QR (45s) limpio y continuo segundo a segundo
-  useEffect(() => {
-    if (!showQrModal || qrStep !== 1 || qrExpired) return
-
-    const timer = setInterval(() => {
-      setQrCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          setQrExpired(true)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [showQrModal, qrStep, qrExpired])
-
-  // Auto-regenerar código QR cuando expire sin recargar la página
-  useEffect(() => {
-    if (showQrModal && qrExpired && qrStep === 1) {
-      const autoRefreshTimer = setTimeout(() => {
-        handleOpenQrModal(true)
-      }, 1000)
-      return () => clearTimeout(autoRefreshTimer)
-    }
-  }, [showQrModal, qrExpired, qrStep])
 
   // Meta Embedded Signup Oficial (Facebook Login SDK con Config ID)
   const handleEmbeddedSignup = () => {
@@ -472,8 +370,14 @@ export default function WhatsAppIntegrationSettings() {
     setEmbeddedSignupLoading(true)
 
     // Variables de configuración de Meta
-    const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID || '1798187644961786'
-    const metaConfigId = process.env.NEXT_PUBLIC_META_CONFIG_ID || '2369676903865189'
+    const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID
+    const metaConfigId = process.env.NEXT_PUBLIC_META_CONFIG_ID
+
+    if (!metaAppId || !metaConfigId) {
+      toast.error('NEXT_PUBLIC_META_APP_ID o NEXT_PUBLIC_META_CONFIG_ID no están configurados.')
+      setEmbeddedSignupLoading(false)
+      return
+    }
 
     // Variables capturadas del popup mediante Message Event
     let capturedPhoneNumberId: string | null = null
@@ -634,40 +538,6 @@ export default function WhatsAppIntegrationSettings() {
     }
   }
 
-  // Simular conexión exitosa del QR (para pruebas directas)
-  const handleConfirmQrScan = async () => {
-    try {
-      setQrLoading(true)
-      const res = await fetch('/api/owner/integrations/whatsapp/qr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'CONNECTED', phoneNumber: data?.phoneNumber || '+57 300 000 0000' })
-      })
-      if (res.ok) {
-        toast.success('¡WhatsApp vinculado exitosamente! 🎉')
-        setShowQrModal(false)
-        await fetchConfig()
-      }
-    } catch {
-      toast.error('Error al sincronizar QR')
-    } finally {
-      setQrLoading(false)
-    }
-  }
-
-  // Desconectar sesión QR
-  const handleDisconnectQr = async () => {
-    try {
-      const res = await fetch('/api/owner/integrations/whatsapp/qr', { method: 'DELETE' })
-      if (res.ok) {
-        toast.success('Sesión desconectada')
-        await fetchConfig()
-      }
-    } catch {
-      toast.error('Error al desconectar')
-    }
-  }
-
   // Abrir modal de QR oficial de Meta WhatsApp
   const handleOpenMetaQrModal = async () => {
     setShowMetaQrModal(true)
@@ -825,7 +695,6 @@ export default function WhatsAppIntegrationSettings() {
   }
 
   const isMetaActive = data.isEnabled && data.provider === 'META'
-  const isBaileysActive = data.isEnabled && data.provider === 'BAILEYS'
 
   // Renderizador de vista previa de plantilla
   const previewConfirm = (data.confirmTemplate || '')
@@ -935,25 +804,25 @@ export default function WhatsAppIntegrationSettings() {
         </div>
       </div>
 
-      {/* ───────────────────────── TARJETAS DE CONEXIÓN (META vs BAILEYS QR) */}
+      {/* ───────────────────────── CONEXIÓN WHATSAPP OFICIAL (META CLOUD API) */}
       <div>
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
             <h3 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
-              Método de Conexión de WhatsApp
+              Conexión WhatsApp Business Oficial
             </h3>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
-              Elige uno
+              Meta Cloud API
             </span>
           </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Cada barbería opera con aislamiento total. Puedes cambiar el método en cualquier momento.
+            Cada barbería opera con aislamiento total respaldado por la API oficial de Meta WhatsApp.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 max-w-4xl">
           {/* ══════════════════════════════════════════════════════════════
-              CARD 1: META CLOUD API (CONEXIÓN OFICIAL)
+              CARD: META CLOUD API (CONEXIÓN OFICIAL)
              ══════════════════════════════════════════════════════════════ */}
           <div
             className={`rounded-3xl flex flex-col justify-between transition-all duration-500 relative overflow-hidden backdrop-blur-xl ${
@@ -1165,239 +1034,7 @@ export default function WhatsAppIntegrationSettings() {
             </div>
           </div>
 
-          {/* ══════════════════════════════════════════════════════════════
-              CARD 2: WHATSAPP WEB QR (BAILEYS) — ZERO QR DISPLAY BEFORE ACTIVATION
-             ══════════════════════════════════════════════════════════════ */}
-          <div
-            className={`rounded-3xl flex flex-col justify-between transition-all duration-500 relative overflow-hidden backdrop-blur-xl ${
-              isBaileysActive
-                ? 'shadow-[0_0_60px_-10px_rgba(37,211,102,0.35)] border-2 border-[#25D366]/80 ring-1 ring-[#25D366]/30'
-                : 'border border-white/10 hover:border-[#25D366]/30 shadow-lg'
-            }`}
-            style={{ background: 'linear-gradient(145deg, #05140b 0%, #081d11 45%, #040e08 100%)' }}
-          >
-            {/* Ambient Lighting Orbs */}
-            <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-20 pointer-events-none blur-3xl" style={{ background: 'radial-gradient(circle, #25D366 0%, transparent 70%)' }} />
-            <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full opacity-15 pointer-events-none blur-2xl" style={{ background: 'radial-gradient(circle, #128C7E 0%, transparent 70%)' }} />
-
-            <div>
-              {/* Header: Badge + Status + Switch */}
-              <div className="relative px-6 pt-6 pb-4 flex items-center justify-between border-b border-white/5">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm">
-                    ⚡ Conexión Directa · Escaneo QR
-                  </span>
-                  {isBaileysActive && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Activo
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {isBaileysActive && data.connectionStatus === 'CONNECTED' ? (
-                    <span className="text-[11px] font-bold text-emerald-400 hidden sm:inline-flex items-center gap-1">
-                      <CheckCircle2 size={12} /> Sesión Activa
-                    </span>
-                  ) : (
-                    <span className="text-[11px] font-medium text-zinc-400 hidden sm:inline-flex items-center gap-1">
-                      <QrCode size={12} /> Sin escanear
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleSelectProvider('BAILEYS')}
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 cursor-pointer p-0.5 shrink-0 shadow-inner ${
-                      isBaileysActive ? 'bg-[#25D366] shadow-[0_0_16px_rgba(37,211,102,0.7)] ring-2 ring-emerald-300 border border-emerald-400' : 'bg-zinc-800 border border-zinc-700/60'
-                    }`}
-                  >
-                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white keep-white transition-transform duration-300 shadow-[0_2px_6px_rgba(0,0,0,0.5)] ${
-                      isBaileysActive ? 'translate-x-5' : 'translate-x-0.5'
-                    }`} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Hero: 3D WhatsApp Icon + Title + Description */}
-              <div className="relative p-6 space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="relative shrink-0">
-                    <div
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl flex items-center justify-center shadow-2xl transition-transform duration-300 hover:scale-105"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(37,211,102,0.2) 0%, rgba(18,140,126,0.08) 100%)',
-                        border: '1px solid rgba(37,211,102,0.3)',
-                        boxShadow: '0 12px 32px -8px rgba(37,211,102,0.3)'
-                      }}
-                    >
-                      <svg viewBox="0 0 24 24" className="w-10 h-10 sm:w-12 sm:h-12" fill="#25D366">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-xl font-black text-white tracking-tight">WhatsApp Web QR</h4>
-                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                        Motor Baileys · Directo
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-                      Vincula tu línea móvil actual escaneando un código QR desde la app de WhatsApp de tu teléfono. Listo en segundos sin requerir aprobación ni cuenta Meta.
-                    </p>
-                  </div>
-                </div>
-
-                {/* 2x2 Feature Grid — Strictly Matching Card 1 */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all">
-                    <div className="w-7 h-7 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0 text-emerald-400">
-                      <Smartphone size={15} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-zinc-100">Tu Línea Actual</p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Usa cualquier chip personal o de la barbería.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all">
-                    <div className="w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0 text-amber-400">
-                      <Zap size={15} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-zinc-100">Vinculación en 10s</p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Escaneas desde tu WhatsApp como en la web.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all">
-                    <div className="w-7 h-7 rounded-xl bg-teal-500/15 border border-teal-500/25 flex items-center justify-center shrink-0 text-teal-400">
-                      <Bot size={15} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-zinc-100">Bot y Reservas</p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Agendamiento guiado y respuestas automáticas.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all">
-                    <div className="w-7 h-7 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0 text-blue-400">
-                      <ShieldCheck size={15} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-zinc-100">Aislamiento Seguro</p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Sesión local cifrada y dedicada a tu negocio.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Primary CTA Button — NO STATIC QR ON CARD! */}
-                <div className="pt-2">
-                  {isBaileysActive && data.connectionStatus === 'CONNECTED' ? (
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setQrStep(0)
-                          setQrCountdown(45)
-                          setQrExpired(false)
-                          handleOpenQrModal()
-                        }}
-                        className="flex-1 py-3.5 px-5 rounded-2xl text-white text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all cursor-pointer shadow-xl bg-emerald-600/90 hover:bg-emerald-600 border border-emerald-400/30"
-                      >
-                        <CheckCircle2 size={18} className="text-white" />
-                        Sesión Conectada ({data.phoneNumber || 'Activa'})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDisconnectQr}
-                        title="Desconectar sesión actual"
-                        className="py-3.5 px-4 rounded-2xl bg-red-950/60 hover:bg-red-900/60 text-red-300 hover:text-white transition-all cursor-pointer border border-red-800/40 text-xs font-black uppercase"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleSelectProvider('BAILEYS')
-                        setQrStep(0)
-                        setQrCountdown(45)
-                        setQrExpired(false)
-                        handleOpenQrModal()
-                      }}
-                      className="w-full py-3.5 px-5 rounded-2xl text-white text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all cursor-pointer group shadow-xl hover:shadow-[0_12px_40px_-8px_rgba(37,211,102,0.5)]"
-                      style={{
-                        background: 'linear-gradient(135deg, #128C7E 0%, #25D366 50%, #2ee875 100%)',
-                        border: '1px solid rgba(255,255,255,0.2)'
-                      }}
-                    >
-                      <QrCode size={18} className="group-hover:scale-110 transition-transform" />
-                      Vincular Dispositivo con QR
-                    </button>
-                  )}
-                  <p className="text-center text-[10px] text-zinc-500 mt-2">
-                    Abre el escáner interactivo seguro · Generación en tiempo real con renovación automática
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Symmetrical Utility Footer */}
-            <div className="relative px-6 py-4 border-t border-white/5 bg-white/[0.01] flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2 flex-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleSelectProvider('BAILEYS')
-                    setQrStep(0)
-                    setQrCountdown(45)
-                    setQrExpired(false)
-                    handleOpenQrModal()
-                  }}
-                  className="flex-1 py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white transition-all cursor-pointer border border-white/10 flex items-center justify-center gap-1.5 text-xs font-bold"
-                >
-                  <QrCode size={13} className="text-[#25D366]" /> Abrir Escáner QR
-                </button>
-                {data.connectionStatus === 'CONNECTED' && (
-                  <button
-                    type="button"
-                    onClick={handleDisconnectQr}
-                    className="py-2 px-3 rounded-xl bg-red-950/40 hover:bg-red-900/40 text-red-300 hover:text-white transition-all cursor-pointer border border-red-800/30 flex items-center justify-center gap-1.5 text-xs font-bold"
-                  >
-                    <X size={13} /> Desconectar
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQrStep(0)
-                    setQrCountdown(45)
-                    setQrExpired(false)
-                    handleOpenQrModal()
-                  }}
-                  title="Reiniciar o renovar QR"
-                  className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-all cursor-pointer border border-white/10"
-                >
-                  <RotateCcw size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowTestModal(true)}
-                  title="Probar envío con simulador"
-                  className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-all cursor-pointer border border-white/10"
-                >
-                  <Play size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
+          
         </div>
       </div>
 
@@ -2843,200 +2480,7 @@ export default function WhatsAppIntegrationSettings() {
         </div>
       )}
 
-      {/* ───────────────────────── MODAL DE ESCANEO QR (BAILEYS) — PREMIUM ───────────────────────── */}
-      {showQrModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-gradient-to-br from-[#0a1a10] via-[#0b1810] to-[#0d1a14] text-white w-full max-w-2xl rounded-3xl border border-[#25D366]/20 shadow-2xl shadow-emerald-900/30 overflow-hidden">
-            {/* Modal header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-white/5">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#25D366]/10 border border-[#25D366]/20 flex items-center justify-center">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#25D366"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.299.144.347.491 1.199.534 1.286.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.173.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z" /></svg>
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-white">Vincular WhatsApp QR</h3>
-                  <p className="text-[11px] text-[#25D366]">Conexión segura via Baileys</p>
-                </div>
-              </div>
-              <button type="button" onClick={() => { setShowQrModal(false); setQrStep(0) }} className="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-all cursor-pointer">
-                <X size={18} />
-              </button>
-            </div>
 
-            {/* Two-column body */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-white/5">
-              {/* LEFT: Step indicators */}
-              <div className="p-6 space-y-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-5">Estado de conexión</p>
-
-                {[
-                  {
-                    n: 1,
-                    label: 'Iniciando entorno',
-                    sublabel: 'Preparando sesión segura en el servidor',
-                    active: qrStep === 0,
-                    done: qrStep > 0
-                  },
-                  {
-                    n: 2,
-                    label: 'Escanea el código QR',
-                    sublabel: 'Abre WhatsApp → Dispositivos vinculados → Vincular dispositivo',
-                    active: qrStep === 1,
-                    done: qrStep > 1
-                  },
-                  {
-                    n: 3,
-                    label: 'WhatsApp conectado',
-                    sublabel: 'Sesión activa y sincronizada con BarberOS',
-                    active: qrStep === 2,
-                    done: qrStep === 2
-                  },
-                ].map(step => (
-                  <div key={step.n} className={`flex items-start gap-3 p-3 rounded-2xl transition-all border ${
-                    step.done
-                      ? 'bg-emerald-950/50 border-[#25D366]/30'
-                      : step.active
-                      ? 'bg-white/5 border-[#25D366]/50 ring-1 ring-[#25D366]/20'
-                      : 'bg-white/2 border-white/5 opacity-50'
-                  }`}>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-black transition-all ${
-                      step.done
-                        ? 'bg-[#25D366] text-white'
-                        : step.active
-                        ? 'bg-[#25D366]/20 text-[#25D366] ring-2 ring-[#25D366]/40'
-                        : 'bg-zinc-800 text-zinc-500'
-                    }`}>
-                      {step.done ? <Check size={12} /> : step.active && step.n === 1 ? <Loader2 size={12} className="animate-spin" /> : step.n}
-                    </div>
-                    <div className="min-w-0">
-                      <p className={`text-xs font-black ${
-                        step.done ? 'text-emerald-300' : step.active ? 'text-white' : 'text-zinc-500'
-                      }`}>{step.label}</p>
-                      <p className="text-[10px] text-zinc-500 leading-snug mt-0.5">{step.sublabel}</p>
-                      {/* Countdown bar for step 2 */}
-                      {step.active && step.n === 2 && (
-                        <div className="mt-2">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] text-zinc-400 font-bold">Expira en</span>
-                            <span className={`text-[11px] font-black tabular-nums ${
-                              qrCountdown <= 10 ? 'text-red-400' : 'text-[#25D366]'
-                            }`}>{qrCountdown}s</span>
-                          </div>
-                          <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all ${
-                                qrCountdown <= 10 ? 'bg-red-500' : 'bg-[#25D366]'
-                              }`}
-                              style={{ width: `${(qrCountdown / 45) * 100}%`, transition: 'width 1s linear' }}
-                            />
-                          </div>
-                          {qrExpired && (
-                            <p className="text-[10px] text-amber-400 font-bold mt-1 flex items-center gap-1">
-                              <RefreshCw size={10} className="animate-spin" /> Renovando QR automáticamente...
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Actions */}
-                <div className="pt-2 flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleOpenQrModal(true)
-                    }}
-                    disabled={qrLoading}
-                    className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer border border-white/10"
-                  >
-                    <RefreshCw size={13} className={qrLoading ? 'animate-spin' : ''} />
-                    {qrLoading ? 'Generando QR...' : 'Regenerar QR'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleConfirmQrScan}
-                    disabled={qrLoading || qrStep === 2}
-                    className="w-full py-2.5 bg-[#25D366]/90 hover:bg-[#25D366] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-900/30 disabled:opacity-40"
-                  >
-                    <Check size={13} /> Confirmar escaneado
-                  </button>
-                </div>
-              </div>
-
-              {/* RIGHT: QR Visualizer */}
-              <div className="p-6 flex flex-col items-center justify-center gap-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 self-start mb-1">Código QR</p>
-
-                {/* QR container */}
-                <div className={`relative w-52 h-52 rounded-3xl flex items-center justify-center shadow-2xl transition-all ${
-                  qrStep === 2 ? 'border-4 border-[#25D366] bg-emerald-950/40' : 'bg-white border-4 border-[#25D366]/30'
-                }`}>
-                  {qrStep === 2 ? (
-                    <div className="flex flex-col items-center gap-2 text-[#25D366]">
-                      <div className="w-16 h-16 rounded-full bg-[#25D366]/20 flex items-center justify-center">
-                        <CheckCircle2 size={40} className="text-[#25D366]" />
-                      </div>
-                      <p className="text-xs font-black text-emerald-300 uppercase tracking-wider">¡Conectado!</p>
-                    </div>
-                  ) : qrLoading ? (
-                    <div className="flex flex-col items-center gap-3 text-zinc-600">
-                      <div className="relative">
-                        <Loader2 size={36} className="animate-spin text-[#25D366]" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#25D366"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.299.144.347.491 1.199.534 1.286.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.173.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z" /></svg>
-                        </div>
-                      </div>
-                      <span className="text-[11px] font-bold text-zinc-500">Generando QR...</span>
-                    </div>
-                  ) : currentQr ? (
-                    <>
-                      <img
-                        src={currentQr.startsWith('data:') ? currentQr : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(currentQr)}`}
-                        alt="Código QR de WhatsApp"
-                        className={`w-44 h-44 object-contain rounded-xl select-none transition-all ${
-                          qrExpired ? 'opacity-30 blur-sm' : 'opacity-100'
-                        }`}
-                      />
-                      {/* WA icon overlay center */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md">
-                          <svg className="w-7 h-7" viewBox="0 0 24 24" fill="#25D366"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.299.144.347.491 1.199.534 1.286.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.173.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z" /></svg>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 text-zinc-500">
-                      <AlertCircle size={28} className="text-amber-500" />
-                      <span className="text-xs font-bold text-zinc-400">Error al cargar QR</span>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenQrModal()}
-                        className="text-[10px] text-[#25D366] font-bold underline cursor-pointer"
-                      >
-                        Intentar de nuevo
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* QR expiry warning */}
-                {qrExpired && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-950/60 border border-amber-500/30 rounded-xl text-[11px] text-amber-300 font-bold">
-                    <AlertTriangle size={13} className="text-amber-400 shrink-0" />
-                    QR expirado. Regenerando automáticamente...
-                  </div>
-                )}
-
-                <p className="text-[10px] text-zinc-500 text-center leading-relaxed max-w-[180px]">
-                  Apunta la cámara al código QR desde WhatsApp en tu teléfono
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ───────────────────────── MODAL DE TEST EN VIVO ───────────────────────── */}
       {showTestModal && (

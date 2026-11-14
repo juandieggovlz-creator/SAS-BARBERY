@@ -78,42 +78,42 @@ export default function Metrics() {
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-xs font-semibold text-amber-800 dark:text-amber-300">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
-            <span className="uppercase tracking-wider font-black text-[10px]">Impacto Real</span>
+            <span className="uppercase tracking-wider font-black text-[10px]">Capacidades del Sistema</span>
             <span className="text-zinc-400 dark:text-zinc-600">·</span>
-            <span className="font-medium text-xs">Cifras Consolidadas</span>
+            <span className="font-medium text-xs">Control Operativo</span>
           </div>
 
           <h2
             id="metrics-title"
             className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-zinc-950 dark:text-white leading-[1.08]"
           >
-            Métricas de impacto en{' '}
+            Rendimiento comprobable para{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400 dark:from-amber-300 dark:via-amber-400 dark:to-amber-100">
-              negocios reales.
+              tu barbería.
             </span>
           </h2>
           <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-            Cifras consolidadas de barberías que migraron de libretas y WhatsApp a BarberOS.
+            Controles operativos y tecnológicos diseñados para eliminar el desorden en citas, comisiones y caja física.
           </p>
         </motion.div>
 
         {/* Counter Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCounter
-            end={180000}
-            prefix="+"
-            label="Reservas Gestionadas"
-            sublabel="Procesadas en tiempo real sin solapamientos"
+            end={30}
+            suffix=" Días"
+            label="Prueba Sin Riesgo"
+            sublabel="Acceso completo al sistema sin necesidad de ingresar tarjeta"
             Icon={CalendarCheck}
             iconBg="bg-blue-500/15"
             iconColor="text-blue-600 dark:text-blue-400"
           />
           <StatCounter
-            end={85000}
-            prefix="+"
-            label="Clientes Atendidos"
-            sublabel="Con historial digital y fidelización recurrente"
-            Icon={Users}
+            end={100}
+            suffix="%"
+            label="Transparencia de Comisiones"
+            sublabel="Cálculo automático de porcentajes en tiempo real por cada corte"
+            Icon={TrendingUp}
             iconBg="bg-purple-500/15"
             iconColor="text-purple-600 dark:text-purple-400"
           />
@@ -122,17 +122,17 @@ export default function Metrics() {
             prefix="$"
             suffix=" COP"
             label="Descuadres de Caja"
-            sublabel="Gracias al sistema de arqueo ciego diario"
+            sublabel="Arqueo ciego donde el cajero cuenta el dinero sin conocer el saldo previo"
             Icon={ShieldCheck}
             iconBg="bg-emerald-500/15"
             iconColor="text-emerald-600 dark:text-emerald-400"
           />
           <StatCounter
-            end={500}
-            prefix="+"
-            label="Barberías Afiliadas"
-            sublabel="En todo Colombia · Sincelejo, Bogotá, Medellín y más"
-            Icon={TrendingUp}
+            end={1}
+            suffix=" Link Oficial"
+            label="Página de Reservas 24/7"
+            sublabel="Enlace público optimizado para tu biografía de Instagram y WhatsApp"
+            Icon={Users}
             iconBg="bg-amber-500/15"
             iconColor="text-amber-600 dark:text-amber-400"
           />

@@ -213,14 +213,12 @@ export default function Hero() {
                 ))}
               </div>
               <div className="text-xs">
-                <div className="flex items-center gap-1 text-amber-500">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  ))}
-                  <span className="font-extrabold text-zinc-950 dark:text-white ml-1">4.9/5</span>
+                <div className="flex items-center gap-1.5 text-amber-500">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="font-extrabold text-zinc-950 dark:text-white">Software Especializado</span>
                 </div>
                 <p className="text-zinc-500 dark:text-zinc-400 text-[11px] font-medium mt-0.5">
-                  Más de 500 barberías organizadas en Colombia
+                  Agendamiento 24/7, caja ciega y comisiones automáticas
                 </p>
               </div>
             </motion.div>

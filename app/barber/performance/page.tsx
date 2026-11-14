@@ -92,7 +92,7 @@ export default function BarberPerformancePage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-zinc-200 p-6 sm:p-8 rounded-3xl shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#121215] border border-zinc-200/80 dark:border-zinc-800 p-6 sm:p-8 rounded-3xl shadow-xs">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-400 text-black">
@@ -100,19 +100,19 @@ export default function BarberPerformancePage() {
             </span>
             <span className="text-xs text-zinc-400 font-medium capitalize">{periodLabel}</span>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-zinc-950 mt-1">
+          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-zinc-950 dark:text-white mt-1">
             Mi Rendimiento
           </h1>
-          <p className="text-xs font-medium text-zinc-500 mt-1">
+          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-1">
             Métricas 100% reales calculadas directamente de tu actividad del mes en curso.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 p-4 rounded-2xl">
+        <div className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl">
           <Award className="w-8 h-8 text-amber-500" />
           <div>
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Ticket Promedio</span>
-            <span className="text-xl font-black text-zinc-900">{formatCOP(thisMonth.avgTicket)}</span>
+            <span className="text-xl font-black text-zinc-900 dark:text-white">{formatCOP(thisMonth.avgTicket)}</span>
           </div>
         </div>
       </div>

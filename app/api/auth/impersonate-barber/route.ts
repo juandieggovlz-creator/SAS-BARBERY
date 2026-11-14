@@ -23,6 +23,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Barbero no encontrado' }, { status: 404 })
     }
 
+    // Aislamiento Multi-Tenant: Si no es SUPER_ADMIN, el barbero DEBE pertenecer a su propio negocio
+    if (session.role !== 'SUPER_ADMIN' && barber.businessId !== session.businessId) {
+      return NextResponse.json({ error: 'Acceso denegado: El barbero pertenece a otra barbería' }, { status: 403 })
+    }
+
     // Retain original owner ID
     const originalOwnerId = session.originalOwnerId || session.userId
     const targetUserId = barber.user?.id || session.userId

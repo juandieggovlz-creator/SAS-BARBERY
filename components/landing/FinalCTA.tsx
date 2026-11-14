@@ -49,7 +49,7 @@ export default function FinalCTA() {
 
             {/* Subtitle */}
             <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-300 font-normal max-w-2xl mx-auto leading-relaxed">
-              Únete a las más de 500 barberías que ya eliminaron los descuadres de caja, liquidan comisiones sin discusiones y multiplican sus reservas 24/7.
+              Elimina los descuadres de caja, liquida comisiones sin discusiones y permite a tus clientes agendar citas 24/7 de forma 100% automatizada.
             </p>
 
             {/* Buttons */}

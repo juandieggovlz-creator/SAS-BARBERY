@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 /**
  * Endpoint canónico: /api/whatsapp/webhook
- * Soporta la verificación y recepción de eventos para Meta Cloud API y Baileys
+ * Soporta la verificación y recepción de eventos para Meta Cloud API (Webhooks)
  */
 export async function GET(request: Request) {
   return webhookGET(request)

@@ -1,47 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createSession } from '@/lib/auth'
+import { getClientIp, rateLimit, resetRateLimit } from '@/lib/rate-limit'
 import bcrypt from 'bcryptjs'
 
 export const dynamic = 'force-dynamic'
-
-// Rate Limiter in-memory para prevenir fuerza bruta: máximo 5 intentos fallidos cada 15 minutos
-const loginAttempts = new Map<string, { count: number; lockUntil: number }>()
-
-function checkRateLimit(identifier: string): { allowed: boolean; retryAfterSeconds?: number } {
-  const now = Date.now()
-  const record = loginAttempts.get(identifier)
-
-  if (record && record.lockUntil > now) {
-    const retryAfterSeconds = Math.ceil((record.lockUntil - now) / 1000)
-    return { allowed: false, retryAfterSeconds }
-  }
-
-  return { allowed: true }
-}
-
-function recordFailedAttempt(identifier: string) {
-  const now = Date.now()
-  const record = loginAttempts.get(identifier) || { count: 0, lockUntil: 0 }
-
-  if (record.lockUntil && record.lockUntil < now) {
-    record.count = 1
-    record.lockUntil = 0
-  } else {
-    record.count += 1
-  }
-
-  // 5 intentos fallidos bloquean por 15 minutos
-  if (record.count >= 5) {
-    record.lockUntil = now + 15 * 60 * 1000
-  }
-
-  loginAttempts.set(identifier, record)
-}
-
-function clearRateLimit(identifier: string) {
-  loginAttempts.delete(identifier)
-}
 
 export async function POST(request: Request) {
   try {
@@ -52,14 +15,23 @@ export async function POST(request: Request) {
     }
 
     const cleanEmail = email.trim().toLowerCase()
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'local-client'
-    const rateLimitKey = `${ip}:${cleanEmail}`
+    const ip = getClientIp(request)
 
-    // 1. Verificación de tasa de intentos (Anti-Brute Force)
-    const rateCheck = checkRateLimit(rateLimitKey)
-    if (!rateCheck.allowed) {
+    // 1. Verificación Anti-Fuerza Bruta global por IP (máx 30 intentos / 15 min para evitar ataques distribuidos de diccionario)
+    const ipLimit = rateLimit(`login:ip:${ip}`, { limit: 30, windowSeconds: 15 * 60 })
+    if (!ipLimit.success) {
       return NextResponse.json(
-        { error: `Demasiados intentos fallidos. Tu acceso está pausado temporalmente por seguridad. Reintenta en ${rateCheck.retryAfterSeconds} segundos.` },
+        { error: `Demasiadas solicitudes desde esta conexión. Reintenta en ${ipLimit.resetSeconds} segundos.` },
+        { status: 429 }
+      )
+    }
+
+    // 2. Verificación Anti-Fuerza Bruta específica por cuenta + IP (máx 5 intentos fallidos / 15 min)
+    const accountLimitKey = `login:acc:${ip}:${cleanEmail}`
+    const accountCheck = rateLimit(accountLimitKey, { limit: 5, windowSeconds: 15 * 60 })
+    if (!accountCheck.success) {
+      return NextResponse.json(
+        { error: `Demasiados intentos fallidos para esta cuenta. Tu acceso está pausado temporalmente por seguridad. Reintenta en ${accountCheck.resetSeconds} segundos.` },
         { status: 429 }
       )
     }
@@ -133,7 +105,6 @@ export async function POST(request: Request) {
     }
 
     if (!user) {
-      recordFailedAttempt(rateLimitKey)
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
     }
 
@@ -144,12 +115,11 @@ export async function POST(request: Request) {
     const isMatch = await bcrypt.compare(password, user.password)
 
     if (!isMatch) {
-      recordFailedAttempt(rateLimitKey)
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
     }
 
     // Login exitoso: limpiar historial de intentos fallidos
-    clearRateLimit(rateLimitKey)
+    resetRateLimit(accountLimitKey)
 
     // If barber is inactive, block login
     if (user.role === 'BARBER' && user.barber?.status === 'INACTIVE') {

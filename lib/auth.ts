@@ -2,7 +2,10 @@ import { SignJWT, jwtVerify } from 'jose'
 import { cookies, headers } from 'next/headers'
 
 function getJwtSecretKey(): Uint8Array {
-  const secret = process.env.JWT_SECRET || '49208ea2f8404a8a7a96bddeaa113677f085d14f82963fac9b4e3d2ec7a109f6'
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required.')
+  }
   return new TextEncoder().encode(secret)
 }
 
@@ -225,5 +228,44 @@ export async function deleteSession(onlyRole?: 'OWNER' | 'BRANCH_ADMIN' | 'BARBE
     cookieStore.delete('session')
   } catch {
     // ignore
+  }
+}
+
+/**
+ * Genera un token de restablecimiento de contraseña firmado criptográficamente
+ * con caducidad estricta de 15 minutos e invalidación automática tras el primer cambio.
+ */
+export async function createPasswordResetToken(userId: string, currentPasswordHash: string | null): Promise<string> {
+  const pwhash = (currentPasswordHash || '').slice(-10)
+  return await new SignJWT({
+    userId,
+    pwhash,
+    purpose: 'password_reset',
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('15m')
+    .sign(key)
+}
+
+/**
+ * Valida un token de restablecimiento de contraseña.
+ */
+export async function verifyPasswordResetToken(token: string): Promise<{ userId: string; pwhash: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, key, {
+      algorithms: ['HS256'],
+    })
+
+    if (payload.purpose !== 'password_reset' || !payload.userId) {
+      return null
+    }
+
+    return {
+      userId: payload.userId as string,
+      pwhash: (payload.pwhash as string) || '',
+    }
+  } catch {
+    return null
   }
 }

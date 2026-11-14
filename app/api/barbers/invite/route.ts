@@ -12,7 +12,8 @@ export async function PUT(request: Request) {
   try {
     const { id } = await request.json()
     const inviteToken = randomUUID()
-    const inviteExpires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    // Expiración segura de 72 horas para invitaciones
+    const inviteExpires = new Date(Date.now() + 72 * 60 * 60 * 1000)
 
     // Multi-tenant Ownership Verification
     const barberToResetSpace = await prisma.barber.findUnique({ where: { id } })
@@ -20,12 +21,15 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Barbero no encontrado' }, { status: 404 })
     }
 
-    // Reset user: clear password, set new token and 1-year expiry
-    await prisma.$executeRaw`
-      UPDATE "User"
-      SET password = NULL, "inviteToken" = ${inviteToken}, "inviteExpires" = ${inviteExpires}
-      WHERE "barberId" = ${id}
-    `
+    // Reset user: clear password, set new token and 72-hour expiry
+    await prisma.user.updateMany({
+      where: { barberId: id },
+      data: {
+        password: null,
+        inviteToken,
+        inviteExpires
+      }
+    })
 
     const origin = new URL(request.url).origin
     return NextResponse.json({ 

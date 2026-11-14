@@ -2,7 +2,7 @@
 
 ![BarberOS Banner](public/logo.png)
 
-> **BarberOS** es una plataforma SaaS empresarial de alto rendimiento diseñada específicamente para barberías independientes y cadenas multisede. Centraliza en una sola suite la agenda en vivo, reservas online públicas, automatización con WhatsApp Business (Meta Cloud API oficial y Baileys QR), control financiero con cierres de caja, liquidación de comisiones, chat interno en tiempo real, CRM de clientes y un portal maestro para Super Administradores.
+> **BarberOS** es una plataforma SaaS empresarial de alto rendimiento diseñada específicamente para barberías independientes y cadenas multisede. Centraliza en una sola suite la agenda en vivo, reservas online públicas, automatización con WhatsApp Business (Meta Cloud API oficial), control financiero con cierres de caja, liquidación de comisiones, chat interno en tiempo real, CRM de clientes y un portal maestro para Super Administradores.
 
 ---
 
@@ -54,7 +54,7 @@
 | **Estilos & UI** | [Tailwind CSS 4](https://tailwindcss.com/) + [Lucide Icons](https://lucide.dev/) + [Framer Motion](https://www.framer.com/motion/) |
 | **Autenticación** | Sesiones JWT HttpOnly con [jose](https://github.com/panva/jose) y aislamiento multirrol |
 | **Almacenamiento Multimedia**| [Cloudinary](https://cloudinary.com/) (Logos, portadas, avatares y galerías) |
-| **Mensajería WhatsApp** | Meta Graph API (Cloud API v21.0) & Baileys WebSocket |
+| **Mensajería WhatsApp** | Meta Graph API (Cloud API v21.0 Oficial) |
 | **Hosting & CI/CD** | [Vercel](https://vercel.com/) |
 
 ---

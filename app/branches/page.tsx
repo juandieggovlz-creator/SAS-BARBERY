@@ -353,7 +353,13 @@ export default function BranchesPage() {
                 }
                 setShowCreateModal(true)
               }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-bold transition-all shadow-md active:scale-95"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95"
+              style={{
+                backgroundColor: 'var(--accent, #F59E0B)',
+                color: 'var(--accent-contrast, #000)',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent-dark, #D97706)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--accent, #F59E0B)')}
             >
               <Plus className="w-4 h-4" />
               <span>Nueva Sede</span>
@@ -707,7 +713,12 @@ export default function BranchesPage() {
                 <button
                   type="submit"
                   disabled={createLoading}
-                  className="px-5 py-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-2 shadow-md active:scale-95"
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-2 shadow-md active:scale-95 cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--accent, #F59E0B)',
+                    color: 'var(--accent-contrast, #000)',
+                    boxShadow: '0 4px 14px var(--accent-op30, rgba(245,158,11,0.3))'
+                  }}
                 >
                   {createLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>Crear Sede</span>
@@ -834,7 +845,12 @@ export default function BranchesPage() {
                 <button
                   type="submit"
                   disabled={editLoading}
-                  className="px-5 py-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-2 shadow-md active:scale-95"
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-2 shadow-md active:scale-95 cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--accent, #F59E0B)',
+                    color: 'var(--accent-contrast, #000)',
+                    boxShadow: '0 4px 14px var(--accent-op30, rgba(245,158,11,0.3))'
+                  }}
                 >
                   {editLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>Guardar Cambios</span>
@@ -953,7 +969,12 @@ export default function BranchesPage() {
                     <button
                       type="submit"
                       disabled={inviteLoading}
-                      className="px-5 py-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-2 shadow-md active:scale-95"
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-2 shadow-md active:scale-95 cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--accent, #F59E0B)',
+                        color: 'var(--accent-contrast, #000)',
+                        boxShadow: '0 4px 14px var(--accent-op30, rgba(245,158,11,0.3))'
+                      }}
                     >
                       {inviteLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                       <Send className="w-3.5 h-3.5" />

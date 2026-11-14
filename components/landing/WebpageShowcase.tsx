@@ -102,10 +102,9 @@ function WebpageInteractivePreview({ device }: WebPreviewProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 text-amber-500 text-[11px] font-bold shrink-0">
-          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-          <span>4.9</span>
-          <span className="text-zinc-400 dark:text-zinc-500 hidden sm:inline">(240)</span>
+        <div className="flex items-center gap-1.5 text-amber-500 text-[11px] font-bold shrink-0">
+          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <span className="text-zinc-600 dark:text-zinc-400 font-semibold text-[10px]">Demostración</span>
         </div>
       </div>
 

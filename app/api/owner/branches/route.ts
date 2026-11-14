@@ -79,8 +79,31 @@ export async function GET() {
       }
     })
 
-    const isMultiBranchAllowed = Boolean(company.plan?.allowsMultiBranch)
-    const maxBranches = company.maxBranches || (isMultiBranchAllowed ? 5 : 1)
+    // Check for SuperAdmin branch exception
+    let hasBranchException = false
+    let exData: any = null
+    try {
+      const exceptionSetting = await prisma.platformSetting.findFirst({
+        where: {
+          key: {
+            in: [
+              `branch_exception_${company.id}`,
+              `branch_exception_${company.ownerId}`,
+              ...(session.businessId ? [`branch_exception_${session.businessId}`] : [])
+            ]
+          }
+        }
+      })
+      if (exceptionSetting) {
+        exData = JSON.parse(exceptionSetting.value)
+        hasBranchException = exData.enabled === true
+      }
+    } catch {}
+
+    const isMultiBranchAllowed = Boolean(company.plan?.allowsMultiBranch) || hasBranchException
+    const maxBranches = hasBranchException
+      ? Math.max(company.maxBranches || 1, exData?.maxBranches || 5)
+      : (company.plan?.allowsMultiBranch ? (company.maxBranches || 5) : 1)
     const canCreateMore = isMultiBranchAllowed && branches.length < maxBranches
 
     return NextResponse.json({
@@ -144,25 +167,50 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No se encontró la empresa del propietario' }, { status: 404 })
     }
 
-    // 1. Validar que el plan admita multisedes
-    if (!company.plan?.allowsMultiBranch && session.role !== 'SUPER_ADMIN') {
+    // Check for SuperAdmin branch exception
+    let hasBranchException = false
+    let exData: any = null
+    try {
+      const exceptionSetting = await prisma.platformSetting.findFirst({
+        where: {
+          key: {
+            in: [
+              `branch_exception_${company.id}`,
+              `branch_exception_${company.ownerId}`,
+              ...(session.businessId ? [`branch_exception_${session.businessId}`] : [])
+            ]
+          }
+        }
+      })
+      if (exceptionSetting) {
+        exData = JSON.parse(exceptionSetting.value)
+        hasBranchException = exData.enabled === true
+      }
+    } catch {}
+
+    // 1. Validar que el plan admita multisedes (con excepción)
+    if (!company.plan?.allowsMultiBranch && !hasBranchException && session.role !== 'SUPER_ADMIN') {
       return NextResponse.json({
         error: 'Tu plan actual no permite agregar sedes adicionales. Se requiere el Plan Premium VIP.',
         upgradeRequired: true
       }, { status: 403 })
     }
 
-    // 2. Validar límite de sedes contratadas
+    // 2. Validar límite de sedes contratadas (respetando excepción)
     const currentBranchesCount = await prisma.business.count({
       where: { companyId: company.id }
     })
 
-    if (currentBranchesCount >= company.maxBranches && session.role !== 'SUPER_ADMIN') {
+    const effectiveMaxBranches = hasBranchException
+      ? Math.max(company.maxBranches || 1, exData?.maxBranches || 5)
+      : (company.maxBranches || 1)
+
+    if (currentBranchesCount >= effectiveMaxBranches && session.role !== 'SUPER_ADMIN') {
       return NextResponse.json({
-        error: `Has alcanzado el límite de ${company.maxBranches} sedes contratadas. Puedes habilitar cupos adicionales por $${Number(company.additionalBranchPrice).toLocaleString('es-CO')} COP/mes desde tu suscripción.`,
+        error: `Has alcanzado el límite de ${effectiveMaxBranches} sedes contratadas. Puedes habilitar cupos adicionales por $${Number(company.additionalBranchPrice).toLocaleString('es-CO')} COP/mes desde tu suscripción.`,
         limitReached: true,
         currentCount: currentBranchesCount,
-        maxAllowed: company.maxBranches,
+        maxAllowed: effectiveMaxBranches,
         additionalBranchPrice: Number(company.additionalBranchPrice)
       }, { status: 403 })
     }
@@ -194,6 +242,23 @@ export async function POST(request: Request) {
       counter++
     }
 
+    // Heredar configuración visual de la sede principal
+    const mainBranchPage = await prisma.businessPage.findFirst({
+      where: {
+        business: {
+          companyId: company.id,
+          isMainBranch: true
+        }
+      },
+      select: {
+        theme: true,
+        primaryColor: true,
+        secondaryColor: true,
+        accentColor: true,
+        fontFamily: true
+      }
+    })
+
     // 5. Crear la nueva sede vinculada a la empresa
     const newBranch = await prisma.business.create({
       data: {
@@ -203,19 +268,19 @@ export async function POST(request: Request) {
         address: address ? address.trim() : null,
         mapsUrl: mapsUrl ? mapsUrl.trim() : null,
         description: description ? description.trim() : null,
-        companyId: company.id,
+        company: { connect: { id: company.id } },
         isMainBranch: false,
         status: 'ACTIVE',
-        planId: company.planId,
+        ...(company.planId ? { plan: { connect: { id: company.planId } } } : {}),
         trialEndsAt: company.trialEndsAt,
         subscriptionEndsAt: company.subscriptionEndsAt,
         page: {
           create: {
-            theme: 'ELEGANT',
-            primaryColor: '#000000',
-            secondaryColor: '#ffffff',
-            accentColor: '#d4af37',
-            fontFamily: 'inter',
+            theme: mainBranchPage?.theme || 'ELEGANT',
+            primaryColor: mainBranchPage?.primaryColor || '#000000',
+            secondaryColor: mainBranchPage?.secondaryColor || '#ffffff',
+            accentColor: mainBranchPage?.accentColor || '#d4af37',
+            fontFamily: mainBranchPage?.fontFamily || 'inter',
             coverTitle: cleanName,
             coverSubtitle: 'Experiencia premium de barbería clásica y moderna.',
             showPrices: true,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { WhatsAppConversationEngine } from '@/lib/whatsapp/conversation-engine'
+import crypto from 'crypto'
 
 /**
  * GET: Verificación de Webhook para Meta Cloud API (Facebook Developers)
@@ -13,20 +14,19 @@ export async function GET(request: Request) {
     const challenge = searchParams.get('hub.challenge')
     const businessId = searchParams.get('businessId')
 
-    const defaultVerifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'barberos_secure_webhook_token_2026'
+    const defaultVerifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN
 
-    // Si se accede directamente desde el navegador o monitor de salud
+    // Si se accede directamente desde el navegador o monitor de salud (sin filtrar secretos)
     if (!mode && !token && !challenge) {
       return NextResponse.json({
         status: 'online',
         service: 'BarberOS WhatsApp Webhook Engine',
         message: 'El Webhook está activo y listo para recibir eventos de Meta WhatsApp Business API.',
-        timestamp: new Date().toISOString(),
-        defaultVerifyToken
+        timestamp: new Date().toISOString()
       }, { status: 200 })
     }
 
-    let isValid = (mode === 'subscribe' && token === defaultVerifyToken)
+    let isValid = Boolean(defaultVerifyToken && mode === 'subscribe' && token === defaultVerifyToken)
 
     if (!isValid && mode === 'subscribe' && token) {
       if (businessId) {
@@ -59,14 +59,43 @@ export async function GET(request: Request) {
 }
 
 /**
- * POST: Recepción de eventos y mensajes entrantes (Meta o Baileys)
+ * POST: Recepción de eventos y mensajes entrantes (Meta Cloud API)
  */
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
+    const rawBody = await request.text()
+    const metaSignature = request.headers.get('x-hub-signature-256')
+    const metaAppSecret = process.env.META_APP_SECRET
+
+    let body: any
+    try {
+      body = JSON.parse(rawBody)
+    } catch {
+      return NextResponse.json({ error: 'Payload JSON inválido' }, { status: 400 })
+    }
 
     // ── Formato 1: Meta Cloud API Webhook Payload
     if (body.object === 'whatsapp_business_account') {
+      // META_APP_SECRET MUST be set; without it every request would be accepted blindly.
+      if (!metaAppSecret) {
+        console.error('[Meta Webhook] META_APP_SECRET no configurado — rechazando payload para prevenir ingesta no autenticada')
+        return NextResponse.json({ error: 'Configuración de servidor incompleta' }, { status: 500 })
+      }
+
+      if (!metaSignature) {
+        console.warn('[Meta Webhook] Firma HMAC ausente')
+        return NextResponse.json({ error: 'Firma HMAC ausente' }, { status: 401 })
+      }
+
+      const hmac = crypto.createHmac('sha256', metaAppSecret)
+      hmac.update(rawBody)
+      const expectedSignature = `sha256=${hmac.digest('hex')}`
+
+      if (metaSignature !== expectedSignature) {
+        console.warn('[Meta Webhook] Firma HMAC inválida')
+        return NextResponse.json({ error: 'Firma HMAC inválida' }, { status: 401 })
+      }
+
       const entry = body.entry?.[0]
       const change = entry?.changes?.[0]?.value
 
@@ -101,23 +130,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: 'success' }, { status: 200 })
     }
 
-    // ── Formato 2: Baileys Webhook (desde microservicio o cliente Baileys)
-    if (body.provider === 'BAILEYS' || body.sessionId) {
-      const { from, text, businessId, messageId, senderName } = body
-
-      if (from && text && businessId) {
-        WhatsAppConversationEngine.handleMessage({
-          from,
-          text,
-          businessId,
-          messageId,
-          senderName
-        }).catch(e => console.error('Error procesando webhook Baileys:', e))
-      }
-      return NextResponse.json({ status: 'success' }, { status: 200 })
-    }
-
-    return NextResponse.json({ received: true }, { status: 200 })
+    return NextResponse.json({ error: 'Formato de webhook no reconocido. Solo se admiten eventos de Meta Cloud API.' }, { status: 400 })
   } catch (error: unknown) {
     console.error('Error procesando webhook POST WhatsApp:', error)
     return NextResponse.json({ error: 'Procesado con advertencias' }, { status: 200 })

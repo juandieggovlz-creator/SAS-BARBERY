@@ -236,14 +236,14 @@ export default function SuperAdminDashboardPage() {
         </div>
       </div>
 
-      {/* ── 1. ALERTAS IMPORTANTES Y ACCIONABLES ── */}
+      {/* ── 1. ALERTAS IMPORTANTES Y ACCIONABLES (VIBRANTES Y DE ALTO CONTRASTE) ── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600" />
+          <h2 className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
             <span>Alertas Operativas y Comerciales Clave</span>
           </h2>
-          <span className="text-[11px] font-bold text-zinc-400">
+          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
             Atención prioritaria del día
           </span>
         </div>
@@ -252,30 +252,30 @@ export default function SuperAdminDashboardPage() {
           {/* Alerta 1: Pruebas por vencer */}
           <div className={`p-4 rounded-2xl border transition-all ${
             alerts.trialsExpiringSoon.length > 0 
-              ? 'bg-amber-50/70 border-amber-200 text-amber-950' 
-              : 'bg-white border-zinc-200 text-zinc-800'
+              ? 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/40 text-amber-950 dark:text-amber-100 shadow-xs' 
+              : 'bg-white dark:bg-[#121215] border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100'
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100/80 text-amber-800">
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 shadow-xs">
                 Pruebas por Vencer
               </span>
-              <span className="text-lg font-black">{alerts.trialsExpiringSoon.length}</span>
+              <span className="text-xl font-black text-amber-600 dark:text-amber-400">{alerts.trialsExpiringSoon.length}</span>
             </div>
-            <p className="text-xs font-bold mb-1">
+            <p className="text-xs font-bold mb-1 text-zinc-900 dark:text-zinc-100">
               {alerts.trialsExpiringSoon.length > 0 
                 ? `${alerts.trialsExpiringSoon.length} barberías terminan prueba en ≤ 5 días`
                 : 'Cero pruebas críticas por vencer'}
             </p>
-            <p className="text-[11px] text-zinc-500 mb-3">
+            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mb-3 font-medium">
               Momento óptimo para contactar y cerrar el plan pago.
             </p>
             {alerts.trialsExpiringSoon.length > 0 && (
               <Link 
                 href="/superadmin/commercial"
-                className="inline-flex items-center gap-1.5 text-xs font-black text-amber-800 hover:text-amber-950 underline"
+                className="inline-flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 underline"
               >
                 <span>Gestionar ({alerts.trialsExpiringSoon.length})</span>
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
           </div>
@@ -283,61 +283,61 @@ export default function SuperAdminDashboardPage() {
           {/* Alerta 2: Planes vencidos */}
           <div className={`p-4 rounded-2xl border transition-all ${
             alerts.plansExpired.length > 0 
-              ? 'bg-rose-50/70 border-rose-200 text-rose-950' 
-              : 'bg-white border-zinc-200 text-zinc-800'
+              ? 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/40 text-rose-950 dark:text-rose-100 shadow-xs' 
+              : 'bg-white dark:bg-[#121215] border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100'
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-rose-100/80 text-rose-800">
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/40 shadow-xs">
                 Planes Vencidos
               </span>
-              <span className="text-lg font-black">{alerts.plansExpired.length}</span>
+              <span className="text-xl font-black text-rose-600 dark:text-rose-400">{alerts.plansExpired.length}</span>
             </div>
-            <p className="text-xs font-bold mb-1">
+            <p className="text-xs font-bold mb-1 text-zinc-900 dark:text-zinc-100">
               {alerts.plansExpired.length > 0 
                 ? `${alerts.plansExpired.length} barberías tienen suscripción vencida`
                 : 'Todas las suscripciones al día'}
             </p>
-            <p className="text-[11px] text-zinc-500 mb-3">
+            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mb-3 font-medium">
               Requieren renovación o suspensión por falta de pago.
             </p>
             {alerts.plansExpired.length > 0 && (
               <Link 
                 href="/superadmin/businesses?status=SUSPENDED"
-                className="inline-flex items-center gap-1.5 text-xs font-black text-rose-800 hover:text-rose-950 underline"
+                className="inline-flex items-center gap-1.5 text-xs font-black text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 underline"
               >
                 <span>Revisar ({alerts.plansExpired.length})</span>
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
           </div>
 
-          {/* Alerta 3: Sin actividad en 30 días */}
+          {/* Alerta 3: Sin actividad en 30 días (Vibrante Púrpura de Alto Contraste) */}
           <div className={`p-4 rounded-2xl border transition-all ${
             alerts.inactiveBusinessesList.length > 0 
-              ? 'bg-zinc-50 border-zinc-300 text-zinc-950' 
-              : 'bg-white border-zinc-200 text-zinc-800'
+              ? 'bg-purple-500/10 dark:bg-purple-500/15 border-purple-500/40 text-purple-950 dark:text-purple-100 shadow-xs' 
+              : 'bg-white dark:bg-[#121215] border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100'
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-zinc-200 text-zinc-700">
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/40 shadow-xs font-mono">
                 Inactividad
               </span>
-              <span className="text-lg font-black">{alerts.inactiveBusinessesList.length}</span>
+              <span className="text-xl font-black text-purple-600 dark:text-purple-400">{alerts.inactiveBusinessesList.length}</span>
             </div>
-            <p className="text-xs font-bold mb-1">
+            <p className="text-xs font-bold mb-1 text-zinc-900 dark:text-zinc-100">
               {alerts.inactiveBusinessesList.length > 0
                 ? `${alerts.inactiveBusinessesList.length} barberías sin acceso hace 30+ días`
                 : 'Red activa y con uso recurrente'}
             </p>
-            <p className="text-[11px] text-zinc-500 mb-3">
-              Riesgo de abandono (Churn). Enviar campaña de activación.
+            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mb-3 font-medium">
+              Riesgo de abandono (Churn). Enviar campaña de reactivación.
             </p>
             {alerts.inactiveBusinessesList.length > 0 && (
               <Link 
                 href="/superadmin/commercial"
-                className="inline-flex items-center gap-1.5 text-xs font-black text-zinc-800 hover:text-black underline"
+                className="inline-flex items-center gap-1.5 text-xs font-black text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 underline"
               >
                 <span>Ver inactivas</span>
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
           </div>
@@ -345,29 +345,29 @@ export default function SuperAdminDashboardPage() {
           {/* Alerta 4: Soporte Pendiente */}
           <div className={`p-4 rounded-2xl border transition-all ${
             metrics.pendingTicketsCount > 0 
-              ? 'bg-blue-50/70 border-blue-200 text-blue-950' 
-              : 'bg-white border-zinc-200 text-zinc-800'
+              ? 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/40 text-blue-950 dark:text-blue-100 shadow-xs' 
+              : 'bg-white dark:bg-[#121215] border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100'
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-100/80 text-blue-800">
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/40 shadow-xs">
                 Mesa de Ayuda
               </span>
-              <span className="text-lg font-black">{metrics.pendingTicketsCount}</span>
+              <span className="text-xl font-black text-blue-600 dark:text-blue-400">{metrics.pendingTicketsCount}</span>
             </div>
-            <p className="text-xs font-bold mb-1">
+            <p className="text-xs font-bold mb-1 text-zinc-900 dark:text-zinc-100">
               {metrics.pendingTicketsCount > 0 
                 ? `${metrics.pendingTicketsCount} tickets de soporte por responder`
                 : 'Bandeja de soporte al 100% resuelta'}
             </p>
-            <p className="text-[11px] text-zinc-500 mb-3">
+            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mb-3 font-medium">
               Atención ágil para mantener alta retención.
             </p>
             <Link 
               href="/superadmin/support"
-              className="inline-flex items-center gap-1.5 text-xs font-black text-blue-800 hover:text-blue-950 underline"
+              className="inline-flex items-center gap-1.5 text-xs font-black text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
             >
               <span>Ir a Soporte</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
@@ -375,69 +375,69 @@ export default function SuperAdminDashboardPage() {
 
       {/* ── 2. MÉTRICAS PRINCIPALES DE PLATAFORMA SAAS ── */}
       <div>
-        <h2 className="text-xs font-black uppercase tracking-wider text-zinc-400 mb-4">
+        <h2 className="text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">
           Métricas Clave de la Plataforma
         </h2>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {/* Barberías Registradas */}
-          <div className="p-4 rounded-2xl bg-white border border-zinc-200/90 shadow-2xs">
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 shadow-2xs">
             <div className="flex items-center justify-between text-zinc-400 mb-2">
-              <Building2 className="w-4 h-4 text-zinc-950" />
-              <span className="text-[10px] font-bold text-zinc-500">Total</span>
+              <Building2 className="w-4 h-4 text-zinc-950 dark:text-white" />
+              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">Total</span>
             </div>
-            <div className="text-2xl font-black text-zinc-950">{metrics.totalBusinesses}</div>
-            <p className="text-[11px] text-zinc-500 mt-0.5 font-medium">Barberías registradas</p>
+            <div className="text-2xl font-black text-zinc-950 dark:text-white">{metrics.totalBusinesses}</div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Barberías registradas</p>
           </div>
 
           {/* Barberías Activas */}
-          <div className="p-4 rounded-2xl bg-white border border-zinc-200/90 shadow-2xs">
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 shadow-2xs">
             <div className="flex items-center justify-between text-zinc-400 mb-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span className="text-[10px] font-bold text-emerald-600">En uso</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">En uso</span>
             </div>
-            <div className="text-2xl font-black text-emerald-600">{metrics.activeBusinesses}</div>
-            <p className="text-[11px] text-zinc-500 mt-0.5 font-medium">Barberías activas</p>
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{metrics.activeBusinesses}</div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Barberías activas</p>
           </div>
 
           {/* Barberías en Prueba */}
-          <div className="p-4 rounded-2xl bg-white border border-zinc-200/90 shadow-2xs">
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 shadow-2xs">
             <div className="flex items-center justify-between text-zinc-400 mb-2">
               <Clock className="w-4 h-4 text-amber-500" />
-              <span className="text-[10px] font-bold text-amber-600">Trial</span>
+              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">Trial</span>
             </div>
-            <div className="text-2xl font-black text-amber-600">{metrics.trialBusinesses}</div>
-            <p className="text-[11px] text-zinc-500 mt-0.5 font-medium">Barberías en prueba</p>
+            <div className="text-2xl font-black text-amber-600 dark:text-amber-400">{metrics.trialBusinesses}</div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Barberías en prueba</p>
           </div>
 
           {/* Barberías Suspendidas */}
-          <div className="p-4 rounded-2xl bg-white border border-zinc-200/90 shadow-2xs">
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 shadow-2xs">
             <div className="flex items-center justify-between text-zinc-400 mb-2">
               <AlertCircle className="w-4 h-4 text-rose-500" />
-              <span className="text-[10px] font-bold text-rose-600">Pausa</span>
+              <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">Pausa</span>
             </div>
-            <div className="text-2xl font-black text-rose-600">{metrics.suspendedBusinesses}</div>
-            <p className="text-[11px] text-zinc-500 mt-0.5 font-medium">Suspendidas / Churn</p>
+            <div className="text-2xl font-black text-rose-600 dark:text-rose-400">{metrics.suspendedBusinesses}</div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Suspendidas / Churn</p>
           </div>
 
           {/* MRR */}
-          <div className="p-4 rounded-2xl bg-white border border-zinc-200/90 shadow-2xs">
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 shadow-2xs">
             <div className="flex items-center justify-between text-zinc-400 mb-2">
-              <DollarSign className="w-4 h-4 text-emerald-600" />
-              <span className="text-[10px] font-bold text-emerald-600">Recurrente</span>
+              <DollarSign className="w-4 h-4 text-emerald-500" />
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Recurrente</span>
             </div>
-            <div className="text-xl font-black text-zinc-950 truncate">{formatCOP(metrics.mrr)}</div>
-            <p className="text-[11px] text-zinc-500 mt-0.5 font-medium">MRR proyectado</p>
+            <div className="text-xl font-black text-zinc-950 dark:text-white truncate">{formatCOP(metrics.mrr)}</div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">MRR proyectado</p>
           </div>
 
           {/* Reservas Totales */}
-          <div className="p-4 rounded-2xl bg-white border border-zinc-200/90 shadow-2xs">
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 shadow-2xs">
             <div className="flex items-center justify-between text-zinc-400 mb-2">
-              <Calendar className="w-4 h-4 text-blue-600" />
-              <span className="text-[10px] font-bold text-blue-600">Histórico</span>
+              <Calendar className="w-4 h-4 text-blue-500" />
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Histórico</span>
             </div>
-            <div className="text-2xl font-black text-zinc-950">{metrics.totalAppointments}</div>
-            <p className="text-[11px] text-zinc-500 mt-0.5 font-medium">Reservas procesadas</p>
+            <div className="text-2xl font-black text-zinc-950 dark:text-white">{metrics.totalAppointments}</div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Reservas procesadas</p>
           </div>
         </div>
       </div>
@@ -445,9 +445,9 @@ export default function SuperAdminDashboardPage() {
       {/* ── 3. DETALLE DE USUARIOS & SUSCRIPCIONES ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card: Usuarios de la Red */}
-        <div className="p-5 rounded-3xl bg-white border border-zinc-200/90 shadow-xs space-y-4">
+        <div className="p-5 rounded-3xl bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-950 flex items-center gap-2">
+            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-950 dark:text-white flex items-center gap-2">
               <Users className="w-4 h-4 text-zinc-500" />
               <span>Usuarios de la Red</span>
             </h3>
@@ -455,60 +455,60 @@ export default function SuperAdminDashboardPage() {
           </div>
 
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 border border-zinc-100">
-              <div className="flex items-center gap-2 text-xs font-bold text-zinc-700">
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2 text-xs font-bold text-zinc-700 dark:text-zinc-300">
                 <Crown className="w-4 h-4 text-amber-500" />
                 <span>Dueños / Administradores</span>
               </div>
-              <span className="text-xs font-black text-zinc-950">{metrics.ownerUsers}</span>
+              <span className="text-xs font-black text-zinc-950 dark:text-white">{metrics.ownerUsers}</span>
             </div>
 
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 border border-zinc-100">
-              <div className="flex items-center gap-2 text-xs font-bold text-zinc-700">
-                <Scissors className="w-4 h-4 text-zinc-700" />
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2 text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                <Scissors className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                 <span>Barberos / Estilistas</span>
               </div>
-              <span className="text-xs font-black text-zinc-950">{metrics.barberUsers}</span>
+              <span className="text-xs font-black text-zinc-950 dark:text-white">{metrics.barberUsers}</span>
             </div>
 
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 border border-zinc-100">
-              <div className="flex items-center gap-2 text-xs font-bold text-zinc-700">
-                <UserCheck className="w-4 h-4 text-emerald-600" />
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2 text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                <UserCheck className="w-4 h-4 text-emerald-500" />
                 <span>Clientes Registrados en CRM</span>
               </div>
-              <span className="text-xs font-black text-emerald-700">{metrics.clientsCount}</span>
+              <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">{metrics.clientsCount}</span>
             </div>
           </div>
         </div>
 
         {/* Card: Reservas & Tráfico */}
-        <div className="p-5 rounded-3xl bg-white border border-zinc-200/90 shadow-xs space-y-4">
+        <div className="p-5 rounded-3xl bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-950 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-blue-600" />
+            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-950 dark:text-white flex items-center gap-2">
+              <Activity className="w-4 h-4 text-blue-500" />
               <span>Volumen de Reservas</span>
             </h3>
-            <span className="text-[11px] font-bold text-emerald-600 font-mono">En vivo</span>
+            <span className="text-[11px] font-bold text-emerald-500 font-mono">En vivo</span>
           </div>
 
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 border border-zinc-100">
-              <span className="text-xs font-bold text-zinc-700">Citas este mes</span>
-              <span className="text-xs font-black text-zinc-950">{metrics.monthAppointments}</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+              <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Citas este mes</span>
+              <span className="text-xs font-black text-zinc-950 dark:text-white">{metrics.monthAppointments}</span>
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 border border-zinc-100">
-              <span className="text-xs font-bold text-zinc-700">Suscripciones Activas</span>
-              <span className="text-xs font-black text-emerald-600">{metrics.activeSubscriptionsCount}</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+              <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Suscripciones Activas</span>
+              <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">{metrics.activeSubscriptionsCount}</span>
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 border border-zinc-100">
-              <span className="text-xs font-bold text-zinc-700">Suscripciones Vencidas / Pausadas</span>
-              <span className="text-xs font-black text-rose-600">{metrics.expiredSubscriptionsCount}</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+              <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Suscripciones Vencidas / Pausadas</span>
+              <span className="text-xs font-black text-rose-600 dark:text-rose-400">{metrics.expiredSubscriptionsCount}</span>
             </div>
           </div>
         </div>
 
         {/* Card: Acciones Rápidas del SaaS */}
-        <div className="p-5 rounded-3xl bg-zinc-950 text-white shadow-xl space-y-4 flex flex-col justify-between">
+        <div className="p-5 rounded-3xl bg-zinc-950 dark:bg-[#151518] border border-zinc-800 text-white shadow-xl space-y-4 flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 block mb-1">
               Centro de Mando
@@ -576,11 +576,11 @@ export default function SuperAdminDashboardPage() {
           </Link>
         </div>
 
-        <div className="bg-white border border-zinc-200/90 rounded-3xl overflow-hidden shadow-xs">
+        <div className="bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-zinc-200/80 bg-zinc-50/70 text-zinc-400 font-black uppercase text-[10px] tracking-wider">
+                <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 font-black uppercase text-[10px] tracking-wider">
                   <th className="py-3.5 px-4">Barbería</th>
                   <th className="py-3.5 px-4">Plan Actual</th>
                   <th className="py-3.5 px-4">Estado</th>
@@ -589,32 +589,32 @@ export default function SuperAdminDashboardPage() {
                   <th className="py-3.5 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 {businessesHealth.slice(0, 8).map((b) => (
-                  <tr key={b.id} className="hover:bg-zinc-50/60 transition-colors">
+                  <tr key={b.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-900/50 transition-colors">
                     {/* Barbería */}
                     <td className="py-3.5 px-4">
                       <div>
-                        <p className="font-black text-zinc-950 text-xs">{b.name}</p>
-                        <p className="text-[10px] font-mono text-zinc-400">barberos.app/b/{b.slug}</p>
+                        <p className="font-black text-zinc-950 dark:text-white text-xs">{b.name}</p>
+                        <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">barberos.app/b/{b.slug}</p>
                       </div>
                     </td>
 
                     {/* Plan */}
                     <td className="py-3.5 px-4">
-                      <span className="font-bold text-zinc-700 bg-zinc-100 px-2.5 py-1 rounded-lg text-[11px] border border-zinc-200/60">
+                      <span className="font-bold text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-lg text-[11px] border border-zinc-200 dark:border-zinc-700">
                         {b.planName}
                       </span>
                     </td>
 
                     {/* Estado */}
                     <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                         b.status === 'ACTIVE'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 font-bold'
                           : b.status === 'TRIAL'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 font-bold'
+                          : 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-500/40 font-bold'
                       }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${
                           b.status === 'ACTIVE' ? 'bg-emerald-500' : b.status === 'TRIAL' ? 'bg-amber-500' : 'bg-rose-500'
@@ -625,12 +625,12 @@ export default function SuperAdminDashboardPage() {
 
                     {/* Salud / Uso */}
                     <td className="py-3.5 px-4">
-                      <span className="font-semibold text-zinc-600 block">{b.healthLabel}</span>
-                      <span className="text-[10px] text-zinc-400">{b.timeAgo}</span>
+                      <span className="font-semibold text-zinc-800 dark:text-zinc-200 block">{b.healthLabel}</span>
+                      <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{b.timeAgo}</span>
                     </td>
 
                     {/* Equipo / Clientes */}
-                    <td className="py-3.5 px-4 text-zinc-600">
+                    <td className="py-3.5 px-4 text-zinc-700 dark:text-zinc-300">
                       <span className="font-bold">{b.barbersCount}</span> barberos · <span className="font-bold">{b.clientsCount}</span> clientes
                     </td>
 

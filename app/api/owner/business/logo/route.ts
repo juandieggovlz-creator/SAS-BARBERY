@@ -23,11 +23,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No se envió ningún archivo de imagen' }, { status: 400 })
     }
 
-    // Validar tipo de archivo
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/svg+xml']
+    // Validar tipo de archivo (excluyendo SVG para mitigar vectores de XSS almacenado)
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
     if (!validTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Formato inválido. Usa JPG, PNG, WEBP o SVG.' },
+        { error: 'Formato inválido. Solo se admiten imágenes JPG, PNG o WEBP por seguridad.' },
         { status: 400 }
       )
     }

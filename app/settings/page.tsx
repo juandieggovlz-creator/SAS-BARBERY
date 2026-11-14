@@ -4,10 +4,11 @@ import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Store, Save, Copy, ExternalLink, Upload, Trash2, Loader2, ImageIcon, Monitor, Palette, Sliders, MessageCircle, MapPin, Navigation, Info, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Store, Save, Copy, ExternalLink, Upload, Trash2, Loader2, ImageIcon, Monitor, Palette, Sliders, MessageCircle, MapPin, Navigation, Info, CheckCircle2, AlertCircle, DollarSign } from 'lucide-react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import { ConfirmImageDeleteModal } from '@/components/ui/ConfirmImageDeleteModal'
 import AccentColorPicker from '@/components/ui/AccentColorPicker'
+import DepositSettings from '@/components/owner/DepositSettings'
 import { validateGoogleMapsUrl, parseLocation } from '@/lib/maps'
 import { getBookingUrl } from '@/lib/url'
 
@@ -24,7 +25,7 @@ interface BusinessData {
 }
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'general' | 'appearance'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'appearance' | 'deposits'>('general')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -182,9 +183,9 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8 max-w-4xl mx-auto pb-12">
       {/* Top Banner */}
-      <div className="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden bg-black text-white flex items-center justify-center font-black text-xl shadow-lg shrink-0 relative border border-zinc-200">
+          <div className="w-16 h-16 rounded-2xl overflow-hidden bg-black dark:bg-zinc-950 text-white flex items-center justify-center font-black text-xl shadow-lg shrink-0 relative border border-zinc-200 dark:border-zinc-700">
             {business.logo ? (
               <Image
                 src={business.logo}
@@ -199,7 +200,7 @@ export default function SettingsPage() {
             )}
           </div>
           <div>
-            <h2 className="text-xl font-black text-zinc-950 uppercase tracking-tight">{business.name}</h2>
+            <h2 className="text-xl font-black text-zinc-950 dark:text-white uppercase tracking-tight">{business.name}</h2>
             <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mt-0.5">slug: /{business.slug}</p>
           </div>
         </div>
@@ -207,7 +208,7 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={copyBookingLink}
-            className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all"
+            className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
           >
             <Copy size={14} /> Copiar Enlace
           </button>
@@ -215,7 +216,7 @@ export default function SettingsPage() {
             href={`/reserve/${business.slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-black hover:bg-zinc-800 text-white p-2.5 rounded-2xl transition-all flex items-center justify-center"
+            className="bg-black hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white p-2.5 rounded-2xl transition-all flex items-center justify-center"
             title="Ver página de reservas"
           >
             <ExternalLink size={16} />
@@ -230,8 +231,8 @@ export default function SettingsPage() {
           onClick={() => setActiveTab('general')}
           className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'general'
-              ? 'bg-zinc-950 dark:bg-zinc-100 text-white dark:text-zinc-950 shadow-md'
-              : 'text-zinc-500 hover:text-zinc-950 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900'
+              ? 'bg-zinc-950 dark:bg-zinc-800 text-white dark:text-zinc-100 shadow-md border border-transparent dark:border-zinc-700'
+              : 'text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60'
           }`}
         >
           <Store size={14} /> Información General
@@ -242,11 +243,23 @@ export default function SettingsPage() {
           onClick={() => setActiveTab('appearance')}
           className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'appearance'
-              ? 'bg-zinc-950 dark:bg-zinc-100 text-white dark:text-zinc-950 shadow-md'
-              : 'text-zinc-500 hover:text-zinc-950 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900'
+              ? 'bg-zinc-950 dark:bg-zinc-800 text-white dark:text-zinc-100 shadow-md border border-transparent dark:border-zinc-700'
+              : 'text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60'
           }`}
         >
           <Palette size={14} /> Apariencia
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('deposits')}
+          className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'deposits'
+              ? 'bg-zinc-950 dark:bg-zinc-800 text-white dark:text-zinc-100 shadow-md border border-transparent dark:border-zinc-700'
+              : 'text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60'
+          }`}
+        >
+          <DollarSign size={14} className="text-amber-500" /> Anticipos
         </button>
 
         <Link
@@ -307,7 +320,7 @@ export default function SettingsPage() {
                 type="button"
                 disabled={uploadingLogo}
                 onClick={() => fileInputRef.current?.click()}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-black dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-950 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-black dark:bg-zinc-800 hover:bg-zinc-800 dark:hover:bg-zinc-700 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-sm border border-transparent dark:border-zinc-700"
               >
                 {uploadingLogo ? (
                   <>
@@ -509,7 +522,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full sm:w-auto bg-black dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-950 px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
+                className="w-full sm:w-auto bg-black dark:bg-zinc-800 hover:bg-zinc-800 dark:hover:bg-zinc-700 text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg dark:border dark:border-zinc-700 disabled:opacity-50 cursor-pointer"
               >
                 <Save size={16} />
                 {saving ? 'Guardando...' : 'Guardar Cambios'}
@@ -538,6 +551,11 @@ export default function SettingsPage() {
             <AccentColorPicker />
           </div>
         </div>
+      )}
+
+      {/* ── TAB 3: ANTICIPOS Y SEÑAS ── */}
+      {activeTab === 'deposits' && (
+        <DepositSettings />
       )}
 
       {/* ── BANNER ACCESO RÁPIDO A CONEXIÓN WHATSAPP ── */}

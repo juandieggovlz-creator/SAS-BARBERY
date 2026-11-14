@@ -75,20 +75,20 @@ export default function SuperAdminSystemPage() {
         return {
           icon: CheckCircle2,
           text: '🟢 Operativo',
-          className: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          className: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 font-bold'
         }
       case 'DEGRADED':
         return {
           icon: AlertTriangle,
           text: '🟡 Degradado',
-          className: 'bg-amber-50 text-amber-700 border-amber-200'
+          className: 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 font-bold'
         }
       case 'DOWN':
       default:
         return {
           icon: XCircle,
           text: '🔴 Fuera de Servicio',
-          className: 'bg-rose-50 text-rose-700 border-rose-200'
+          className: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40 font-bold'
         }
     }
   }
@@ -116,53 +116,53 @@ export default function SuperAdminSystemPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-black uppercase tracking-widest text-amber-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
               <Activity className="w-3 h-3" />
               Monitoreo en Tiempo Real
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-950" style={{ letterSpacing: '-0.03em' }}>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-950 dark:text-white" style={{ letterSpacing: '-0.03em' }}>
             Estado del Sistema BarberOS
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
             Diagnóstico activo de infraestructura, base de datos, APIs, almacenamiento y servicios esenciales.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {lastCheckTime && (
-            <span className="text-xs text-zinc-400 font-mono hidden sm:inline">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono hidden sm:inline">
               Último chequeo: {lastCheckTime}
             </span>
           )}
           <button
             onClick={fetchHealth}
             disabled={checking}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-all cursor-pointer shadow-xs"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-xs"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${checking ? 'animate-spin text-zinc-900' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${checking ? 'animate-spin text-zinc-900 dark:text-zinc-100' : ''}`} />
             <span>{checking ? 'Diagnosticando...' : 'Ejecutar Diagnóstico'}</span>
           </button>
         </div>
       </div>
 
       {/* ── GLOBAL HEALTH STATUS BANNER ── */}
-      <div className="p-6 bg-white border border-zinc-200 rounded-3xl shadow-xs">
+      <div className="p-6 bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <Zap className="w-7 h-7" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black uppercase text-zinc-950">
+                <h2 className="text-lg font-black uppercase text-zinc-950 dark:text-white">
                   Todos los Sistemas Principales Operativos
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40">
                   100% DISPONIBILIDAD
                 </span>
               </div>
-              <p className="text-xs text-zinc-500 mt-0.5">
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
                 BarberOS responde sin anomalías en la base de datos, autenticación y procesamiento de citas.
               </p>
             </div>
@@ -173,8 +173,8 @@ export default function SuperAdminSystemPage() {
       {/* ── 5 REQUIRED SERVICE CARDS ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {loading ? (
-          <div className="col-span-full p-16 flex flex-col items-center justify-center gap-3 bg-white rounded-3xl border border-zinc-200">
-            <Loader2 className="w-8 h-8 animate-spin text-zinc-900" />
+          <div className="col-span-full p-16 flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#121215] rounded-3xl border border-zinc-200 dark:border-zinc-800">
+            <Loader2 className="w-8 h-8 animate-spin text-zinc-900 dark:text-zinc-100" />
             <span className="text-xs font-bold text-zinc-400">Verificando servicios del SaaS...</span>
           </div>
         ) : (
@@ -185,15 +185,15 @@ export default function SuperAdminSystemPage() {
             return (
               <div
                 key={key}
-                className="p-5 bg-white border border-zinc-200 rounded-3xl shadow-xs space-y-4 hover:shadow-md transition-shadow"
+                className="p-5 bg-white dark:bg-[#121215] border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xs space-y-4 hover:border-zinc-400 dark:hover:border-zinc-700 transition-all"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-800">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-800 dark:text-zinc-200">
                       <Icon className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-xs font-black uppercase text-zinc-900">
+                      <h3 className="text-xs font-black uppercase text-zinc-900 dark:text-zinc-100">
                         {service.name}
                       </h3>
                       <span className="text-[10px] text-zinc-400 font-mono">
@@ -207,7 +207,7 @@ export default function SuperAdminSystemPage() {
                   </span>
                 </div>
 
-                <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100 text-xs text-zinc-600 leading-relaxed">
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium">
                   {service.details}
                 </div>
               </div>

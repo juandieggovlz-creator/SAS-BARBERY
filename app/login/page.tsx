@@ -30,6 +30,36 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  // Estado del flujo de recuperación de contraseña (V-15)
+  const [showForgotModal, setShowForgotModal] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!forgotEmail) return
+    setForgotLoading(true)
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setForgotSent(true)
+        toast.success(data.message || 'Solicitud de recuperación enviada.')
+      } else {
+        toast.error(data.error || 'No se pudo procesar la solicitud.')
+      }
+    } catch {
+      toast.error('Error de red al procesar la recuperación.')
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
   useEffect(() => {
     // Check if redirected with an error parameter
     if (typeof window !== 'undefined') {
@@ -51,6 +81,13 @@ export default function LoginPage() {
     }
     // Purge any residual session cookie when landing on the login page
     fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+
+    // Ensure login page is isolated from any dynamic panel accent
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement
+      const residualVars = ['--accent','--accent-dark','--accent-darker','--accent-light','--accent-lighter','--accent-op15','--accent-op30','--accent-op60','--accent-contrast','--accent-hover','--sidebar-active-bg','--sidebar-active-text']
+      residualVars.forEach(v => root.style.removeProperty(v))
+    }
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -112,14 +149,14 @@ export default function LoginPage() {
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-accent/10 dark:bg-accent/15 rounded-full blur-3xl"
+          className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-amber-500/10 dark:bg-amber-400/15 rounded-full blur-3xl"
           style={{ filter: 'blur(120px)' }}
         />
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 1.4, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-primary/10 dark:bg-primary/15 rounded-full blur-3xl"
+          className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-amber-500/10 dark:bg-amber-400/15 rounded-full blur-3xl"
           style={{ filter: 'blur(120px)' }}
         />
       </div>
@@ -349,7 +386,11 @@ export default function LoginPage() {
 
                   <motion.button
                     type="button"
-                    onClick={() => toast.info('Comunícate con soporte o tu administrador para restablecer tu clave.')}
+                    onClick={() => {
+                      setForgotEmail(email)
+                      setForgotSent(false)
+                      setShowForgotModal(true)
+                    }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="font-bold text-text-tertiary hover:text-text-primary transition-colors duration-200 cursor-pointer"
@@ -367,7 +408,7 @@ export default function LoginPage() {
                   transition={{ duration: 0.4, delay: 0.4 }}
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full mt-2 btn-primary text-sm py-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full mt-2 inline-flex items-center justify-center px-6 py-4 rounded-xl font-black text-sm bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-md shadow-amber-500/20 border border-amber-500 hover:border-amber-400 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <motion.div
@@ -488,12 +529,12 @@ export default function LoginPage() {
                     whileTap={{ scale: 0.98 }}
                     className="text-xs font-semibold px-3 py-2 rounded-lg bg-surface-3 hover:bg-surface-4 text-text-secondary border border-border-subtle transition-all duration-200 cursor-pointer flex items-center gap-2"
                   >
-                    <motion.span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <motion.span className="w-2 h-2 rounded-full bg-amber-500" />
                     <span>Dueño Demo</span>
                   </motion.button>
                   <motion.button
                     type="button"
-                    onClick={() => fillCredentials('julian@barber.com', 'barber123')}
+                    onClick={() => fillCredentials('julian@barberia.com', 'barber123')}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     className="text-xs font-semibold px-3 py-2 rounded-lg bg-surface-3 hover:bg-surface-4 text-text-secondary border border-border-subtle transition-all duration-200 cursor-pointer flex items-center gap-2"
@@ -709,7 +750,7 @@ export default function LoginPage() {
                 transition={{ duration: 0.4, delay: 0.65 }}
                 className="text-xs text-text-secondary font-medium"
               >
-                Más de <span className="font-black text-text-primary">500 barberías</span> confían en BarberOS diariamente.
+                Control de agenda, liquidación de comisiones y finanzas en tiempo real.
               </motion.p>
             </motion.div>
           </motion.div>
@@ -725,6 +766,73 @@ export default function LoginPage() {
       >
         <p>© {new Date().getFullYear()} BarberOS. Plataforma de Gestión Integral para Barberías.</p>
       </motion.footer>
+
+      {/* Modal de Recuperación de Contraseña (V-15) */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-bg-card p-6 sm:p-8 rounded-3xl border border-border-default shadow-2xl max-w-md w-full relative">
+            <button
+              onClick={() => setShowForgotModal(false)}
+              className="absolute right-4 top-4 text-text-tertiary hover:text-text-primary text-xl font-bold w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <h3 className="text-xl font-black text-text-primary mb-2">Recuperar Contraseña</h3>
+            <p className="text-xs text-text-secondary mb-5">
+              Ingresa el correo asociado a tu cuenta de BarberOS para recibir el enlace de restablecimiento seguro.
+            </p>
+
+            {forgotSent ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-medium leading-relaxed">
+                  ✅ Si el correo está registrado, se han generado las instrucciones de recuperación. Revisa tu bandeja de entrada o comunícate con el administrador.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(false)}
+                  className="w-full btn-primary py-3 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer"
+                >
+                  Entendido
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-1">
+                    Correo Electrónico
+                  </label>
+                  <input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="ejemplo@barberia.com"
+                    required
+                    className="w-full px-4 py-3 rounded-xl bg-bg-subtle border border-border-default text-text-primary text-sm focus:outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    className="flex-1 py-3 rounded-xl border border-border-default text-xs font-bold uppercase tracking-wider text-text-secondary hover:bg-bg-subtle cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="flex-1 btn-primary py-3 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer disabled:opacity-50"
+                  >
+                    {forgotLoading ? 'Enviando...' : 'Enviar Enlace'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

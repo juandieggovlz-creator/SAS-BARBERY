@@ -109,7 +109,7 @@ export default function SuperAdminUsersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-black uppercase tracking-widest text-amber-700">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">
               <Users className="w-3 h-3" />
               Directorio de Cuentas
             </span>
@@ -223,10 +223,10 @@ export default function SuperAdminUsersPage() {
                     <td className="py-4 px-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${
                         u.role === 'SUPER_ADMIN'
-                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 font-bold'
                           : u.role === 'OWNER'
-                          ? 'bg-zinc-100 text-zinc-800 border-zinc-200'
-                          : 'bg-blue-50 text-blue-700 border-blue-200'
+                          ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700 font-bold'
+                          : 'bg-blue-500/15 text-blue-800 dark:text-blue-300 border-blue-500/40 font-bold'
                       }`}>
                         {u.role === 'SUPER_ADMIN' ? 'Super Admin' : u.role === 'OWNER' ? 'Dueño' : 'Barbero'}
                       </span>
@@ -251,8 +251,8 @@ export default function SuperAdminUsersPage() {
                     <td className="py-4 px-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${
                         u.isActive
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                          ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 font-bold'
+                          : 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-500/40 font-bold'
                       }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${u.isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                         {u.isActive ? 'Activo' : 'Suspendido'}
@@ -281,8 +281,8 @@ export default function SuperAdminUsersPage() {
                           disabled={actionLoadingId === u.id}
                           className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5 ${
                             u.isActive
-                              ? 'bg-zinc-100 text-zinc-700 hover:bg-rose-50 hover:text-rose-600'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                              ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-rose-500/20 hover:text-rose-600 dark:hover:text-rose-400 border border-zinc-200 dark:border-zinc-700'
+                              : 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
                           }`}
                           title={u.isActive ? 'Suspender usuario' : 'Reactivar usuario'}
                         >
