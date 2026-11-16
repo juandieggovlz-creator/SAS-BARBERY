@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   Scissors,
@@ -33,8 +33,28 @@ import {
   Layers
 } from 'lucide-react'
 import { getTheme, getFont, getEffectiveColors, getAccentContrast, VisualTheme, ThemeColors } from '@/lib/themes'
+import { extractMotionConfigFromPage } from '@/lib/motion-presets'
 import BarberPoleLoader from '@/components/public/BarberPoleLoader'
-import { BANNER_PRESETS, DEFAULT_HERO_BANNER } from '@/components/public/BannerPresets'
+import CinematicHero from '@/components/public/CinematicHero'
+import { NarrativeSection, CinematicStatementBand } from '@/components/public/NarrativeSection'
+import {
+  EditorialServicesShowcase,
+  EditorialBarbersShowcase,
+  ImmersiveGalleryShowcase,
+} from '@/components/public/ImmersiveCatalog'
+import { CinematicBookingWidget } from '@/components/public/CinematicBookingWidget'
+import { BANNER_PRESETS, DEFAULT_HERO_BANNER, resolveCoverBannerUrl } from '@/components/public/BannerPresets'
+import {
+  GalleryItem,
+  GalleryServiceRef,
+  GALLERY_MAX_PER_CATEGORY,
+  getCategoryLabel,
+  getLinkedService,
+  getUsedCategories,
+  normalizeGalleryCategory,
+  resolveGalleryTitle,
+  sortGallery,
+} from '@/lib/gallery'
 import { DayScheduleItem, DEFAULT_SCHEDULE, parseSchedule, formatDayHours, formatTime12h } from '@/lib/schedule'
 import { buildSocialUrl } from '@/lib/socials'
 import { parseLocation } from '@/lib/maps'
@@ -66,37 +86,22 @@ const TikTokIcon = () => (
 
 const DEFAULT_BANNER = DEFAULT_HERO_BANNER
 
-const DEFAULT_GALLERY = [
-  // ── Cortes (6) ──
-  { id: 'c-1', url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80', caption: 'Fade Clásico & Texturizado', category: 'cortes' },
-  { id: 'c-2', url: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80', caption: 'Degradado Skin Fade Pulido', category: 'cortes' },
-  { id: 'c-3', url: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800&q=80', caption: 'Corte Moderno Urbano', category: 'cortes' },
-  { id: 'c-4', url: 'https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&w=800&q=80', caption: 'Tijera y Acabado Mate', category: 'cortes' },
-  { id: 'c-5', url: 'https://images.unsplash.com/photo-1593702295094-aea22597af65?auto=format&fit=crop&w=800&q=80', caption: 'Diseño de Líneas & Contorno', category: 'cortes' },
-  { id: 'c-6', url: '/imagenes/banner-corte-navaja.jpeg', caption: 'Perfilado con Navaja de Precisión', category: 'cortes' },
+/** Reseñas de demostración que versiones anteriores del constructor insertaban automáticamente. */
+const LEGACY_DEMO_TESTIMONIAL_COMMENTS = new Set([
+  'El mejor fade que me han hecho en años. La atención, la puntualidad y el ambiente superan cualquier expectativa.',
+  'Excelente experiencia de principio a fin. El ritual de toalla caliente para la barba es de otro nivel.',
+  'Puntuales, pulcros y los barberos realmente dominan las técnicas modernas. 100% recomendado.',
+])
 
-  // ── Barbas (6) ──
-  { id: 'b-1', url: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800&q=80', caption: 'Perfilado de Barba Completa', category: 'barbas' },
-  { id: 'b-2', url: '/imagenes/banner-cuidado-barba.jpeg', caption: 'Ritual de Toalla Caliente', category: 'barbas' },
-  { id: 'b-3', url: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=800&q=80', caption: 'Afeitado Tradicional al Ras', category: 'barbas' },
-  { id: 'b-4', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80', caption: 'Hidratación & Bálsamos Esenciales', category: 'barbas' },
-  { id: 'b-5', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=800&q=80', caption: 'Diseño de Bigote y Pómulos', category: 'barbas' },
-  { id: 'b-6', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80', caption: 'Degradado y Sombreado de Barba', category: 'barbas' },
-
-  // ── Instalaciones (6) ──
-  { id: 'i-1', url: '/imagenes/banner-sillon-vintage.jpeg', caption: 'Sillones de Cuero Vintage', category: 'instalaciones' },
-  { id: 'i-2', url: '/imagenes/banner-barber-premium.jpeg', caption: 'Salón Principal Luxury', category: 'instalaciones' },
-  { id: 'i-3', url: '/imagenes/banner-estacion-tijeras.jpeg', caption: 'Estación de Trabajo Profesional', category: 'instalaciones' },
-  { id: 'i-4', url: '/imagenes/banner-salon-neon.jpeg', caption: 'Zona Lounge & Luces Neón', category: 'instalaciones' },
-  { id: 'i-5', url: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80', caption: 'Espejos con Iluminación LED', category: 'instalaciones' },
-  { id: 'i-6', url: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80', caption: 'Área de Lavado y Spa', category: 'instalaciones' },
-]
-
-const DEFAULT_TESTIMONIALS = [
-  { id: '1', name: 'Andrés Morales', comment: 'El mejor fade que me han hecho en años. La atención, la puntualidad y el ambiente superan cualquier expectativa.', rating: 5, date: 'Hace 3 días' },
-  { id: '2', name: 'Camilo Restrepo', comment: 'Excelente experiencia de principio a fin. El ritual de toalla caliente para la barba es de otro nivel.', rating: 5, date: 'Hace 1 semana' },
-  { id: '3', name: 'Sebastián Gómez', comment: 'Puntuales, pulcros y los barberos realmente dominan las técnicas modernas. 100% recomendado.', rating: 5, date: 'Hace 2 semanas' },
-]
+/** Día de la semana según la hora de Colombia (no la del dispositivo del visitante). */
+function getBusinessTodayIndex(timeZone = 'America/Bogota'): number {
+  try {
+    const wd = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone }).format(new Date())
+    return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(wd)
+  } catch {
+    return new Date().getDay()
+  }
+}
 
 
 
@@ -107,8 +112,33 @@ export default function PublicBusinessPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [colorMode, setColorMode] = useState<'dark' | 'light' | 'system'>('dark')
-  const [activeGalleryCat, setActiveGalleryCat] = useState<'todos' | 'cortes' | 'barbas' | 'instalaciones'>('todos')
+  const [activeGalleryCat, setActiveGalleryCat] = useState<string>('todos')
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
+
+  // Cargar preferencia del visitante o aplicar modo predeterminado del negocio
+  useEffect(() => {
+    if (typeof window === 'undefined' || !slug) return
+    try {
+      const saved = localStorage.getItem(`b_${slug}_theme`)
+      if (saved === 'dark' || saved === 'light') {
+        setColorMode(saved)
+        return
+      }
+    } catch {}
+    if (data?.page?.defaultColorMode === 'light' || data?.page?.defaultColorMode === 'dark') {
+      setColorMode(data.page.defaultColorMode)
+    }
+  }, [slug, data?.page?.defaultColorMode])
+
+  const toggleTheme = () => {
+    const next = colorMode === 'dark' ? 'light' : 'dark'
+    setColorMode(next)
+    if (typeof window !== 'undefined' && slug) {
+      try {
+        localStorage.setItem(`b_${slug}_theme`, next)
+      } catch {}
+    }
+  }
 
   // ── Multi-Service Booking State ──
   const [bookingStep, setBookingStep] = useState<1 | 2 | 3 | 4 | 5>(1)
@@ -123,18 +153,19 @@ export default function PublicBusinessPage() {
   const [submittingBooking, setSubmittingBooking] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState<any | null>(null)
   const [bookingError, setBookingError] = useState<string | null>(null)
-  const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | 'cancelacion' | 'datos' | null>(null)
+  const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | 'cancelacion' | 'anticipos' | 'datos' | null>(null)
 
   const [navScrolled, setNavScrolled] = useState(false)
+  const [activeSection, setActiveSection] = useState<string>('')
   const reserveRef = useRef<HTMLDivElement>(null)
 
-  const todayIndex = new Date().getDay()
+  const todayIndex = getBusinessTodayIndex()
 
   useEffect(() => {
     if (!slug) return
     const fetchBusiness = async () => {
       try {
-        const res = await fetch(`/api/public/b/${slug}`)
+        const res = await fetch(`/api/public/b/${slug}`, { cache: 'no-store' })
         if (res.ok) {
           const json = await res.json()
           setData(json)
@@ -146,6 +177,44 @@ export default function PublicBusinessPage() {
       }
     }
     fetchBusiness()
+
+    // ── Sincronización entre pestañas (BroadcastChannel) ──
+    let channel: BroadcastChannel | null = null
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        channel = new BroadcastChannel('barberos_catalog_sync')
+        channel.onmessage = (event) => {
+          if (event.data?.type === 'CATALOG_UPDATED') {
+            fetchBusiness()
+          }
+        }
+      } catch {
+        // Fallback silencioso
+      }
+    }
+
+    // ── Revalidación al volver a la pestaña (Visibility & Focus) ──
+    const handleVisibility = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchBusiness()
+      }
+    }
+    window.addEventListener('focus', handleVisibility)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    // ── Sondeo suave en segundo plano (cada 45s solo si la pestaña está visible) ──
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchBusiness()
+      }
+    }, 45000)
+
+    return () => {
+      if (channel) channel.close()
+      window.removeEventListener('focus', handleVisibility)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      clearInterval(interval)
+    }
   }, [slug])
 
   // ── Sincronización en tiempo real con el Editor Web mediante postMessage ──
@@ -157,12 +226,37 @@ export default function PublicBusinessPage() {
 
     const handlePreviewMessage = (event: MessageEvent) => {
       if (event.data?.type === 'PREVIEW_STATE_UPDATE') {
-        const { config, logo, previewColorMode } = event.data
-        if (config || logo !== undefined) {
+        const {
+          config,
+          logo,
+          businessName,
+          address,
+          phone,
+          description,
+          email,
+          mapsUrl,
+          previewColorMode,
+        } = event.data
+        if (
+          config ||
+          logo !== undefined ||
+          businessName !== undefined ||
+          address !== undefined ||
+          phone !== undefined ||
+          description !== undefined ||
+          email !== undefined ||
+          mapsUrl !== undefined
+        ) {
           setData((prev: any) => {
             if (!prev) return prev
             return {
               ...prev,
+              name: businessName !== undefined && businessName.trim() ? businessName : prev.name,
+              address: address !== undefined ? address : prev.address,
+              phone: phone !== undefined ? phone : prev.phone,
+              description: description !== undefined ? description : prev.description,
+              email: email !== undefined ? email : prev.email,
+              mapsUrl: mapsUrl !== undefined ? mapsUrl : prev.mapsUrl,
               logo: logo !== undefined ? logo : prev.logo,
               page: {
                 ...(prev.page || {}),
@@ -181,9 +275,36 @@ export default function PublicBusinessPage() {
     return () => window.removeEventListener('message', handlePreviewMessage)
   }, [])
 
-  // Scroll listener — nav se vuelve sólido al salir del hero
+  // Scroll listener — nav se vuelve sólido al salir del hero y detecta la sección activa
   useEffect(() => {
-    const onScroll = () => setNavScrolled(window.scrollY > 60)
+    const sectionIds = ['servicios', 'equipo', 'galeria', 'horarios', 'ubicacion']
+    const onScroll = () => {
+      const scrollY = window.scrollY
+      setNavScrolled(scrollY > 60)
+
+      if (scrollY < 320) {
+        setActiveSection('')
+        return
+      }
+
+      const viewportTrigger = scrollY + 240
+      let current = ''
+      for (const id of sectionIds) {
+        const el = document.getElementById(id)
+        if (el) {
+          const rect = el.getBoundingClientRect()
+          const top = rect.top + scrollY
+          const height = rect.height
+          if (viewportTrigger >= top && viewportTrigger < top + height) {
+            current = id
+            break
+          }
+        }
+      }
+      setActiveSection(current)
+    }
+
+    onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
@@ -255,6 +376,7 @@ export default function PublicBusinessPage() {
       const payload = {
         businessId: data.id,
         serviceId: primaryService.id,
+        serviceIds: selectedServices.map((s) => s.id),
         totalDuration: totalAccumulatedDuration,
         barberId: selectedBarber?.id || (availableSlots.find(s => s.time === selectedSlot)?.barberIds[0]),
         date: fullDateTime,
@@ -295,17 +417,13 @@ export default function PublicBusinessPage() {
   }
 
   if (!data) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-white flex-col gap-4 p-6 text-center">
-        <Scissors className="w-16 h-16 text-zinc-700" />
-        <h1 className="text-3xl font-black">Barbería no encontrada</h1>
-        <p className="text-zinc-500 text-sm max-w-md">El enlace no corresponde a ningún negocio activo en BarberOS.</p>
-      </div>
-    )
+    notFound()
   }
 
-  // ── Theme & Font Configuration ──
-  const pageConfig = data.page || {}
+  // ── Theme, Font & Motion Configuration ──
+  const rawPageConfig = data.page || {}
+  const motionConfig = extractMotionConfigFromPage(rawPageConfig)
+  const pageConfig = { ...rawPageConfig, ...motionConfig }
   const theme: VisualTheme = getTheme(pageConfig.theme || 'ELEGANTE')
   const fontConfig = getFont(pageConfig.fontFamily || 'inter')
   const colors: ThemeColors = getEffectiveColors(theme, colorMode)
@@ -315,55 +433,70 @@ export default function PublicBusinessPage() {
   const formatCOP = (n: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
 
-  // Social Links
-  const showWhatsapp = pageConfig.showWhatsapp !== false
-  const showInstagram = pageConfig.showInstagram !== false
-  const showFacebook = pageConfig.showFacebook !== false
-  const showTiktok = pageConfig.showTiktok !== false
+  // Social & Visibility Links (Fase 2)
+  const showWhatsapp = pageConfig.showWhatsapp !== false && Boolean(pageConfig.whatsapp && pageConfig.whatsapp.trim())
+  const showPhone = pageConfig.showPhone !== false && Boolean(data.phone && data.phone.trim())
+  const showEmail = pageConfig.showEmail !== false && Boolean(data.email && data.email.trim())
+  const showInstagram = pageConfig.showInstagram !== false && Boolean(pageConfig.instagram && pageConfig.instagram.trim())
+  const showFacebook = pageConfig.showFacebook !== false && Boolean(pageConfig.facebook && pageConfig.facebook.trim())
+  const showTiktok = pageConfig.showTiktok !== false && Boolean(pageConfig.tiktok && pageConfig.tiktok.trim())
 
-  const rawWhatsapp = pageConfig.whatsapp || data.phone || ''
+  const rawWhatsapp = (pageConfig.whatsapp || '').trim()
   const whatsappUrl = (showWhatsapp && rawWhatsapp) ? buildSocialUrl('whatsapp', rawWhatsapp) : ''
   const instagramUrl = (showInstagram && pageConfig.instagram) ? buildSocialUrl('instagram', pageConfig.instagram) : ''
   const facebookUrl = (showFacebook && pageConfig.facebook) ? buildSocialUrl('facebook', pageConfig.facebook) : ''
   const tiktokUrl = (showTiktok && pageConfig.tiktok) ? buildSocialUrl('tiktok', pageConfig.tiktok) : ''
 
-  // Helper para normalizar categoría
-  const normalizeGalleryCat = (cat: string) => {
-    const c = (cat || 'cortes').toLowerCase()
-    if (c === 'barba' || c === 'barbas') return 'barbas'
-    if (c === 'instalacion' || c === 'instalaciones') return 'instalaciones'
-    return 'cortes'
-  }
-
-  // Gallery items - separate custom uploaded images vs default reference images
-  const hasCustomGallery = Array.isArray(pageConfig.gallery) && pageConfig.gallery.length > 0
-  const customGallery = hasCustomGallery ? pageConfig.gallery : []
+  // ── Galería: únicamente fotografías reales subidas por el negocio ──
+  // Sin fotos de stock ni etiquetas inventadas. Si no hay fotos, la sección se oculta.
+  const galleryServices: GalleryServiceRef[] = Array.isArray(data.services)
+    ? data.services.map((s: any) => ({ id: s.id, name: s.name }))
+    : []
+  const customGallery: GalleryItem[] = Array.isArray(pageConfig.gallery)
+    ? sortGallery(
+      (pageConfig.gallery as any[]).filter((i) => i && typeof i.url === 'string' && i.url.trim())
+    )
+    : []
+  const hasCustomGallery = customGallery.length > 0
+  const galleryCategories = getUsedCategories(customGallery)
+  const effectiveGalleryCat =
+    activeGalleryCat !== 'todos' && galleryCategories.some((c) => c.key === activeGalleryCat)
+      ? activeGalleryCat
+      : 'todos'
 
   const filteredGallery = (() => {
-    if (hasCustomGallery) {
-      if (activeGalleryCat === 'todos') {
-        const cortes = customGallery.filter((i: any) => normalizeGalleryCat(i.category) === 'cortes').slice(0, 6)
-        const barbas = customGallery.filter((i: any) => normalizeGalleryCat(i.category) === 'barbas').slice(0, 6)
-        const instalaciones = customGallery.filter((i: any) => normalizeGalleryCat(i.category) === 'instalaciones').slice(0, 6)
-        return [...cortes, ...barbas, ...instalaciones]
-      }
-      return customGallery.filter((i: any) => normalizeGalleryCat(i.category) === activeGalleryCat).slice(0, 6)
+    const byCat = (key: string) =>
+      customGallery
+        .filter((i) => normalizeGalleryCategory(i.category) === key)
+        .slice(0, GALLERY_MAX_PER_CATEGORY)
+    if (effectiveGalleryCat === 'todos') {
+      const allowed = new Set(galleryCategories.flatMap((c) => byCat(c.key).map((i) => i.id)))
+      return customGallery.filter((i) => allowed.has(i.id))
     }
+    return byCat(effectiveGalleryCat)
+  })().map((item) => ({
+    ...item,
+    displayTitle: resolveGalleryTitle(item, galleryServices),
+    displayCategory: getCategoryLabel(normalizeGalleryCategory(item.category), customGallery),
+    linkedService: getLinkedService(item, galleryServices)
+      ? data.services.find((s: any) => s.id === item.serviceId)
+      : null,
+  }))
 
-    // Fallback: Si el negocio aún no ha subido fotos, mostrar estilos curados de referencia
-    if (activeGalleryCat === 'todos') {
-      const cortes = DEFAULT_GALLERY.filter((i: any) => normalizeGalleryCat(i.category) === 'cortes').slice(0, 6)
-      const barbas = DEFAULT_GALLERY.filter((i: any) => normalizeGalleryCat(i.category) === 'barbas').slice(0, 6)
-      const instalaciones = DEFAULT_GALLERY.filter((i: any) => normalizeGalleryCat(i.category) === 'instalaciones').slice(0, 6)
-      return [...cortes, ...barbas, ...instalaciones]
-    }
-    return DEFAULT_GALLERY.filter((i: any) => normalizeGalleryCat(i.category) === activeGalleryCat).slice(0, 6)
-  })()
-
-  // Testimonials
-  const testimonialItems = Array.isArray(pageConfig.testimonials) && pageConfig.testimonials.length > 0
-    ? pageConfig.testimonials
-    : DEFAULT_TESTIMONIALS
+  // ── Testimonios: solo reseñas agregadas por el negocio (se excluyen las de demostración) ──
+  const testimonialItems: any[] = Array.isArray(pageConfig.testimonials)
+    ? pageConfig.testimonials.filter(
+      (t: any) =>
+        t &&
+        typeof t.comment === 'string' &&
+        t.comment.trim() &&
+        !LEGACY_DEMO_TESTIMONIAL_COMMENTS.has(t.comment.trim())
+    )
+    : []
+  const testimonialAverage =
+    testimonialItems.length > 0
+      ? testimonialItems.reduce((acc, t) => acc + (Number(t.rating) || 5), 0) / testimonialItems.length
+      : 0
 
   // Horarios Semanales Estructurados & Estado de Hoy
   const effectiveSchedule = parseSchedule(pageConfig.scheduleJson || pageConfig.businessHours)
@@ -388,7 +521,7 @@ export default function PublicBusinessPage() {
 
   return (
     <div
-      className="min-h-screen w-full flex flex-col transition-colors duration-300 antialiased overflow-x-hidden"
+      className="min-h-screen w-full flex flex-col transition-colors duration-300 antialiased overflow-x-clip"
       style={{
         backgroundColor: colors.bg,
         color: colors.textPrimary,
@@ -400,27 +533,69 @@ export default function PublicBusinessPage() {
       <BarberPoleLoader businessName={data.name} />
 
       {/* ════════════════════════════════════════════════════════
-          1. HEADER / NAVBAR FLOTANTE (transparente en hero, sólido al hacer scroll)
+          1. HEADER / NAVBAR FLOTANTE (Adaptativo a Modo Claro y Oscuro con Contraste Garantizado)
       ════════════════════════════════════════════════════════ */}
       <header
-        className="fixed top-0 left-0 right-0 z-40 transition-all duration-500"
+        className="fixed top-0 left-0 right-0 z-40 transition-all duration-300"
         style={{
           backgroundColor: navScrolled
-            ? (colorMode === 'light' ? 'rgba(255, 255, 255, 0.95)' : `${colors.bg}f0`)
+            ? (isLightMode ? 'rgba(255, 255, 255, 0.96)' : `${colors.bg}f0`)
             : 'transparent',
-          backdropFilter: navScrolled ? 'blur(14px)' : 'none',
+          backdropFilter: navScrolled ? 'blur(16px)' : 'none',
+          WebkitBackdropFilter: navScrolled ? 'blur(16px)' : 'none',
           borderBottom: navScrolled
-            ? `1px solid ${colorMode === 'light' ? 'rgba(0,0,0,0.08)' : colors.border}`
+            ? (isLightMode ? '1px solid rgba(0, 0, 0, 0.08)' : `1px solid ${colors.border}`)
             : 'none',
-          boxShadow: navScrolled ? '0 4px 30px rgba(0,0,0,0.1)' : 'none',
+          boxShadow: navScrolled
+            ? (isLightMode ? '0 4px 20px rgba(0, 0, 0, 0.06)' : '0 4px 30px rgba(0, 0, 0, 0.4)')
+            : 'none',
         }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <style>{`
+          .barberos-nav-link {
+            position: relative;
+            padding: 0.375rem 0;
+            transition: color 180ms ease;
+          }
+          .barberos-nav-indicator {
+            pointer-events: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -2px;
+            height: 2px;
+            border-radius: 9999px;
+            transform: scaleX(0);
+            transform-origin: left center;
+            transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+          }
+          .barberos-nav-link:hover .barberos-nav-indicator,
+          .barberos-nav-link.is-active .barberos-nav-indicator {
+            transform: scaleX(1);
+          }
+          .barberos-nav-btn {
+            transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), filter 180ms ease, background-color 180ms ease, border-color 180ms ease;
+          }
+          .barberos-nav-btn:hover {
+            transform: translateY(-1.5px);
+          }
+          .barberos-nav-btn:active {
+            transform: scale(0.97);
+          }
+        `}</style>
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 py-3.5 flex items-center justify-between gap-2 sm:gap-3">
+          {/* Identidad de Marca (Logo + Nombre comercial alineados ópticamente) */}
+          <a
+            href="#"
+            className="group flex items-center gap-2 sm:gap-3 min-w-0 focus:outline-none"
+          >
             {data.logo ? (
               <div
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-md transition-transform hover:scale-105 bg-black"
-                style={{ borderColor: `${colors.accent}60`, boxShadow: `0 2px 10px ${colors.accent}25`, border: `1.5px solid ${colors.accent}50` }}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 shadow-sm transition-transform duration-200 bg-black"
+                style={{
+                  border: `1.5px solid ${colors.accent}55`,
+                  boxShadow: `0 2px 10px ${colors.accent}20`,
+                }}
               >
                 <img
                   src={data.logo}
@@ -431,73 +606,124 @@ export default function PublicBusinessPage() {
               </div>
             ) : (
               <div
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center font-black shadow-md shrink-0 border"
-                style={{ backgroundColor: colors.accent, color: '#000000', borderColor: colors.accent }}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-black shadow-sm shrink-0 border transition-transform duration-200"
+                style={{ backgroundColor: colors.accent, color: accentBtnText, borderColor: colors.accent }}
               >
-                <Scissors className="w-5 h-5" />
+                <Scissors className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             )}
             <span
-              className={`font-black text-base sm:text-lg md:text-xl tracking-tight leading-tight truncate transition-colors ${navScrolled && colorMode === 'light' ? 'text-zinc-900' : 'text-white drop-shadow-md'
-                }`}
-              style={{ fontFamily: fontConfig.headingFont }}
+              className={`tracking-tight leading-none truncate transition-all duration-200 ${
+                navScrolled
+                  ? (isLightMode ? 'text-zinc-950 font-black text-sm sm:text-base' : 'text-white font-black text-sm sm:text-base')
+                  : 'text-white/80 hover:text-white font-semibold text-xs sm:text-sm drop-shadow-xs'
+              }`}
+              style={{
+                fontFamily: fontConfig.headingFont,
+              }}
             >
               {data.name}
             </span>
-          </div>
+          </a>
 
-          {/* Desktop Navigation Links */}
-          <nav className={`hidden lg:flex items-center gap-6 text-xs font-bold uppercase tracking-wider transition-colors ${navScrolled && colorMode === 'light' ? 'text-zinc-700' : 'text-white/80'
-            }`}>
-            {data.services && data.services.length > 0 && (
-              <a href="#servicios" className={`transition-colors ${navScrolled && colorMode === 'light' ? 'hover:text-black' : 'hover:text-white'}`}>Servicios</a>
-            )}
-            {data.barbers && data.barbers.length > 0 && (
-              <a href="#equipo" className={`transition-colors ${navScrolled && colorMode === 'light' ? 'hover:text-black' : 'hover:text-white'}`}>Equipo</a>
-            )}
-            <a href="#galeria" className={`transition-colors ${navScrolled && colorMode === 'light' ? 'hover:text-black' : 'hover:text-white'}`}>Galería</a>
-            <a href="#horarios" className={`transition-colors ${navScrolled && colorMode === 'light' ? 'hover:text-black' : 'hover:text-white'}`}>Horarios</a>
-            <a href="#ubicacion" className={`transition-colors ${navScrolled && colorMode === 'light' ? 'hover:text-black' : 'hover:text-white'}`}>Ubicación</a>
+          {/* Enlaces de Navegación Desktop con Indicador Animado de Hover y Estado Activo */}
+          <nav
+            aria-label="Navegación principal"
+            className="hidden lg:flex items-center text-xs font-bold uppercase tracking-wider transition-colors"
+            style={{
+              gap: '28px',
+              color: navScrolled && isLightMode ? '#27272a' : 'rgba(255, 255, 255, 0.9)',
+            }}
+          >
+            {[
+              ...(data.services && data.services.length > 0 ? [{ id: 'servicios', label: 'Servicios' }] : []),
+              ...(data.barbers && data.barbers.length > 0 ? [{ id: 'equipo', label: 'Equipo' }] : []),
+              ...(hasCustomGallery ? [{ id: 'galeria', label: 'Galería' }] : []),
+              { id: 'horarios', label: 'Horarios' },
+              { id: 'ubicacion', label: 'Ubicación' },
+            ].map((item) => {
+              const isActive = activeSection === item.id
+              const linkColor = isActive
+                ? (navScrolled && isLightMode ? '#09090b' : '#ffffff')
+                : (navScrolled && isLightMode ? '#3f3f46' : 'rgba(255, 255, 255, 0.82)')
+              return (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`barberos-nav-link ${isActive ? 'is-active' : ''}`}
+                  style={{ color: linkColor }}
+                >
+                  <span>{item.label}</span>
+                  <span
+                    className="barberos-nav-indicator"
+                    style={{ backgroundColor: colors.accent }}
+                  />
+                </a>
+              )
+            })}
           </nav>
 
-          <div className="flex items-center gap-2.5">
+          {/* Acciones del Navbar (Tema, WhatsApp y Reservar — Sin Competir con el Hero) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Color Mode Toggle */}
             <button
-              onClick={() => setColorMode(prev => prev === 'dark' ? 'light' : 'dark')}
-              className={`p-2.5 rounded-full border transition-all active:scale-95 cursor-pointer shadow-sm flex items-center justify-center ${navScrolled && colorMode === 'light'
-                  ? 'bg-zinc-100 border-zinc-300 text-zinc-900 hover:bg-zinc-200 hover:border-zinc-400 shadow-xs'
-                  : 'bg-black/50 border-white/20 text-white hover:bg-black/75 backdrop-blur-md'
-                }`}
+              onClick={toggleTheme}
+              className={`barberos-nav-btn p-2 sm:p-2.5 rounded-full border cursor-pointer flex items-center justify-center transition-all ${
+                navScrolled && isLightMode
+                  ? 'bg-zinc-100 border-zinc-300 text-zinc-900 hover:bg-zinc-200 shadow-xs'
+                  : 'bg-white/[0.08] hover:bg-white/[0.14] border-white/20 text-white backdrop-blur-md'
+              }`}
               title={colorMode === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
               aria-label="Cambiar tema"
             >
               {colorMode === 'dark' ? (
                 <Sun className="w-4 h-4 text-amber-400 fill-amber-400/20" />
               ) : (
-                <Moon className={`w-4 h-4 ${navScrolled && colorMode === 'light' ? 'text-zinc-900 fill-zinc-900' : 'text-amber-300 fill-amber-300'}`} />
+                <Moon className={`w-4 h-4 ${navScrolled && isLightMode ? 'text-zinc-900 fill-zinc-900' : 'text-zinc-200 fill-zinc-200'}`} />
               )}
             </button>
 
-            {/* Quick WhatsApp */}
-            {whatsappUrl && (
+            {/* WhatsApp en Navbar: Se muestra solo al hacer scroll para no competir con el Hero */}
+            {whatsappUrl && navScrolled && (
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white transition-all hover:scale-105 active:scale-95 shadow-md shadow-[#25D366]/25 cursor-pointer"
+                className="barberos-nav-btn hidden md:flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold cursor-pointer transition-all"
+                style={{
+                  backgroundColor: isLightMode ? 'rgba(24, 24, 27, 0.05)' : 'rgba(255, 255, 255, 0.08)',
+                  border: isLightMode ? '1px solid rgba(24, 24, 27, 0.14)' : '1px solid rgba(255, 255, 255, 0.18)',
+                  color: isLightMode ? '#18181b' : '#ffffff',
+                }}
               >
-                <WhatsAppIcon />
+                <span className="text-[#25D366] flex items-center">
+                  <WhatsAppIcon />
+                </span>
                 <span>WhatsApp</span>
               </a>
             )}
 
-            {/* Primary CTA */}
+            {/* Primary CTA (Reservar): Etereo/discreto en el Hero, Prominente y Sólido al hacer Scroll */}
             <button
               onClick={() => scrollToBooking()}
-              className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-md hover:scale-105 active:scale-95 cursor-pointer shrink-0"
-              style={{ backgroundColor: colors.accent, color: accentBtnText }}
+              className="barberos-nav-btn flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4.5 py-1.5 sm:py-2 rounded-full text-xs font-bold uppercase tracking-wider cursor-pointer shrink-0 transition-all duration-200"
+              style={
+                navScrolled
+                  ? {
+                      backgroundColor: colors.accent,
+                      color: accentBtnText,
+                      boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
+                    }
+                  : {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      border: '1px solid rgba(255, 255, 255, 0.22)',
+                      color: '#ffffff',
+                      backdropFilter: 'blur(8px)',
+                    }
+              }
             >
-              <Calendar className="w-3.5 h-3.5" />
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
               <span>Reservar</span>
             </button>
           </div>
@@ -505,616 +731,647 @@ export default function PublicBusinessPage() {
       </header>
 
       {/* ══════════════════════════════════════════════════════════
-          2. HERO CINEMATOGRÁFICO CON ANIMACIÓN Y OVERLAYS
+          2. HERO CINEMATOGRÁFICO MULTICAPA (MOTION SITES ARCHITECTURE)
       ══════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden min-h-screen w-full flex items-center justify-center px-4 sm:px-5 py-20 sm:py-24">
-        {/* Cinematic Background Image with luxury dark gradient overlay */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <img
-            src={pageConfig.bannerUrl || DEFAULT_BANNER}
-            alt={`Portada de ${data.name}`}
-            className="w-full h-full object-cover object-center filter brightness-[0.38] contrast-[1.1] scale-105 animate-hero-zoom transition-transform duration-1000 ease-out"
-          />
-          {/* Deep dark cinematic gradient overlay for 100% razor-sharp contrast in all modes */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.52) 50%, rgba(0, 0, 0, 0.88) 100%)'
-            }}
-          />
-          {/* Radial Ambient Glow */}
-          <div
-            className="absolute inset-0 opacity-40 pointer-events-none"
-            style={{
-              background: `radial-gradient(circle at 50% 40%, ${colors.accent}35 0%, transparent 70%)`
-            }}
-          />
-        </div>
-
-        <div className="relative z-10 max-w-4xl mx-auto text-center flex flex-col items-center w-full">
-          {/* Spacer en lugar del badge eliminado */}
-          <div className="mb-4 sm:mb-6" />
-
-          {/* Title — usa coverTitle configurado o el nombre real del negocio */}
-          <h1
-            className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.12] mb-6 text-white drop-shadow-lg animate-fade-in-up delay-100 px-2"
-            style={{ fontFamily: fontConfig.headingFont }}
-          >
-            {pageConfig.coverTitle && pageConfig.coverTitle.trim()
-              ? pageConfig.coverTitle
-              : `Bienvenido a ${data.name}`}
-          </h1>
-
-          {/* Descripción profesional */}
-          <p className="text-sm sm:text-base md:text-lg font-medium max-w-2xl text-zinc-200 leading-relaxed mb-8 drop-shadow animate-fade-in-up delay-200">
-            {pageConfig.coverSubtitle && pageConfig.coverSubtitle.trim()
-              ? pageConfig.coverSubtitle
-              : 'Reserva tu cita con nuestros profesionales y disfruta de una experiencia de barbería diseñada para resaltar tu mejor estilo.'}
-          </p>
-
-          {/* Call to Actions */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto animate-fade-in-up delay-400">
-            <button
-              onClick={() => scrollToBooking()}
-              className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-8 py-4 rounded-full text-sm font-black uppercase tracking-wider transition-all shadow-xl hover:scale-105 active:scale-95 cursor-pointer"
-              style={{ backgroundColor: colors.accent, color: accentBtnText }}
-            >
-              <Calendar className="w-4 h-4" />
-              <span>Agendar Cita</span>
-            </button>
-
-            {whatsappUrl && (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-8 py-4 rounded-full text-sm font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white transition-all hover:scale-105 active:scale-95 shadow-xl shadow-[#25D366]/30 cursor-pointer border border-[#25D366]"
-              >
-                <WhatsAppIcon />
-                <span>Ir a WhatsApp</span>
-              </a>
-            )}
-          </div>
-
-          {/* Trust Badges — Pastillas oscuras con cristal y tipografía de alto contraste */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-12 text-xs font-bold animate-fade-in-up delay-500">
-            {data.address && (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-black/60 backdrop-blur-md shadow-md text-white">
-                <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="font-semibold text-xs">{data.address}</span>
-              </div>
-            )}
-            {isTodayOpen ? (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-500/40 bg-black/60 backdrop-blur-md shadow-md">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                <span className="font-semibold text-xs text-emerald-300">Abierto Hoy</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-rose-500/40 bg-black/60 backdrop-blur-md shadow-md">
-                <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-                <span className="font-semibold text-xs text-rose-300">
-                  {todayScheduleItem.customMessage?.trim() || 'Cerrado Hoy'}
-                </span>
-              </div>
-            )}
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/40 bg-black/60 backdrop-blur-md shadow-md">
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="font-semibold text-xs text-amber-300">Barberos Profesionales</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <CinematicHero
+        businessName={data.name}
+        coverTitle={pageConfig.coverTitle}
+        coverSubtitle={pageConfig.coverSubtitle}
+        slogan={pageConfig.slogan}
+        businessDescription={data.description}
+        bannerUrl={resolveCoverBannerUrl(pageConfig.bannerUrl || DEFAULT_BANNER)}
+        address={data.address}
+        isTodayOpen={isTodayOpen}
+        todayHoursText={isTodayOpen && todayScheduleItem ? formatDayHours(todayScheduleItem).text : null}
+        closedCustomMessage={todayScheduleItem?.customMessage}
+        whatsappUrl={showWhatsapp && whatsappUrl ? whatsappUrl : null}
+        servicesCount={data.services?.length || 0}
+        barbersCount={data.barbers?.length || 0}
+        themeId={pageConfig.theme}
+        motionStyle={pageConfig.motionStyle}
+        colorMode={colorMode}
+        colors={colors}
+        accentBtnText={accentBtnText}
+        headingFont={fontConfig.headingFont}
+        bodyFont={fontConfig.bodyFont}
+        enableScrollSequence={Boolean(pageConfig.enableScrollSequence)}
+        sequencePattern={pageConfig.sequencePattern}
+        sequenceFrameCount={pageConfig.sequenceFrameCount}
+        onBookClick={() => scrollToBooking()}
+        onExploreServicesClick={
+          data.services && data.services.length > 0
+            ? () => {
+              const el = document.getElementById('servicios')
+              el?.scrollIntoView({ behavior: 'smooth' })
+            }
+            : undefined
+        }
+      />
 
       {/* ══════════════════════════════════════════════════════════
-          3. SERVICIOS DESTACADOS (MULTI-SELECCIÓN)
+          3. SERVICIOS DESTACADOS (MULTI-SELECCIÓN) — CAPÍTULO 01
       ══════════════════════════════════════════════════════════ */}
       {data.services && data.services.length > 0 && (
-        <section id="servicios" className="py-20 px-5 border-t" style={{ borderColor: colors.border, backgroundColor: colors.surface }}>
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <span className="text-xs font-black uppercase tracking-[0.2em] block mb-2" style={{ color: colors.accent }}>
-                CATÁLOGO EXCLUSIVO
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3" style={{ fontFamily: fontConfig.headingFont }}>
-                Nuestros Servicios
-              </h2>
-              <p className="text-sm font-medium opacity-75" style={{ color: colors.textSecondary }}>
-                Puedes seleccionar uno o varios servicios para combinarlos en una misma cita.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {data.services.map((service: any) => {
-                const isSelected = selectedServices.some(s => s.id === service.id)
-                return (
-                  <div
-                    key={service.id}
-                    onClick={() => toggleService(service)}
-                    className={`group relative p-6 rounded-3xl border-2 transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col justify-between ${isSelected ? 'shadow-xl scale-[1.01]' : 'hover:border-zinc-500/40'
-                      }`}
-                    style={{
-                      backgroundColor: isSelected ? colors.badgeBg : colors.surfaceCard,
-                      borderColor: isSelected ? colors.accent : colors.border,
-                    }}
-                  >
-                    <div>
-                      <div className="flex justify-between items-start mb-2.5">
-                        <h3 className="text-lg font-black tracking-tight group-hover:text-amber-400 transition-colors" style={{ fontFamily: fontConfig.headingFont }}>
-                          {service.name}
-                        </h3>
-                        {pageConfig.showPrices !== false && (
-                          <span className="text-base font-black shrink-0 ml-3" style={{ color: colors.accent }}>
-                            {formatCOP(Number(service.price))}
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="text-xs font-medium opacity-75 line-clamp-2 mb-6" style={{ color: colors.textSecondary }}>
-                        {service.description || 'Atención personalizada con acabado profesional y productos de alta gama.'}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t" style={{ borderColor: `${colors.border}60` }}>
-                      <div className="flex items-center gap-1.5 text-xs font-bold opacity-70">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{service.duration} min</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-black uppercase tracking-wider ${isSelected ? 'text-amber-400' : 'opacity-60'}`}>
-                          {isSelected ? 'Seleccionado' : 'Añadir'}
-                        </span>
-                        <div
-                          className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all ${isSelected ? 'border-transparent' : 'opacity-40'
-                            }`}
-                          style={isSelected ? { backgroundColor: colors.accent, color: accentBtnText } : { borderColor: colors.textSecondary }}
-                        >
-                          {isSelected ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Plus className="w-3 h-3" />}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </section>
+        <NarrativeSection
+          id="servicios"
+          chapterNumber="01"
+          eyebrow="SERVICIOS"
+          title="Nuestros Servicios"
+          subtitle="Elige uno o varios servicios y combínalos en una misma cita."
+          watermark="SERVICIOS"
+          variant="editorial-frame"
+          headerAlign="left"
+          themeId={pageConfig.theme}
+          motionStyle={pageConfig.motionStyle}
+          colorMode={colorMode}
+          colors={colors}
+          headingFont={fontConfig.headingFont}
+          backgroundColor={colors.surface}
+          headerSlot={
+            selectedServices.length > 0 ? (
+              <div
+                className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl border shadow-sm"
+                style={{
+                  borderColor: colors.accent,
+                  backgroundColor: `${colors.accent}15`,
+                  color: colors.textPrimary,
+                }}
+              >
+                <span className="text-xs font-black uppercase tracking-wider">
+                  {selectedServices.length} {selectedServices.length === 1 ? 'servicio elegido' : 'servicios elegidos'}
+                </span>
+                <button
+                  onClick={() => scrollToBooking()}
+                  className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-xl cursor-pointer transition-transform hover:scale-105"
+                  style={{ backgroundColor: colors.accent, color: accentBtnText }}
+                >
+                  Continuar →
+                </button>
+              </div>
+            ) : null
+          }
+        >
+          <EditorialServicesShowcase
+            services={data.services}
+            selectedServices={selectedServices}
+            showPrices={pageConfig.showPrices !== false}
+            colors={colors}
+            accentBtnText={accentBtnText}
+            headingFont={fontConfig.headingFont}
+            colorMode={colorMode}
+            formatCOP={formatCOP}
+            onToggleService={toggleService}
+            onBookSingleService={(service) => scrollToBooking(service)}
+          />
+        </NarrativeSection>
       )}
 
       {/* ══════════════════════════════════════════════════════════
-          4. EQUIPO DE BARBEROS
+          4. EQUIPO DE BARBEROS — CAPÍTULO 02
       ══════════════════════════════════════════════════════════ */}
       {data.barbers && data.barbers.length > 0 && pageConfig.showTeam !== false && (
-        <section id="equipo" className="py-20 px-5 border-t" style={{ borderColor: colors.border, backgroundColor: colors.bg }}>
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center max-w-2xl mx-auto mb-14">
-              <span className="text-xs font-black uppercase tracking-[0.2em] block mb-2" style={{ color: colors.accent }}>
-                TALENTO & EXPERIENCIA
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3" style={{ fontFamily: fontConfig.headingFont }}>
-                Equipo de Maestros
-              </h2>
-              <p className="text-sm font-medium opacity-75" style={{ color: colors.textSecondary }}>
-                Profesionales certificados con años de experiencia en técnicas de barbería tradicional y vanguardista.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-stretch justify-center gap-6">
-              {data.barbers.map((barber: any, bIdx: number) => {
-                const placeholderAvatars = [
-                  '/imagenes/banner-corte-navaja.jpeg',
-                  '/imagenes/banner-sillon-vintage.jpeg',
-                  '/imagenes/banner-estacion-tijeras.jpeg',
-                  '/imagenes/banner-cuidado-barba.jpeg'
-                ]
-                const barberPhoto = barber.avatar || placeholderAvatars[bIdx % placeholderAvatars.length]
-
-                return (
-                  <div
-                    key={barber.id}
-                    onClick={() => scrollToBooking(undefined, barber)}
-                    className="group p-6 rounded-3xl border text-center transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col items-center justify-between shadow-sm hover:shadow-xl w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[290px] max-w-sm"
-                    style={{
-                      backgroundColor: colors.surfaceCard,
-                      borderColor: colors.border,
-                    }}
-                  >
-                    <div className="flex flex-col items-center w-full">
-                      {/* Barber Photo Container */}
-                      <div className="relative mb-5 mx-auto">
-                        <div
-                          className="w-28 h-28 rounded-full overflow-hidden border-2 shadow-lg transition-transform duration-300 group-hover:scale-105 mx-auto bg-zinc-800"
-                          style={{ borderColor: colors.accent }}
-                        >
-                          <img
-                            src={barberPhoto}
-                            alt={barber.name}
-                            className="w-full h-full object-cover object-center"
-                          />
-                        </div>
-                        <div
-                          className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-md"
-                          style={{ backgroundColor: colors.accent, color: '#000000' }}
-                        >
-                          <Scissors className="w-3.5 h-3.5" />
-                        </div>
-                      </div>
-
-                      {/* Name — uniform min-height for perfect grid alignment */}
-                      <h3
-                        className="font-black text-lg tracking-tight mb-1 text-center w-full truncate"
-                        style={{ fontFamily: fontConfig.headingFont, color: colors.textPrimary }}
-                        title={barber.name}
-                      >
-                        {barber.name}
-                      </h3>
-
-                      {/* Specialty */}
-                      <p
-                        className="text-xs font-bold uppercase tracking-wider mb-2 text-center w-full truncate"
-                        style={{ color: colors.accent }}
-                      >
-                        {barber.specialty || 'Master Barber'}
-                      </p>
-
-                      {/* Experience badge */}
-                      <div className="flex items-center justify-center gap-1.5 mb-5 w-full">
-                        <span
-                          className="text-[11px] font-semibold px-3 py-1 rounded-full border inline-flex items-center gap-1"
-                          style={{ borderColor: colors.border, backgroundColor: `${colors.accent}12`, color: colors.textSecondary }}
-                        >
-                          <Award className="w-3 h-3" style={{ color: colors.accent }} />
-                          <span>Barbero Profesional</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="w-full pt-3.5 border-t mt-auto" style={{ borderColor: `${colors.border}60` }}>
-                      <button
-                        className="w-full text-xs font-black uppercase tracking-wider py-2.5 rounded-xl transition-all border flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-95 shadow-xs"
-                        style={{
-                          borderColor: colors.border,
-                          backgroundColor: colors.surface,
-                          color: colors.textPrimary
-                        }}
-                      >
-                        <span>Agendar con {barber.name.split(' ')[0]}</span>
-                        <ArrowRight className="w-3.5 h-3.5 opacity-60 group-hover:translate-x-1 transition-transform" />
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════
-          5. GALERÍA DE TRABAJOS
-      ══════════════════════════════════════════════════════════ */}
-      <section id="galeria" className="py-20 px-5 border-t" style={{ borderColor: colors.border, backgroundColor: colors.surface }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-black uppercase tracking-[0.2em] block mb-2" style={{ color: colors.accent }}>
-              PORTAFOLIO DE CORTES
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3" style={{ fontFamily: fontConfig.headingFont }}>
-              Nuestra Galería
-            </h2>
-            <p className="text-sm font-medium opacity-75 mb-2" style={{ color: colors.textSecondary }}>
-              Cada detalle cuenta. Explora cortes, perfilados y el ambiente de nuestras instalaciones.
-            </p>
-            {!hasCustomGallery && (
-              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border mb-6" style={{ borderColor: colors.border, color: colors.accent, backgroundColor: `${colors.accent}10` }}>
-                Fotografías de Estilo & Referencia Curadas
-              </span>
-            )}
-            {hasCustomGallery && <div className="mb-6" />}
-
-            {/* Category tabs */}
-            <div className="inline-flex p-1 rounded-2xl border backdrop-blur-md" style={{ borderColor: colors.border, backgroundColor: colors.bg }}>
-              {[
-                { id: 'todos', label: 'Todos' },
-                { id: 'cortes', label: 'Cortes' },
-                { id: 'barbas', label: 'Barbas' },
-                { id: 'instalaciones', label: 'Instalaciones' }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveGalleryCat(tab.id as any)}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${activeGalleryCat === tab.id ? 'shadow-sm font-black' : 'opacity-60 hover:opacity-100'
-                    }`}
-                  style={activeGalleryCat === tab.id ? { backgroundColor: colors.accent, color: colors.bg } : {}}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Grid or Empty State */}
-          {filteredGallery.length === 0 ? (
-            <div
-              className="py-16 px-6 text-center rounded-3xl border border-dashed flex flex-col items-center justify-center max-w-md mx-auto"
-              style={{ borderColor: colors.border, backgroundColor: colors.surfaceCard }}
-            >
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 opacity-60"
-                style={{ backgroundColor: `${colors.accent}15`, color: colors.accent }}
-              >
-                <Scissors className="w-6 h-6" />
-              </div>
-              <p className="text-sm font-black mb-1" style={{ color: colors.textPrimary }}>
-                Próximamente más fotografías en esta sección
-              </p>
-              <p className="text-xs font-medium opacity-60" style={{ color: colors.textSecondary }}>
-                Nuestro equipo está preparando nuevos trabajos profesionales para compartir contigo.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {filteredGallery.map((item: any) => (
-                <div
-                  key={item.id}
-                  onClick={() => setLightboxImg(item.url)}
-                  className="group relative h-52 sm:h-72 rounded-3xl overflow-hidden cursor-pointer border shadow-sm"
-                  style={{ borderColor: colors.border }}
-                >
-                  <img
-                    src={item.url}
-                    alt={item.caption || 'Corte de barbería'}
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-5">
-                    <span className="text-xs font-black text-white">{item.caption || 'Corte exclusivo'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ── Modal Lightbox ── */}
-      {lightboxImg && (
-        <div
-          onClick={() => setLightboxImg(null)}
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
+        <NarrativeSection
+          id="equipo"
+          chapterNumber="02"
+          eyebrow="EQUIPO"
+          title={data.barbers.length === 1 ? 'Tu barbero' : 'Nuestro equipo'}
+          subtitle={data.barbers.length === 1 ? 'Agenda directamente tu cita.' : 'Elige con quién quieres agendar tu cita.'}
+          watermark="EQUIPO"
+          variant="clip-reveal"
+          headerAlign="left"
+          themeId={pageConfig.theme}
+          motionStyle={pageConfig.motionStyle}
+          colorMode={colorMode}
+          colors={colors}
+          headingFont={fontConfig.headingFont}
+          backgroundColor={colors.bg}
         >
-          <button
-            onClick={() => setLightboxImg(null)}
-            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          <img
-            src={lightboxImg}
-            alt="Ampliación de foto"
-            className="max-h-[85vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl"
-            onClick={e => e.stopPropagation()}
+          <EditorialBarbersShowcase
+            barbers={data.barbers}
+            colors={colors}
+            accentBtnText={accentBtnText}
+            headingFont={fontConfig.headingFont}
+            onSelectBarber={(barber) => scrollToBooking(undefined, barber)}
           />
-        </div>
+        </NarrativeSection>
       )}
 
       {/* ══════════════════════════════════════════════════════════
-          6. TESTIMONIOS & RESEÑAS
+          INTERLUDIO NARRATIVO CINEMÁTICO (STATEMENT BAND)
+          Solo datos reales: nombre del negocio, servicios registrados y eslogan (si existe).
       ══════════════════════════════════════════════════════════ */}
-      <section id="testimonios" className="py-20 px-5 border-t" style={{ borderColor: colors.border, backgroundColor: colors.bg }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="text-xs font-black uppercase tracking-[0.2em] block mb-2" style={{ color: colors.accent }}>
-              OPINIONES REALES
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3" style={{ fontFamily: fontConfig.headingFont }}>
-              Lo Que Dicen Nuestros Clientes
-            </h2>
-            <div className="flex items-center justify-center gap-1 mt-3">
-              {[1, 2, 3, 4, 5].map(i => (
-                <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
-              ))}
-              <span className="text-xs font-bold ml-2 opacity-80">5.0 de calificación media</span>
-            </div>
-          </div>
+      <CinematicStatementBand
+        primaryText={data.name}
+        secondaryText={
+          Array.isArray(data.services) && data.services.length > 0
+            ? data.services.slice(0, 4).map((s: any) => s.name).join(' • ')
+            : ''
+        }
+        imageUrl={customGallery[0]?.url || pageConfig.bannerUrl || DEFAULT_BANNER}
+        caption={(pageConfig.slogan || '').trim()}
+        themeId={pageConfig.theme}
+        motionStyle={pageConfig.motionStyle}
+        colorMode={colorMode}
+        colors={colors}
+        headingFont={fontConfig.headingFont}
+        onActionClick={() => scrollToBooking()}
+      />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonialItems.map((test: any) => (
+      {/* ══════════════════════════════════════════════════════════
+          5. GALERÍA DE TRABAJOS — CAPÍTULO 03 (solo fotos reales)
+      ══════════════════════════════════════════════════════════ */}
+      {hasCustomGallery && (
+        <NarrativeSection
+          id="galeria"
+          chapterNumber="03"
+          eyebrow="GALERÍA"
+          title="Nuestra Galería"
+          subtitle={`Fotografías de ${data.name}.`}
+          watermark="GALERÍA"
+          variant="editorial-frame"
+          headerAlign="left"
+          themeId={pageConfig.theme}
+          motionStyle={pageConfig.motionStyle}
+          colorMode={colorMode}
+          colors={colors}
+          headingFont={fontConfig.headingFont}
+          backgroundColor={colors.surface}
+          headerSlot={
+            galleryCategories.length > 1 ? (
               <div
-                key={test.id}
-                className="p-8 rounded-3xl border flex flex-col justify-between relative shadow-sm"
+                role="tablist"
+                aria-label="Categorías de la galería"
+                className="inline-flex flex-wrap p-1 rounded-2xl border backdrop-blur-md"
+                style={{ borderColor: colors.border, backgroundColor: colors.bg }}
+              >
+                {[{ key: 'todos', label: 'Todos' }, ...galleryCategories].map(tab => (
+                  <button
+                    key={tab.key}
+                    role="tab"
+                    aria-selected={effectiveGalleryCat === tab.key}
+                    onClick={() => setActiveGalleryCat(tab.key)}
+                    className={`min-h-[40px] px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${effectiveGalleryCat === tab.key ? 'shadow-sm font-black' : 'opacity-60 hover:opacity-100'
+                      }`}
+                    style={effectiveGalleryCat === tab.key ? { backgroundColor: colors.accent, color: accentBtnText } : { color: colors.textPrimary }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            ) : null
+          }
+        >
+          <ImmersiveGalleryShowcase
+            items={filteredGallery}
+            activeCategory={effectiveGalleryCat}
+            colors={colors}
+            accentBtnText={accentBtnText}
+            headingFont={fontConfig.headingFont}
+            onBookStyle={(service) => scrollToBooking(service || undefined)}
+          />
+        </NarrativeSection>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          6. TESTIMONIOS & RESEÑAS — CAPÍTULO 04 (solo reseñas reales)
+      ══════════════════════════════════════════════════════════ */}
+      {testimonialItems.length > 0 && (
+        <NarrativeSection
+          id="testimonios"
+          chapterNumber="04"
+          eyebrow="OPINIONES"
+          title="Lo Que Dicen Nuestros Clientes"
+          subtitle="Reseñas compartidas por clientes de la barbería."
+          watermark="RESEÑAS"
+          variant="clip-reveal"
+          headerAlign="left"
+          themeId={pageConfig.theme}
+          motionStyle={pageConfig.motionStyle}
+          colorMode={colorMode}
+          colors={colors}
+          headingFont={fontConfig.headingFont}
+          backgroundColor={colors.bg}
+          headerSlot={
+            testimonialItems.length >= 2 ? (
+              <div
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl border"
+                style={{ borderColor: colors.border, backgroundColor: colors.surfaceCard }}
+              >
+                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                <span className="text-xs font-black ml-1 opacity-90" style={{ color: colors.textPrimary }}>
+                  {testimonialAverage.toFixed(1)} · {testimonialItems.length} reseñas
+                </span>
+              </div>
+            ) : null
+          }
+        >
+          <div
+            className={
+              testimonialItems.length === 1
+                ? 'max-w-2xl mx-auto'
+                : testimonialItems.length === 2
+                  ? 'max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6'
+                  : 'grid grid-cols-1 md:grid-cols-3 gap-6'
+            }
+          >
+            {testimonialItems.map((test: any, idx: number) => (
+              <article
+                key={test.id || idx}
+                data-narrative-item
+                className="p-7 sm:p-9 rounded-[28px] border flex flex-col justify-between relative overflow-hidden transition-transform duration-300 hover:-translate-y-1 shadow-sm"
                 style={{ backgroundColor: colors.surfaceCard, borderColor: colors.border }}
               >
-                <div>
-                  <div className="flex items-center gap-1 mb-4">
-                    {Array.from({ length: test.rating || 5 }).map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                    ))}
+                {/* Comilla tipográfica editorial de fondo */}
+                <span
+                  aria-hidden="true"
+                  className="absolute top-3 right-6 text-7xl font-serif leading-none select-none pointer-events-none opacity-15"
+                  style={{ color: colors.accent, fontFamily: fontConfig.headingFont }}
+                >
+                  “
+                </span>
+
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between gap-2 mb-5">
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Number(test.rating) || 5 }).map((_, i) => (
+                        <Star key={i} className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                      ))}
+                    </div>
+                    <span
+                      className="font-mono text-[10px] font-black uppercase tracking-[0.2em] opacity-45"
+                      style={{ color: colors.textSecondary }}
+                    >
+                      #{String(idx + 1).padStart(2, '0')}
+                    </span>
                   </div>
-                  <p className="text-sm font-medium leading-relaxed italic mb-6 opacity-90" style={{ color: colors.textPrimary }}>
-                    "{test.comment}"
-                  </p>
+
+                  <blockquote
+                    className="text-sm sm:text-base font-medium leading-relaxed mb-7"
+                    style={{ color: colors.textPrimary }}
+                  >
+                    “{test.comment}”
+                  </blockquote>
                 </div>
 
-                <div className="flex items-center justify-between border-t pt-4" style={{ borderColor: `${colors.border}60` }}>
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black uppercase shadow-xs" style={{ backgroundColor: colors.accent, color: accentBtnText }}>
-                      {test.name ? test.name.charAt(0) : 'C'}
+                <footer
+                  className="relative z-10 flex items-center justify-between border-t pt-4"
+                  style={{ borderColor: `${colors.border}80` }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black uppercase shrink-0"
+                      style={{ backgroundColor: colors.accent, color: accentBtnText }}
+                    >
+                      {test.name ? test.name.trim().charAt(0) : 'C'}
                     </div>
-                    <span className="text-xs font-bold" style={{ color: colors.textPrimary }}>{test.name}</span>
+                    <div className="min-w-0">
+                      <span
+                        className="text-xs sm:text-sm font-black block truncate"
+                        style={{ color: colors.textPrimary, fontFamily: fontConfig.headingFont }}
+                      >
+                        {test.name}
+                      </span>
+                      {test.date && (
+                        <span
+                          className="text-[10px] font-medium opacity-55 block"
+                          style={{ color: colors.textSecondary }}
+                        >
+                          {test.date}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {test.date && (
-                    <span className="text-[10px] font-medium opacity-50" style={{ color: colors.textSecondary }}>{test.date}</span>
-                  )}
-                </div>
-              </div>
+                </footer>
+              </article>
             ))}
           </div>
-        </div>
-      </section>
+        </NarrativeSection>
+      )}
 
       {/* ══════════════════════════════════════════════════════════
-          7. UBICACIÓN, CONTACTO & HORARIOS
+          7. UBICACIÓN, CONTACTO & HORARIOS — CAPÍTULO 05 (COMPOSICIÓN EDITORIAL)
       ══════════════════════════════════════════════════════════ */}
-      <section id="contacto" className="py-20 px-5 border-t" style={{ borderColor: colors.border, backgroundColor: colors.surface }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="text-xs font-black uppercase tracking-[0.2em] block mb-2" style={{ color: colors.accent }}>
-              VISÍTANOS
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3" style={{ fontFamily: fontConfig.headingFont }}>
-              Ubicación & Canales
-            </h2>
-            <p className="text-sm font-medium opacity-75" style={{ color: colors.textSecondary }}>
-              Estamos listos para recibirte y brindarte la mejor experiencia de barbería.
-            </p>
-          </div>
-
-          <div className={`grid grid-cols-1 ${locationInfo ? 'md:grid-cols-3' : 'md:grid-cols-2 max-w-4xl mx-auto'} gap-6`}>
-            {/* Card 1: Dirección & Mapa Incrustado */}
-            {locationInfo && (
-              <div
-                className="p-8 rounded-3xl border flex flex-col justify-between shadow-sm"
-                style={{ backgroundColor: colors.surfaceCard, borderColor: colors.border }}
-              >
-                <div>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 shadow-xs" style={{ backgroundColor: colors.accent, color: accentBtnText }}>
-                    <MapPin className="w-6 h-6" />
+      <NarrativeSection
+        id="contacto"
+        chapterNumber="05"
+        eyebrow="VISÍTANOS"
+        title="Horarios, Ubicación & Contacto"
+        subtitle={`Información de atención y canales directos de ${data.name}.`}
+        watermark="CONTACTO"
+        variant="editorial-frame"
+        headerAlign="left"
+        themeId={pageConfig.theme}
+        motionStyle={pageConfig.motionStyle}
+        colorMode={colorMode}
+        colors={colors}
+        headingFont={fontConfig.headingFont}
+        backgroundColor={colors.surface}
+      >
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+          {/* ── COLUMNA IZQUIERDA (5 COLS): HORARIOS SEMANALES Y ESTADO ACTUAL ── */}
+          <div
+            id="horarios"
+            data-narrative-item
+            className="lg:col-span-5 p-6 sm:p-8 rounded-[28px] border flex flex-col justify-between shadow-sm scroll-mt-24"
+            style={{ backgroundColor: colors.surfaceCard, borderColor: colors.border }}
+          >
+            <div>
+              <div className="flex items-center justify-between gap-3 pb-5 border-b" style={{ borderColor: colors.border }}>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: `${colors.accent}18`, color: colors.accent }}
+                  >
+                    <Clock className="w-5 h-5" />
                   </div>
-                  <h3 className="text-lg font-black tracking-tight mb-2" style={{ fontFamily: fontConfig.headingFont }}>
-                    Nuestra Ubicación
-                  </h3>
-                  <p className="text-sm font-medium opacity-80 mb-4 leading-relaxed" style={{ color: colors.textSecondary }}>
-                    {data.address || locationInfo.displayText}
-                  </p>
+                  <div>
+                    <span
+                      className="text-[10px] font-black uppercase tracking-[0.2em] block opacity-60"
+                      style={{ color: colors.textSecondary }}
+                    >
+                      JORNADA SEMANAL
+                    </span>
+                    <h3
+                      className="text-lg sm:text-xl font-black tracking-tight"
+                      style={{ fontFamily: fontConfig.headingFont }}
+                    >
+                      Horarios de Atención
+                    </h3>
+                  </div>
+                </div>
 
-                  {/* Mapa incrustado o tarjeta visual limpia */}
-                  {locationInfo.embedUrl ? (
+                {isTodayOpen ? (
+                  <span className="text-[11px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full inline-flex items-center gap-1.5 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Abierto hoy
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-3 py-1 rounded-full inline-flex items-center gap-1.5 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-rose-500" />
+                    Cerrado hoy
+                  </span>
+                )}
+              </div>
+
+              <div className="divide-y my-4" style={{ borderColor: `${colors.border}60` }}>
+                {effectiveSchedule.map((item: DayScheduleItem) => {
+                  const isToday = item.dayIndex === todayIndex
+                  return (
                     <div
-                      className="w-full h-44 rounded-2xl overflow-hidden border shadow-xs mb-5 relative bg-zinc-100 dark:bg-zinc-900"
-                      style={{ borderColor: colors.border }}
+                      key={item.day}
+                      className={`flex items-center justify-between text-xs sm:text-sm py-3 px-2.5 rounded-xl transition-colors ${isToday ? 'font-black' : 'font-medium opacity-80'
+                        }`}
+                      style={{
+                        color: colors.textPrimary,
+                        backgroundColor: isToday ? `${colors.accent}12` : 'transparent',
+                        borderColor: `${colors.border}50`,
+                      }}
                     >
-                      <iframe
-                        src={locationInfo.embedUrl}
-                        title={`Ubicación de ${data.name}`}
-                        className="w-full h-full border-0"
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        aria-label={`Mapa interactivo de ${data.name}`}
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className="w-full p-4 rounded-2xl border shadow-xs mb-5 flex items-center gap-3 bg-zinc-50/60 dark:bg-zinc-900/60"
-                      style={{ borderColor: colors.border }}
-                    >
-                      <MapPin className="w-5 h-5 shrink-0" style={{ color: colors.accent }} />
-                      <span className="text-xs font-bold leading-tight" style={{ color: colors.textPrimary }}>
-                        {data.address || 'Consulta la ruta directa en Google Maps'}
+                      <span className="flex items-center gap-2">
+                        {isToday && (
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: colors.accent }}
+                          />
+                        )}
+                        <span>{item.day}</span>
+                        {isToday && (
+                          <span
+                            className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md"
+                            style={{ backgroundColor: `${colors.accent}20`, color: colors.accent }}
+                          >
+                            Hoy
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className="font-mono text-xs"
+                        style={{ color: item.isOpen ? colors.textPrimary : colors.textSecondary }}
+                      >
+                        {formatDayHours(item).text}
                       </span>
                     </div>
-                  )}
-                </div>
-
-                {/* Botón Cómo llegar */}
-                <a
-                  href={locationInfo.directionsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full text-xs font-black uppercase tracking-wider py-3 rounded-xl border flex items-center justify-center gap-2 transition-all hover:scale-102 active:scale-95 cursor-pointer shadow-xs"
-                  style={{ borderColor: colors.border, backgroundColor: colors.surface, color: colors.textPrimary }}
-                >
-                  <Navigation className="w-3.5 h-3.5" style={{ color: colors.accent }} />
-                  <span>Cómo llegar</span>
-                </a>
-              </div>
-            )}
-
-            {/* Card 2: Horarios Semanales */}
-            <div
-              className="p-8 rounded-3xl border flex flex-col justify-between shadow-sm"
-              style={{ backgroundColor: colors.surfaceCard, borderColor: colors.border }}
-            >
-              <div>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 shadow-xs" style={{ backgroundColor: colors.accent, color: accentBtnText }}>
-                  <Clock className="w-6 h-6" />
-                </div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-black tracking-tight" style={{ fontFamily: fontConfig.headingFont }}>
-                    Horarios de Atención
-                  </h3>
-                  {isTodayOpen ? (
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Abierto Hoy
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-rose-700 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded-full">
-                      Cerrado Hoy
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-1.5 mb-2 mt-3">
-                  {effectiveSchedule.map((item: DayScheduleItem) => {
-                    const isToday = item.dayIndex === todayIndex
-                    return (
-                      <div
-                        key={item.day}
-                        className={`flex items-center justify-between text-xs py-1 px-2 rounded-lg transition-colors ${isToday ? 'font-black bg-zinc-500/10' : 'font-medium opacity-80'
-                          }`}
-                        style={{ color: colors.textPrimary }}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          {isToday && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colors.accent }} />}
-                          {item.day}
-                        </span>
-                        <span className="font-mono text-[11px]">
-                          {formatDayHours(item).text}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="pt-3 border-t text-[11px] opacity-60 text-center" style={{ borderColor: `${colors.border}60` }}>
-                Agenda previa recomendada
+                  )
+                })}
               </div>
             </div>
 
-            {/* Card 3: Canales Oficiales & Redes */}
             <div
-              className="p-8 rounded-3xl border flex flex-col justify-between shadow-sm"
+              className="pt-4 border-t flex items-center justify-between gap-3 text-xs"
+              style={{ borderColor: colors.border }}
+            >
+              <span className="opacity-65">Reserva tu turno en línea sin esperas</span>
+              <button
+                type="button"
+                onClick={() => scrollToBooking()}
+                className="font-black uppercase tracking-wider text-[11px] inline-flex items-center gap-1 hover:underline cursor-pointer"
+                style={{ color: colors.accent }}
+              >
+                <span>Agendar</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* ── COLUMNA DERECHA (7 COLS): UBICACIÓN, MAPA, SEDES Y CANALES DE CONTACTO ── */}
+          <div
+            id="ubicacion"
+            data-narrative-item
+            className="lg:col-span-7 flex flex-col gap-6 scroll-mt-24"
+          >
+            {/* Bloque Superior: Dirección Física & Mapa */}
+            <div
+              className="p-6 sm:p-8 rounded-[28px] border shadow-sm space-y-5 flex-1 flex flex-col justify-between"
               style={{ backgroundColor: colors.surfaceCard, borderColor: colors.border }}
             >
-              <div>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 shadow-xs" style={{ backgroundColor: colors.accent, color: accentBtnText }}>
-                  <Phone className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-black tracking-tight mb-2" style={{ fontFamily: fontConfig.headingFont }}>
-                  Contacto & Redes
-                </h3>
-                <p className="text-sm font-medium opacity-80 mb-5 leading-relaxed" style={{ color: colors.textSecondary }}>
-                  {data.phone ? `Llámanos o escríbenos al ${data.phone}` : 'Contáctanos directamente en nuestras redes'}
-                </p>
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex items-start gap-3.5">
+                    <div
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 mt-0.5"
+                      style={{ backgroundColor: colors.accent, color: accentBtnText }}
+                    >
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span
+                        className="text-[10px] font-black uppercase tracking-[0.2em] block opacity-60"
+                        style={{ color: colors.textSecondary }}
+                      >
+                        SEDE & DIRECCIÓN
+                      </span>
+                      <h3
+                        className="text-lg sm:text-xl font-black tracking-tight"
+                        style={{ fontFamily: fontConfig.headingFont }}
+                      >
+                        {data.name}
+                      </h3>
+                      <p
+                        className="text-xs sm:text-sm font-medium opacity-85 mt-1 leading-relaxed"
+                        style={{ color: colors.textSecondary }}
+                      >
+                        {data.address && !data.address.startsWith('http')
+                          ? data.address
+                          : locationInfo?.displayText ||
+                          'Contáctanos por nuestros canales directos para indicaciones de llegada.'}
+                      </p>
+                    </div>
+                  </div>
 
-                {/* Social buttons */}
-                <div className="space-y-2">
+                  {locationInfo && (
+                    <a
+                      href={locationInfo.directionsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-h-[42px] px-4 py-2 rounded-full border text-xs font-black uppercase tracking-wider inline-flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+                      style={{
+                        borderColor: colors.accent,
+                        backgroundColor: `${colors.accent}15`,
+                        color: colors.textPrimary,
+                      }}
+                    >
+                      <Navigation className="w-3.5 h-3.5" style={{ color: colors.accent }} />
+                      <span>Cómo llegar</span>
+                    </a>
+                  )}
+                </div>
+
+                {/* Mapa interactivo cuando hay dirección o enlace de Google Maps */}
+                {locationInfo?.embedUrl && (
+                  <div
+                    className="w-full h-56 sm:h-64 rounded-2xl overflow-hidden border shadow-xs relative bg-zinc-900"
+                    style={{ borderColor: colors.border }}
+                  >
+                    <iframe
+                      src={locationInfo.embedUrl}
+                      title={`Ubicación de ${data.name}`}
+                      className="w-full h-full border-0"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      aria-label={`Mapa interactivo de ${data.name}`}
+                    />
+                  </div>
+                )}
+
+                {/* Sedes adicionales de la misma barbería (cuando existen) */}
+                {Array.isArray(data.siblingBranches) && data.siblingBranches.length > 0 && (
+                  <div
+                    className="pt-4 border-t space-y-2.5"
+                    style={{ borderColor: colors.border }}
+                  >
+                    <span
+                      className="text-[10px] font-black uppercase tracking-[0.2em] block opacity-70"
+                      style={{ color: colors.accent }}
+                    >
+                      OTRAS SEDES DE ESTA BARBERÍA
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {data.siblingBranches.map((branch: any) => (
+                        <Link
+                          key={branch.id}
+                          href={`/b/${branch.slug}`}
+                          className="p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all hover:scale-[1.01]"
+                          style={{
+                            backgroundColor: colors.bg,
+                            borderColor: colors.border,
+                          }}
+                        >
+                          <div className="min-w-0">
+                            <span className="text-xs font-black block truncate">
+                              {branch.name}
+                            </span>
+                            {branch.address && !branch.address.startsWith('http') && (
+                              <span className="text-[11px] opacity-65 block truncate">
+                                {branch.address}
+                              </span>
+                            )}
+                          </div>
+                          <ArrowRight
+                            className="w-4 h-4 shrink-0"
+                            style={{ color: colors.accent }}
+                          />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bloque Inferior Integrado: Teléfono, WhatsApp y Redes Sociales */}
+              <div
+                className="pt-5 border-t space-y-3"
+                style={{ borderColor: colors.border }}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span
+                    className="text-[10px] font-black uppercase tracking-[0.2em] opacity-65"
+                    style={{ color: colors.textSecondary }}
+                  >
+                    CANALES DIRECTOS & REDES OFICIALES
+                  </span>
+                  {showEmail && data.email && (
+                    <a
+                      href={`mailto:${data.email}`}
+                      className="text-xs font-semibold hover:underline opacity-80"
+                    >
+                      {data.email}
+                    </a>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {showPhone && data.phone && (
+                    <a
+                      href={`tel:${data.phone}`}
+                      className="py-3 px-4 rounded-2xl border flex items-center justify-between gap-3 text-xs font-bold transition-all hover:scale-[1.01]"
+                      style={{
+                        borderColor: colors.border,
+                        backgroundColor: colors.bg,
+                        color: colors.textPrimary,
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: `${colors.accent}20`, color: colors.accent }}
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase tracking-wider opacity-60 block">
+                            Teléfono
+                          </span>
+                          <span className="font-bold truncate block">{data.phone}</span>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
+                    </a>
+                  )}
+
                   {showWhatsapp && whatsappUrl && (
                     <a
                       href={whatsappUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="w-full text-xs font-bold py-2.5 px-4 rounded-xl border flex items-center justify-between transition-all hover:scale-102 active:scale-95 cursor-pointer"
-                      style={{ borderColor: colors.border, backgroundColor: colors.surface, color: colors.textPrimary }}
+                      className="py-3 px-4 rounded-2xl border flex items-center justify-between gap-3 text-xs font-bold transition-all hover:scale-[1.01]"
+                      style={{
+                        borderColor: colors.border,
+                        backgroundColor: colors.bg,
+                        color: colors.textPrimary,
+                      }}
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-md bg-[#25d366] text-white flex items-center justify-center">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-[#25d366] text-white flex items-center justify-center shrink-0">
                           <WhatsAppIcon />
                         </div>
-                        <span>WhatsApp Oficial</span>
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase tracking-wider opacity-60 block">
+                            Chat directo
+                          </span>
+                          <span className="font-bold truncate block">WhatsApp</span>
+                        </div>
                       </div>
-                      <ArrowRight className="w-3.5 h-3.5 opacity-50" />
+                      <ArrowRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
                     </a>
                   )}
 
@@ -1123,16 +1380,20 @@ export default function PublicBusinessPage() {
                       href={instagramUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="w-full text-xs font-bold py-2.5 px-4 rounded-xl border flex items-center justify-between transition-all hover:scale-102 active:scale-95 cursor-pointer"
-                      style={{ borderColor: colors.border, backgroundColor: colors.surface, color: colors.textPrimary }}
+                      className="py-3 px-4 rounded-2xl border flex items-center justify-between gap-3 text-xs font-bold transition-all hover:scale-[1.01]"
+                      style={{
+                        borderColor: colors.border,
+                        backgroundColor: colors.bg,
+                        color: colors.textPrimary,
+                      }}
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-md bg-[#e1306c] text-white flex items-center justify-center">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-[#e1306c] text-white flex items-center justify-center shrink-0">
                           <InstagramIcon />
                         </div>
-                        <span>Instagram</span>
+                        <span className="font-bold truncate">Instagram</span>
                       </div>
-                      <ArrowRight className="w-3.5 h-3.5 opacity-50" />
+                      <ArrowRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
                     </a>
                   )}
 
@@ -1141,16 +1402,20 @@ export default function PublicBusinessPage() {
                       href={facebookUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="w-full text-xs font-bold py-2.5 px-4 rounded-xl border flex items-center justify-between transition-all hover:scale-102 active:scale-95 cursor-pointer"
-                      style={{ borderColor: colors.border, backgroundColor: colors.surface, color: colors.textPrimary }}
+                      className="py-3 px-4 rounded-2xl border flex items-center justify-between gap-3 text-xs font-bold transition-all hover:scale-[1.01]"
+                      style={{
+                        borderColor: colors.border,
+                        backgroundColor: colors.bg,
+                        color: colors.textPrimary,
+                      }}
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-md bg-[#1877f2] text-white flex items-center justify-center">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-[#1877f2] text-white flex items-center justify-center shrink-0">
                           <FacebookIcon />
                         </div>
-                        <span>Facebook</span>
+                        <span className="font-bold truncate">Facebook</span>
                       </div>
-                      <ArrowRight className="w-3.5 h-3.5 opacity-50" />
+                      <ArrowRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
                     </a>
                   )}
 
@@ -1159,636 +1424,149 @@ export default function PublicBusinessPage() {
                       href={tiktokUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="w-full text-xs font-bold py-2.5 px-4 rounded-xl border flex items-center justify-between transition-all hover:scale-102 active:scale-95 cursor-pointer"
-                      style={{ borderColor: colors.border, backgroundColor: colors.surface, color: colors.textPrimary }}
+                      className="py-3 px-4 rounded-2xl border flex items-center justify-between gap-3 text-xs font-bold transition-all hover:scale-[1.01]"
+                      style={{
+                        borderColor: colors.border,
+                        backgroundColor: colors.bg,
+                        color: colors.textPrimary,
+                      }}
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-md bg-black text-white flex items-center justify-center">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-black text-white flex items-center justify-center shrink-0 border border-white/15">
                           <TikTokIcon />
                         </div>
-                        <span>TikTok</span>
+                        <span className="font-bold truncate">TikTok</span>
                       </div>
-                      <ArrowRight className="w-3.5 h-3.5 opacity-50" />
+                      <ArrowRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
                     </a>
                   )}
                 </div>
               </div>
-
-              <div className="pt-4 mt-4 border-t text-[11px] opacity-60 text-center" style={{ borderColor: `${colors.border}60` }}>
-                {data.email ? data.email : 'Atención garantizada'}
-              </div>
             </div>
           </div>
         </div>
-      </section>
+      </NarrativeSection>
 
       {/* ══════════════════════════════════════════════════════════
-          8. MÓDULO DE RESERVA ONLINE INTERACTIVO (#reservar)
+          8. MÓDULO DE RESERVA ONLINE INTERACTIVO (#reservar) — CAPÍTULO 06
       ══════════════════════════════════════════════════════════ */}
-      <section
+      <NarrativeSection
         id="reservar"
-        ref={reserveRef}
-        className="py-20 px-5 border-t scroll-mt-10"
-        style={{ borderColor: colors.border, backgroundColor: colors.bg }}
+        sectionRef={reserveRef}
+        chapterNumber="06"
+        eyebrow="SISTEMA DE CITAS EN LÍNEA"
+        title="Agenda Tu Cita"
+        subtitle="Elige tus servicios, selecciona tu fecha y asegura tu lugar en tiempo real."
+        watermark="RESERVAS"
+        variant="clip-reveal"
+        headerAlign="center"
+        themeId={pageConfig.theme}
+        motionStyle={pageConfig.motionStyle}
+        colorMode={colorMode}
+        colors={colors}
+        headingFont={fontConfig.headingFont}
+        backgroundColor={colors.bg}
+        className="scroll-mt-10"
       >
-        <div className="max-w-4xl mx-auto">
-          {/* Section Header */}
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-black uppercase tracking-[0.2em] block mb-2" style={{ color: colors.accent }}>
-              SISTEMA DE CITAS EN LÍNEA
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3" style={{ fontFamily: fontConfig.headingFont }}>
-              Agenda Tu Cita
-            </h2>
-            <p className="text-sm font-medium opacity-75" style={{ color: colors.textSecondary }}>
-              Elige tus servicios, selecciona tu fecha y asegura tu lugar en tiempo real.
-            </p>
-          </div>
-
-          {/* Stepper Progress Bar */}
-          <div className="mb-8 flex items-center justify-center gap-2 sm:gap-4 overflow-x-auto py-2">
-            {[
-              { num: 1, label: 'Servicios' },
-              { num: 2, label: 'Barbero' },
-              { num: 3, label: 'Fecha' },
-              { num: 4, label: 'Hora' },
-              { num: 5, label: 'Confirmar' }
-            ].map(s => {
-              const isPast = bookingStep > s.num
-              const isCurrent = bookingStep === s.num
-              return (
-                <div key={s.num} className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => s.num < bookingStep && setBookingStep(s.num as any)}
-                    disabled={s.num > bookingStep}
-                    className={`w-7 h-7 rounded-full text-xs font-black flex items-center justify-center transition-all ${isCurrent ? 'scale-110 shadow-md' : isPast ? 'cursor-pointer' : 'opacity-40'
-                      }`}
-                    style={
-                      isCurrent || isPast
-                        ? { backgroundColor: colors.accent, color: colors.bg }
-                        : { backgroundColor: colors.surface, color: colors.textSecondary }
-                    }
-                  >
-                    {isPast ? <Check className="w-3.5 h-3.5" /> : s.num}
-                  </button>
-                  <span className={`text-xs font-bold ${isCurrent ? 'opacity-100 font-black' : 'opacity-50'}`}>
-                    {s.label}
-                  </span>
-                  {s.num < 5 && <div className="w-4 sm:w-8 h-0.5 bg-zinc-700/40" />}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Booking Card Container */}
+        {data?.effectiveSubscription && data.effectiveSubscription.canUsePublicBooking === false ? (
           <div
-            className="p-6 sm:p-10 rounded-[32px] border shadow-2xl relative"
-            style={{ backgroundColor: colors.surfaceCard, borderColor: colors.border }}
+            className="max-w-2xl mx-auto p-8 sm:p-10 rounded-3xl border text-center space-y-6 my-6 shadow-2xl backdrop-blur-md"
+            style={{ backgroundColor: colors.surface, borderColor: colors.border }}
           >
-            {/* Error Message */}
-            {bookingError && (
-              <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold flex items-center gap-2">
-                <X className="w-4 h-4 shrink-0" />
-                <span>{bookingError}</span>
-              </div>
-            )}
-
-            {/* ── PASO 1: SELECCIONAR SERVICIOS (MULTI-SELECCIÓN) ── */}
-            {bookingStep === 1 && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-xl font-black" style={{ fontFamily: fontConfig.headingFont }}>
-                      1. Elige tus servicios
-                    </h3>
-                    <span className="text-xs opacity-60 font-medium block mt-0.5">
-                      Puedes marcar múltiples servicios simultáneamente
-                    </span>
-                  </div>
-                  {selectedServices.length > 0 && (
-                    <span className="text-xs font-black px-3 py-1 rounded-full bg-amber-400/10 text-amber-400 border border-amber-400/30">
-                      {selectedServices.length} seleccionado(s)
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {data.services?.map((svc: any) => {
-                    const isSelected = selectedServices.some(s => s.id === svc.id)
-                    return (
-                      <div
-                        key={svc.id}
-                        onClick={() => toggleService(svc)}
-                        className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex justify-between items-center ${isSelected ? 'shadow-md scale-[1.01]' : 'opacity-80 hover:opacity-100'
-                          }`}
-                        style={{
-                          borderColor: isSelected ? colors.accent : colors.border,
-                          backgroundColor: isSelected ? colors.badgeBg : colors.bg,
-                        }}
-                      >
-                        <div className="flex items-center gap-3 pr-2">
-                          <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${isSelected ? 'border-transparent' : 'opacity-40'}`}
-                            style={isSelected ? { backgroundColor: colors.accent, color: accentBtnText } : { borderColor: colors.textSecondary }}>
-                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-sm mb-0.5">{svc.name}</h4>
-                            <span className="text-xs opacity-60 font-medium">{svc.duration} min</span>
-                          </div>
-                        </div>
-                        <span className="font-black text-sm shrink-0 ml-2" style={{ color: colors.accent }}>
-                          {formatCOP(Number(svc.price))}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                <div className="pt-6 border-t flex items-center justify-between" style={{ borderColor: colors.border }}>
-                  <div className="text-xs">
-                    <span className="opacity-50 block">Total estimado ({totalAccumulatedDuration} min):</span>
-                    <span className="text-lg font-black" style={{ color: colors.accent }}>
-                      {formatCOP(totalAccumulatedPrice)}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (selectedServices.length === 0 && data.services && data.services.length > 0) {
-                        setSelectedServices([data.services[0]])
-                      }
-                      setBookingStep(2)
-                    }}
-                    className="flex items-center gap-2 px-7 py-3.5 rounded-full text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-                    style={{ backgroundColor: colors.accent, color: accentBtnText }}
-                  >
-                    <span>Siguiente: Barbero</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ── PASO 2: SELECCIONAR BARBERO ── */}
-            {bookingStep === 2 && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-black" style={{ fontFamily: fontConfig.headingFont }}>
-                    2. Selecciona a tu barbero
-                  </h3>
-                  <button
-                    onClick={() => setBookingStep(1)}
-                    className="text-xs font-bold opacity-60 hover:opacity-100 flex items-center gap-1 cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" /> Volver
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-                  {/* Opción Cualquiera */}
-                  <div
-                    onClick={() => setSelectedBarber(null)}
-                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-3.5 ${selectedBarber === null ? 'shadow-md scale-[1.01]' : 'opacity-80 hover:opacity-100'
-                      }`}
-                    style={{
-                      borderColor: selectedBarber === null ? colors.accent : colors.border,
-                      backgroundColor: selectedBarber === null ? colors.badgeBg : colors.bg,
-                    }}
-                  >
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-xs shrink-0" style={{ backgroundColor: colors.surface, color: colors.accent }}>
-                      <Sparkles className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm">Cualquier Barbero</h4>
-                      <span className="text-xs opacity-60">Mayor disponibilidad</span>
-                    </div>
-                  </div>
-
-                  {/* Lista de Barberos */}
-                  {data.barbers?.map((b: any) => {
-                    const isSelected = selectedBarber?.id === b.id
-                    return (
-                      <div
-                        key={b.id}
-                        onClick={() => setSelectedBarber(b)}
-                        className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-3.5 ${isSelected ? 'shadow-md scale-[1.01]' : 'opacity-80 hover:opacity-100'
-                          }`}
-                        style={{
-                          borderColor: isSelected ? colors.accent : colors.border,
-                          backgroundColor: isSelected ? colors.badgeBg : colors.bg,
-                        }}
-                      >
-                        <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border" style={{ borderColor: colors.accent }}>
-                          {b.avatar ? (
-                            <img src={b.avatar} alt={b.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-white">
-                              <User className="w-5 h-5" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="truncate">
-                          <h4 className="font-bold text-sm truncate">{b.name}</h4>
-                          <span className="text-xs opacity-60 truncate block">{b.specialty || 'Master Barber'}</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                <div className="pt-6 border-t flex items-center justify-between" style={{ borderColor: colors.border }}>
-                  <button
-                    onClick={() => setBookingStep(1)}
-                    className="text-xs font-bold opacity-60 hover:opacity-100 cursor-pointer"
-                  >
-                    Atrás
-                  </button>
-                  <button
-                    onClick={() => setBookingStep(3)}
-                    className="flex items-center gap-2 px-7 py-3.5 rounded-full text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-                    style={{ backgroundColor: colors.accent, color: accentBtnText }}
-                  >
-                    <span>Siguiente: Fecha</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ── PASO 3: SELECCIONAR FECHA ── */}
-            {bookingStep === 3 && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-black" style={{ fontFamily: fontConfig.headingFont }}>
-                    3. Selecciona la fecha
-                  </h3>
-                  <button
-                    onClick={() => setBookingStep(2)}
-                    className="text-xs font-bold opacity-60 hover:opacity-100 flex items-center gap-1 cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" /> Volver
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-                  {nextDays.map(d => {
-                    const isSelected = selectedDate === d.full
-                    return (
-                      <button
-                        key={d.full}
-                        onClick={() => setSelectedDate(d.full)}
-                        className={`p-3.5 rounded-2xl border-2 text-center transition-all cursor-pointer ${isSelected ? 'shadow-md scale-[1.03]' : 'opacity-70 hover:opacity-100'
-                          }`}
-                        style={{
-                          borderColor: isSelected ? colors.accent : colors.border,
-                          backgroundColor: isSelected ? colors.badgeBg : colors.bg,
-                        }}
-                      >
-                        <span className="text-[10px] font-black uppercase tracking-wider block opacity-60">{d.dayName}</span>
-                        <span className="text-xl font-black block my-0.5">{d.dayNum}</span>
-                        <span className="text-[10px] uppercase font-bold opacity-60 block">{d.month}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <div className="pt-6 border-t flex items-center justify-between" style={{ borderColor: colors.border }}>
-                  <button
-                    onClick={() => setBookingStep(2)}
-                    className="text-xs font-bold opacity-60 hover:opacity-100 cursor-pointer"
-                  >
-                    Atrás
-                  </button>
-                  <button
-                    onClick={() => setBookingStep(4)}
-                    className="flex items-center gap-2 px-7 py-3.5 rounded-full text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-                    style={{ backgroundColor: colors.accent, color: accentBtnText }}
-                  >
-                    <span>Ver Horarios Disponibles</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ── PASO 4: SELECCIONAR HORA ── */}
-            {bookingStep === 4 && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-xl font-black" style={{ fontFamily: fontConfig.headingFont }}>
-                      4. Selecciona la hora
-                    </h3>
-                    <span className="text-xs opacity-60 font-bold block mt-0.5">
-                      Fecha: {selectedDate} • {selectedBarber ? selectedBarber.name : 'Cualquier barbero disponible'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setBookingStep(3)}
-                    className="text-xs font-bold opacity-60 hover:opacity-100 flex items-center gap-1 cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" /> Cambiar fecha
-                  </button>
-                </div>
-
-                {loadingSlots ? (
-                  <div className="py-12 flex flex-col items-center justify-center gap-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider opacity-60">Consultando disponibilidad en tiempo real...</span>
-                  </div>
-                ) : availableSlots.length === 0 ? (
-                  <div className="py-12 text-center border-2 border-dashed rounded-2xl p-6" style={{ borderColor: colors.border }}>
-                    <Clock className="w-10 h-10 mx-auto opacity-30 mb-2" />
-                    <h4 className="font-bold text-sm mb-1">No hay horarios disponibles para esta fecha</h4>
-                    <p className="text-xs opacity-60 max-w-sm mx-auto mb-4">Intenta seleccionando otro día o prueba con otro barbero.</p>
-                    <button
-                      onClick={() => setBookingStep(3)}
-                      className="px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider border cursor-pointer"
-                      style={{ borderColor: colors.border }}
-                    >
-                      Elegir otra fecha
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 max-h-72 overflow-y-auto p-1">
-                    {availableSlots.map(slot => {
-                      const isSelected = selectedSlot === slot.time
-                      return (
-                        <button
-                          key={slot.time}
-                          onClick={() => setSelectedSlot(slot.time)}
-                          className={`py-3 px-2 rounded-xl border-2 text-center text-xs font-mono font-bold transition-all cursor-pointer ${isSelected ? 'scale-105 shadow-md font-black' : 'opacity-75 hover:opacity-100'
-                            }`}
-                          style={{
-                            borderColor: isSelected ? colors.accent : colors.border,
-                            backgroundColor: isSelected ? colors.accent : colors.bg,
-                            color: isSelected ? accentBtnText : colors.textPrimary,
-                          }}
-                        >
-                          {slot.time}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-
-                <div className="pt-6 border-t flex items-center justify-between" style={{ borderColor: colors.border }}>
-                  <button
-                    onClick={() => setBookingStep(3)}
-                    className="text-xs font-bold opacity-60 hover:opacity-100 cursor-pointer"
-                  >
-                    Atrás
-                  </button>
-                  <button
-                    disabled={!selectedSlot}
-                    onClick={() => setBookingStep(5)}
-                    className={`flex items-center gap-2 px-7 py-3.5 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-md ${!selectedSlot ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-105 active:scale-95'
-                      }`}
-                    style={
-                      !selectedSlot
-                        ? {
-                          backgroundColor: isLightMode ? '#e2e8f0' : '#27272a',
-                          color: isLightMode ? '#64748b' : '#94a3b8',
-                        }
-                        : {
-                          backgroundColor: colors.accent,
-                          color: accentBtnText,
-                        }
-                    }
-                  >
-                    <span>Continuar a Confirmar</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ── PASO 5: CONFIRMAR RESERVA (O ESTADO EXITOSO) ── */}
-            {bookingStep === 5 && (
-              <div>
-                {bookingSuccess ? (
-                  /* Confirmación Exitosa */
-                  <div className="text-center py-6 space-y-5 animate-in zoom-in-95 duration-300">
-                    <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-lg">
-                      <CheckCircle2 className="w-8 h-8" />
-                    </div>
-
-                    <div>
-                      <span className="text-xs font-black uppercase tracking-widest text-emerald-400 block mb-1">
-                        ¡RESERVA CONFIRMADA CON ÉXITO!
-                      </span>
-                      <h3 className="text-2xl sm:text-3xl font-black" style={{ fontFamily: fontConfig.headingFont }}>
-                        Te esperamos en {data.name}
-                      </h3>
-                    </div>
-
-                    {/* Resumen del ticket */}
-                    <div className="max-w-md mx-auto p-5 rounded-2xl border text-left space-y-3 font-medium text-xs" style={{ backgroundColor: colors.bg, borderColor: colors.border }}>
-                      <div className="flex justify-between pb-2 border-b" style={{ borderColor: `${colors.border}60` }}>
-                        <span className="opacity-50">Código de Reserva:</span>
-                        <span className="font-mono font-black text-sm" style={{ color: colors.accent }}>
-                          {bookingSuccess.reservationCode}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="opacity-50">Servicio(s):</span>
-                        <span className="font-bold text-right">{selectedServices.map(s => s.name).join(', ')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="opacity-50">Barbero:</span>
-                        <span className="font-bold">{bookingSuccess.barber?.name || selectedBarber?.name || 'Asignado'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="opacity-50">Fecha y Hora:</span>
-                        <span className="font-bold text-amber-400">{selectedDate} a las {selectedSlot}</span>
-                      </div>
-                      <div className="flex justify-between pt-2 border-t font-black text-sm" style={{ borderColor: `${colors.border}60` }}>
-                        <span>Total del Servicio:</span>
-                        <span style={{ color: colors.accent }}>
-                          {formatCOP(totalAccumulatedPrice)}
-                        </span>
-                      </div>
-
-                      {data.depositEnabled && (
-                        <>
-                          <div className="flex justify-between text-amber-400 font-bold">
-                            <span>Anticipo Requerido:</span>
-                            <span>
-                              {data.depositType === 'PERCENTAGE'
-                                ? `${formatCOP(Math.round((totalAccumulatedPrice * data.depositPercentage) / 100))} (${data.depositPercentage}%)`
-                                : formatCOP(Math.min(totalAccumulatedPrice, Number(data.depositFixedAmount) || 0))}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-zinc-300">
-                            <span>Saldo al Llegar al Local:</span>
-                            <span>
-                              {data.depositType === 'PERCENTAGE'
-                                ? formatCOP(Math.max(0, totalAccumulatedPrice - Math.round((totalAccumulatedPrice * data.depositPercentage) / 100)))
-                                : formatCOP(Math.max(0, totalAccumulatedPrice - Math.min(totalAccumulatedPrice, Number(data.depositFixedAmount) || 0)))}
-                            </span>
-                          </div>
-                          {data.depositInstructions && (
-                            <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-[11px] text-amber-200 mt-2">
-                              <strong className="block text-amber-300 mb-0.5">Instrucciones de Pago:</strong>
-                              {data.depositInstructions}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                      {whatsappUrl && (
-                        <a
-                          href={`${whatsappUrl}&text=Hola!%20Acabo%20de%20agendar%20mi%20cita%20con%20código%20${bookingSuccess.reservationCode}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-2 px-5 py-3 rounded-full text-xs font-bold bg-[#25d366] text-white shadow-md hover:scale-105 active:scale-95 transition-all w-full sm:w-auto justify-center"
-                        >
-                          <WhatsAppIcon />
-                          <span>Avisar por WhatsApp</span>
-                        </a>
-                      )}
-                      <button
-                        onClick={() => {
-                          setBookingSuccess(null)
-                          setBookingStep(1)
-                          setSelectedServices([])
-                          setSelectedSlot(null)
-                        }}
-                        className="px-5 py-3 rounded-full text-xs font-bold border transition-all hover:opacity-100 opacity-70 w-full sm:w-auto cursor-pointer"
-                        style={{ borderColor: colors.border }}
-                      >
-                        Agendar otra cita
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* Formulario de Datos del Cliente */
-                  <form onSubmit={handleCreateAppointment} className="space-y-6 animate-in fade-in duration-300">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-xl font-black" style={{ fontFamily: fontConfig.headingFont }}>
-                        5. Confirma tus datos
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={() => setBookingStep(4)}
-                        className="text-xs font-bold opacity-60 hover:opacity-100 flex items-center gap-1 cursor-pointer"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" /> Cambiar hora
-                      </button>
-                    </div>
-
-                    {/* Ticket Summary Card */}
-                    <div className="p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-3 text-xs" style={{ backgroundColor: colors.bg, borderColor: colors.border }}>
-                      <div>
-                        <span className="opacity-50 block text-[10px] uppercase font-bold">Servicios</span>
-                        <span className="font-bold">{selectedServices.map(s => s.name).join(', ')}</span>
-                      </div>
-                      <div>
-                        <span className="opacity-50 block text-[10px] uppercase font-bold">Fecha & Hora</span>
-                        <span className="font-bold text-amber-400">{selectedDate} — {selectedSlot}</span>
-                      </div>
-                      <div>
-                        <span className="opacity-50 block text-[10px] uppercase font-bold">Total</span>
-                        <span className="font-black text-sm" style={{ color: colors.accent }}>
-                          {formatCOP(totalAccumulatedPrice)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Desglose de Anticipo si el negocio lo tiene activo */}
-                    {data.depositEnabled && (
-                      <div className="p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 space-y-2 text-xs">
-                        <div className="flex items-center justify-between font-black text-amber-400 uppercase tracking-wider text-[11px]">
-                          <span>Anticipo Requerido para Confirmar</span>
-                          <span>
-                            {data.depositType === 'PERCENTAGE'
-                              ? `${formatCOP(Math.round((totalAccumulatedPrice * data.depositPercentage) / 100))} (${data.depositPercentage}%)`
-                              : formatCOP(Math.min(totalAccumulatedPrice, Number(data.depositFixedAmount) || 0))}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-zinc-300 text-[11px]">
-                          <span>Saldo Restante a Pagar en el Local:</span>
-                          <span className="font-bold">
-                            {data.depositType === 'PERCENTAGE'
-                              ? formatCOP(Math.max(0, totalAccumulatedPrice - Math.round((totalAccumulatedPrice * data.depositPercentage) / 100)))
-                              : formatCOP(Math.max(0, totalAccumulatedPrice - Math.min(totalAccumulatedPrice, Number(data.depositFixedAmount) || 0)))}
-                          </span>
-                        </div>
-                        {data.depositInstructions && (
-                          <div className="text-[11px] text-amber-200/90 pt-2 border-t border-amber-500/20 leading-relaxed">
-                            <strong className="text-amber-300">Abono:</strong> {data.depositInstructions}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-bold uppercase tracking-wider opacity-60 block mb-1.5">
-                          Nombre Completo *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={clientName}
-                          onChange={e => setClientName(e.target.value)}
-                          placeholder="Tu nombre y apellido"
-                          className="w-full px-4 py-3 rounded-xl border text-sm font-medium outline-none focus:border-amber-400 transition-colors"
-                          style={{ backgroundColor: colors.bg, borderColor: colors.border, color: colors.textPrimary }}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold uppercase tracking-wider opacity-60 block mb-1.5">
-                          Número de WhatsApp / Teléfono *
-                        </label>
-                        <input
-                          type="tel"
-                          required
-                          value={clientPhone}
-                          onChange={e => setClientPhone(e.target.value)}
-                          placeholder="Ej: +57 300 123 4567"
-                          className="w-full px-4 py-3 rounded-xl border text-sm font-medium outline-none focus:border-amber-400 transition-colors"
-                          style={{ backgroundColor: colors.bg, borderColor: colors.border, color: colors.textPrimary }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="pt-6 border-t flex items-center justify-between" style={{ borderColor: colors.border }}>
-                      <button
-                        type="button"
-                        onClick={() => setBookingStep(4)}
-                        className="text-xs font-bold opacity-60 hover:opacity-100 cursor-pointer"
-                      >
-                        Atrás
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={submittingBooking}
-                        className="flex items-center gap-2 px-8 py-3.5 rounded-full text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
-                        style={{ backgroundColor: colors.accent, color: accentBtnText }}
-                      >
-                        {submittingBooking ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Confirmando Cita...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Check className="w-4 h-4" strokeWidth={3} />
-                            <span>Confirmar Reserva</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
-            )}
+            <div
+              className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center shadow-inner"
+              style={{ backgroundColor: `${colors.accent}20`, color: colors.accent }}
+            >
+              <Clock className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl sm:text-2xl font-black tracking-tight" style={{ color: colors.textPrimary, fontFamily: fontConfig.headingFont }}>
+                Atención y Reservas Directas
+              </h3>
+              <p className="text-sm opacity-80 max-w-md mx-auto leading-relaxed" style={{ color: colors.textSecondary }}>
+                El agendamiento en línea por la web se encuentra temporalmente en pausa. Nuestro equipo te atiende con gusto de manera directa para coordinar tu turno:
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              {whatsappUrl && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all hover:scale-105"
+                  style={{ backgroundColor: '#25D366', color: '#FFFFFF' }}
+                >
+                  <WhatsAppIcon />
+                  Agendar por WhatsApp
+                </a>
+              )}
+              {data.phone && (
+                <a
+                  href={`tel:${data.phone}`}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm border transition-all hover:scale-105"
+                  style={{ backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }}
+                >
+                  <Phone className="w-4 h-4" />
+                  Llamar: {data.phone}
+                </a>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        ) : (
+          <CinematicBookingWidget
+            businessName={data.name}
+            services={data.services || []}
+            barbers={data.barbers || []}
+            selectedServices={selectedServices}
+            selectedBarber={selectedBarber}
+            selectedDate={selectedDate}
+            selectedSlot={selectedSlot}
+            availableSlots={availableSlots}
+            loadingSlots={loadingSlots}
+            bookingStep={bookingStep}
+            bookingError={bookingError}
+            bookingSuccess={bookingSuccess}
+            submittingBooking={submittingBooking}
+            clientName={clientName}
+            clientPhone={clientPhone}
+            nextDays={nextDays}
+            totalAccumulatedPrice={totalAccumulatedPrice}
+            totalAccumulatedDuration={totalAccumulatedDuration}
+            depositEnabled={data.depositEnabled}
+            depositType={data.depositType}
+            depositPercentage={data.depositPercentage}
+            depositFixedAmount={data.depositFixedAmount}
+            depositInstructions={data.depositInstructions}
+            advancePaymentConfig={data.advancePaymentConfig || pageConfig.advancePaymentConfig || null}
+            whatsappUrl={whatsappUrl}
+            colors={colors}
+            accentBtnText={accentBtnText}
+            headingFont={fontConfig.headingFont}
+            isLightMode={isLightMode}
+            formatCOP={formatCOP}
+            onSetBookingStep={(step) => setBookingStep(step)}
+            onToggleService={toggleService}
+            onSelectDefaultServiceIfEmpty={() => {
+              if (selectedServices.length === 0 && data.services && data.services.length > 0) {
+                setSelectedServices([data.services[0]])
+              }
+            }}
+            onSelectBarber={(barber) => setSelectedBarber(barber)}
+            onSelectDate={(date) => setSelectedDate(date)}
+            onSelectSlot={(slot) => setSelectedSlot(slot)}
+            onChangeClientName={(val) => setClientName(val)}
+            onChangeClientPhone={(val) => setClientPhone(val)}
+            onSubmitBooking={handleCreateAppointment}
+            onResetBooking={() => {
+              setBookingSuccess(null)
+              setBookingStep(1)
+              setSelectedServices([])
+              setSelectedSlot(null)
+            }}
+            onScrollToBooking={() => scrollToBooking()}
+          />
+        )}
+      </NarrativeSection>
 
       {/* ══════════════════════════════════════════════════════════
           FOOTER DE AGENCIA PROFESIONAL
@@ -1832,12 +1610,14 @@ export default function PublicBusinessPage() {
                 </div>
               </div>
 
-              <p className="text-xs opacity-70 leading-relaxed font-normal">
-                {pageConfig.heroSubtitle || data.description || 'Experiencia exclusiva de barbería y estilismo. Cortes de precisión, perfilado de barba y atención de primer nivel.'}
-              </p>
+              {(pageConfig.slogan || data.description) && (
+                <p className="text-xs opacity-70 leading-relaxed font-normal">
+                  {data.description || pageConfig.slogan}
+                </p>
+              )}
 
-              {/* Redes Sociales */}
-              <div className="flex items-center gap-2 pt-2">
+              {/* Redes Sociales Activas */}
+              <div className="flex items-center flex-wrap gap-2 pt-2">
                 {whatsappUrl && (
                   <a
                     href={whatsappUrl}
@@ -1850,9 +1630,9 @@ export default function PublicBusinessPage() {
                     <WhatsAppIcon />
                   </a>
                 )}
-                {pageConfig.instagram && (
+                {instagramUrl && (
                   <a
-                    href={buildSocialUrl('instagram', pageConfig.instagram)}
+                    href={instagramUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-9 h-9 rounded-xl flex items-center justify-center border transition-all hover:scale-105 opacity-80 hover:opacity-100"
@@ -1860,6 +1640,30 @@ export default function PublicBusinessPage() {
                     title="Instagram"
                   >
                     <InstagramIcon />
+                  </a>
+                )}
+                {facebookUrl && (
+                  <a
+                    href={facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 rounded-xl flex items-center justify-center border transition-all hover:scale-105 opacity-80 hover:opacity-100"
+                    style={{ borderColor: colors.border, backgroundColor: colors.surfaceCard }}
+                    title="Facebook"
+                  >
+                    <FacebookIcon />
+                  </a>
+                )}
+                {tiktokUrl && (
+                  <a
+                    href={tiktokUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 rounded-xl flex items-center justify-center border transition-all hover:scale-105 opacity-80 hover:opacity-100"
+                    style={{ borderColor: colors.border, backgroundColor: colors.surfaceCard }}
+                    title="TikTok"
+                  >
+                    <TikTokIcon />
                   </a>
                 )}
               </div>
@@ -1885,19 +1689,26 @@ export default function PublicBusinessPage() {
                     </a>
                   </li>
                 )}
+                {hasCustomGallery && (
+                  <li>
+                    <a href="#galeria" className="hover:opacity-100 transition-opacity hover:underline">
+                      Galería de Trabajos
+                    </a>
+                  </li>
+                )}
                 <li>
                   <a href="#horarios" className="hover:opacity-100 transition-opacity hover:underline">
                     Horarios de Atención
                   </a>
                 </li>
                 <li>
-                  <a href="#galeria" className="hover:opacity-100 transition-opacity hover:underline">
-                    Galería de Trabajos
+                  <a href="#ubicacion" className="hover:opacity-100 transition-opacity hover:underline">
+                    Ubicación y Contacto
                   </a>
                 </li>
                 <li>
-                  <a href="#ubicacion" className="hover:opacity-100 transition-opacity hover:underline">
-                    Ubicación en el Mapa
+                  <a href="#reservar" className="hover:opacity-100 transition-opacity hover:underline font-bold" style={{ color: colors.accent }}>
+                    Reservar Cita
                   </a>
                 </li>
               </ul>
@@ -1916,7 +1727,7 @@ export default function PublicBusinessPage() {
                       Hoy: {isTodayOpen ? 'Abierto' : 'Cerrado'}
                     </span>
                     <span className="text-[11px] opacity-70">
-                      {isTodayOpen ? formatDayHours(todayScheduleItem).text : (todayScheduleItem?.customMessage || 'Día de descanso')}
+                      {isTodayOpen ? formatDayHours(todayScheduleItem).text : (todayScheduleItem?.customMessage || 'Cerrado hoy')}
                     </span>
                   </div>
                 </div>
@@ -1934,11 +1745,20 @@ export default function PublicBusinessPage() {
                   </div>
                 )}
 
-                {data.phone && (
+                {showPhone && data.phone && (
                   <div className="flex items-center gap-2.5">
                     <Phone className="w-4 h-4 shrink-0" style={{ color: colors.accent }} />
                     <a href={`tel:${data.phone}`} className="hover:underline font-bold">
                       {data.phone}
+                    </a>
+                  </div>
+                )}
+
+                {showEmail && data.email && (
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-4 h-4 shrink-0 text-xs font-black text-center" style={{ color: colors.accent }}>@</span>
+                    <a href={`mailto:${data.email}`} className="hover:underline font-bold text-xs truncate">
+                      {data.email}
                     </a>
                   </div>
                 )}
@@ -1948,10 +1768,10 @@ export default function PublicBusinessPage() {
             {/* Columna 4: Políticas & Confianza */}
             <div className="space-y-4">
               <h4 className="text-xs font-black uppercase tracking-[0.15em]" style={{ color: colors.accent }}>
-                Políticas & Seguridad
+                Políticas & Condiciones
               </h4>
               <p className="text-xs opacity-70 leading-relaxed font-normal">
-                Garantizamos tu turno reservado de forma transparente y segura. Consulta nuestras políticas oficiales antes de tu visita.
+                Tu turno reservado con transparencia y respaldo. Consulta nuestras políticas antes de tu visita.
               </p>
               <div className="flex flex-col gap-2 pt-1">
                 <button
@@ -1960,7 +1780,23 @@ export default function PublicBusinessPage() {
                   className="text-left text-xs font-bold transition-opacity hover:opacity-100 opacity-80 flex items-center gap-2 cursor-pointer group"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" style={{ color: colors.accent }} />
-                  <span>Términos del Servicio</span>
+                  <span>Términos de reserva</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLegalModal('cancelacion')}
+                  className="text-left text-xs font-bold transition-opacity hover:opacity-100 opacity-80 flex items-center gap-2 cursor-pointer group"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" style={{ color: colors.accent }} />
+                  <span>Cancelaciones y reprogramaciones</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLegalModal('anticipos')}
+                  className="text-left text-xs font-bold transition-opacity hover:opacity-100 opacity-80 flex items-center gap-2 cursor-pointer group"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" style={{ color: colors.accent }} />
+                  <span>Anticipos y devoluciones</span>
                 </button>
                 <button
                   type="button"
@@ -1968,7 +1804,15 @@ export default function PublicBusinessPage() {
                   className="text-left text-xs font-bold transition-opacity hover:opacity-100 opacity-80 flex items-center gap-2 cursor-pointer group"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" style={{ color: colors.accent }} />
-                  <span>Política de Privacidad</span>
+                  <span>Política de privacidad</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLegalModal('datos')}
+                  className="text-left text-xs font-bold transition-opacity hover:opacity-100 opacity-80 flex items-center gap-2 cursor-pointer group"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" style={{ color: colors.accent }} />
+                  <span>Tratamiento de datos (Habeas Data)</span>
                 </button>
               </div>
             </div>
@@ -1980,13 +1824,29 @@ export default function PublicBusinessPage() {
             style={{ borderColor: colors.border }}
           >
             <p>© {new Date().getFullYear()} {data.name}. Todos los derechos reservados.</p>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
               <button
                 type="button"
                 onClick={() => setLegalModal('terms')}
                 className="hover:opacity-100 transition-opacity cursor-pointer"
               >
                 Términos
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => setLegalModal('cancelacion')}
+                className="hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                Cancelaciones
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => setLegalModal('anticipos')}
+                className="hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                Anticipos
               </button>
               <span>•</span>
               <button
@@ -2036,13 +1896,14 @@ export default function PublicBusinessPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black tracking-tight" style={{ fontFamily: fontConfig.headingFont }}>
-                    {legalModal === 'terms' && 'Términos y Condiciones del Servicio'}
+                    {legalModal === 'terms' && 'Términos de Reserva y Condiciones del Servicio'}
                     {legalModal === 'privacy' && 'Política de Privacidad & Protección de Datos'}
-                    {legalModal === 'cancelacion' && 'Política de Cancelación & Reagendamientos'}
+                    {legalModal === 'cancelacion' && 'Política de Cancelaciones & Reprogramaciones'}
+                    {legalModal === 'anticipos' && 'Política de Anticipos y Devoluciones'}
                     {legalModal === 'datos' && 'Tratamiento de Datos Personales (Habeas Data)'}
                   </h3>
                   <p className="text-xs opacity-60 font-medium">
-                    {data.name} • Actualizado para la vigencia actual
+                    {data.name} • Políticas oficiales del establecimiento
                   </p>
                 </div>
               </div>
@@ -2068,19 +1929,7 @@ export default function PublicBusinessPage() {
                   color: legalModal === 'terms' ? colors.accent : colors.textPrimary
                 }}
               >
-                Términos
-              </button>
-              <button
-                type="button"
-                onClick={() => setLegalModal('privacy')}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${legalModal === 'privacy' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'}`}
-                style={{
-                  backgroundColor: legalModal === 'privacy' ? `${colors.accent}20` : 'transparent',
-                  borderColor: legalModal === 'privacy' ? colors.accent : 'transparent',
-                  color: legalModal === 'privacy' ? colors.accent : colors.textPrimary
-                }}
-              >
-                Privacidad
+                Términos de reserva
               </button>
               <button
                 type="button"
@@ -2093,6 +1942,30 @@ export default function PublicBusinessPage() {
                 }}
               >
                 Cancelaciones
+              </button>
+              <button
+                type="button"
+                onClick={() => setLegalModal('anticipos')}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${legalModal === 'anticipos' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'}`}
+                style={{
+                  backgroundColor: legalModal === 'anticipos' ? `${colors.accent}20` : 'transparent',
+                  borderColor: legalModal === 'anticipos' ? colors.accent : 'transparent',
+                  color: legalModal === 'anticipos' ? colors.accent : colors.textPrimary
+                }}
+              >
+                Anticipos y devoluciones
+              </button>
+              <button
+                type="button"
+                onClick={() => setLegalModal('privacy')}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${legalModal === 'privacy' ? 'border shadow-xs' : 'opacity-60 hover:opacity-100'}`}
+                style={{
+                  backgroundColor: legalModal === 'privacy' ? `${colors.accent}20` : 'transparent',
+                  borderColor: legalModal === 'privacy' ? colors.accent : 'transparent',
+                  color: legalModal === 'privacy' ? colors.accent : colors.textPrimary
+                }}
+              >
+                Privacidad
               </button>
               <button
                 type="button"
@@ -2117,25 +1990,25 @@ export default function PublicBusinessPage() {
                       1. Agendamiento y Confirmación de Citas
                     </h5>
                     <p>
-                      Al solicitar una cita en <strong>{data.name}</strong> a través de nuestra plataforma web o canal de WhatsApp oficial, el cliente reserva un espacio de tiempo específico con el profesional elegido. La cita queda registrada de forma automática en nuestro sistema de agenda en tiempo real.
+                      Al solicitar una cita en <strong>{data.name}</strong> a través de nuestra página web o canal de WhatsApp oficial, el cliente reserva un bloque exclusivo en la agenda del profesional seleccionado.
                     </p>
                   </div>
 
                   <div className="space-y-1.5">
                     <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
-                      2. Puntualidad y Tolerancia
+                      2. Puntualidad y Margen de Cortesía
                     </h5>
                     <p>
-                      Agradecemos presentarse con 5 minutos de anticipación. Contamos con una tolerancia máxima de <strong>10 minutos</strong>. Pasado este tiempo, para respetar el tiempo de los demás clientes agendados, el turno podrá ser reprogramado o cancelado según la disponibilidad del establecimiento.
+                      Recomendamos llegar con 5 minutos de anticipación. Contamos con una tolerancia máxima de <strong>10 minutos</strong>. Pasado este tiempo, para respetar la agenda de los siguientes clientes, el turno podrá ajustarse o reprogramarse según disponibilidad.
                     </p>
                   </div>
 
                   <div className="space-y-1.5">
                     <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
-                      3. Cancelaciones y Reagendamientos
+                      3. Cancelaciones y Reprogramaciones
                     </h5>
                     <p>
-                      Si necesitas reprogramar o cancelar tu cita, te solicitamos notificar con al menos <strong>1 hora de anticipación</strong> a través de nuestro enlace de gestión o canal de WhatsApp oficial, permitiendo que otro cliente pueda aprovechar dicho espacio.
+                      Si necesitas reprogramar o cancelar tu cita, agradecemos notificar con al menos <strong>1 hora de anticipación</strong> a través del enlace de autogestión de tu reserva o mediante nuestro WhatsApp oficial.
                     </p>
                   </div>
 
@@ -2144,52 +2017,7 @@ export default function PublicBusinessPage() {
                       4. Precios y Formas de Pago
                     </h5>
                     <p>
-                      Los precios exhibidos en nuestro catálogo son oficiales y están expresados en moneda de curso legal. El pago del servicio se efectúa directamente en el establecimiento al finalizar la atención, salvo promociones con reserva prepagada explícitamente acordadas.
-                    </p>
-                  </div>
-                </>
-              )}
-
-              {legalModal === 'privacy' && (
-                <>
-                  <div className="space-y-1.5">
-                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
-                      1. Responsable del Tratamiento de Datos
-                    </h5>
-                    <p>
-                      El responsable de la custodia y tratamiento de tus datos personales es <strong>{data.name}</strong>, operando bajo la plataforma de agendamiento tecnológico <strong>BarberOS</strong>, en estricto cumplimiento de las normativas de protección de datos personales (Habeas Data).
-                    </p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
-                      2. Finalidad de los Datos Recolectados
-                    </h5>
-                    <p>
-                      Los datos solicitados al momento de reservar (nombre completo y número de teléfono/WhatsApp) se emplean <strong>exclusivamente</strong> para:
-                    </p>
-                    <ul className="list-disc pl-5 space-y-1 pt-1 opacity-85">
-                      <li>Confirmación y envío de recordatorios de tu cita.</li>
-                      <li>Notificaciones en caso de reprogramaciones o imprevistos de horario.</li>
-                      <li>Historial de visitas para personalizar tus preferencias de corte y estilo.</li>
-                    </ul>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
-                      3. Confidencialidad y No Transferencia
-                    </h5>
-                    <p>
-                      No vendemos, cedemos ni compartimos tu información personal con terceros bajo ningún concepto publicitario ni comercial. Tu información permanece protegida mediante conexiones seguras cifradas.
-                    </p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
-                      4. Derechos del Titular (ARCO)
-                    </h5>
-                    <p>
-                      En cualquier momento puedes solicitar la actualización, rectificación o eliminación definitiva de tus datos de nuestro sistema poniéndote en contacto directo con la administración de <strong>{data.name}</strong> a través de nuestros canales oficiales de contacto.
+                      Los precios exhibidos en el catálogo digital de <strong>{data.name}</strong> corresponden a las tarifas oficiales vigentes. El pago se realiza en el establecimiento al finalizar el servicio, salvo cuando aplique un anticipo de reserva indicado explícitamente durante el agendamiento.
                     </p>
                   </div>
                 </>
@@ -2202,25 +2030,98 @@ export default function PublicBusinessPage() {
                       1. Tiempo de Tolerancia de Espera
                     </h5>
                     <p>
-                      Contamos con un margen de cortesía de <strong>10 minutos</strong>. Pasado dicho tiempo sin aviso previo, el barbero podrá disponer del turno para atender a clientes en espera presencial.
+                      En <strong>{data.name}</strong> contamos con un margen de cortesía de <strong>10 minutos</strong> sobre la hora agendada. Pasado dicho tiempo sin aviso previo, el profesional podrá disponer del espacio para no retrasar los turnos siguientes.
                     </p>
                   </div>
 
                   <div className="space-y-1.5">
                     <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
-                      2. Cancelación Oportuna
+                      2. Reprogramación o Cancelación Oportuna
                     </h5>
                     <p>
-                      Puedes cancelar o modificar el horario de tu cita de forma gratuita hasta <strong>1 hora antes</strong> de la hora acordada a través del enlace de autoservicio o escribiendo a nuestro WhatsApp.
+                      Puedes cancelar o modificar el horario de tu cita sin costo hasta <strong>1 hora antes</strong> de la hora acordada utilizando el enlace incluido en tu confirmación o escribiendo directamente a nuestro WhatsApp de atención.
                     </p>
                   </div>
 
                   <div className="space-y-1.5">
                     <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
-                      3. Anticipos o Depósitos de Reserva
+                      3. Inasistencias sin Aviso Previo (No-Show)
                     </h5>
                     <p>
-                      Si tu cita requiere anticipo previo (según la política del servicio), dicho depósito será acreditado al valor total de tu corte en el establecimiento. En caso de inasistencia sin previo aviso, el anticipo compensa el tiempo reservado del profesional.
+                      Las inasistencias reiteradas sin previo aviso pueden requerir confirmación anticipada o abono previo para futuras reservas en <strong>{data.name}</strong>.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {legalModal === 'anticipos' && (
+                <>
+                  <div className="space-y-1.5">
+                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
+                      1. Aplicación de Anticipos de Reserva
+                    </h5>
+                    <p>
+                      Cuando un servicio o turno en <strong>{data.name}</strong> solicite anticipo para confirmar la cita, el monto o porcentaje se mostrará de forma clara antes de finalizar la solicitud y se descontará íntegramente del valor total a pagar en la barbería.
+                    </p>
+                    {data.depositInstructions && (
+                      <p className="mt-2 p-3 rounded-xl border text-xs" style={{ borderColor: colors.border, backgroundColor: colors.surfaceCard }}>
+                        <strong>Instrucciones del establecimiento:</strong> {data.depositInstructions}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
+                      2. Conservación del Anticipo por Reprogramación
+                    </h5>
+                    <p>
+                      {pageConfig.advancePaymentConfig?.cancellationPolicy ||
+                        'Si notificas la reprogramación de tu cita con al menos 1 hora de anticipación, tu anticipo se conserva íntegramente a favor para tu nueva fecha agendada.'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
+                      3. Devoluciones y Casos de Inasistencia
+                    </h5>
+                    <p>
+                      En caso de cancelación por parte del establecimiento o fuerza mayor comprobada, el anticipo será reembolsado en su totalidad o abonado a una nueva fecha a elección del cliente. En caso de inasistencia sin previo aviso, el anticipo cubre la reserva del bloque de tiempo del profesional.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {legalModal === 'privacy' && (
+                <>
+                  <div className="space-y-1.5">
+                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
+                      1. Responsable del Tratamiento de Datos
+                    </h5>
+                    <p>
+                      El responsable de la custodia y tratamiento de tus datos personales es <strong>{data.name}</strong>, operando mediante la infraestructura tecnológica de <strong>BarberOS</strong>, en cumplimiento de las normas de protección de datos personales.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
+                      2. Finalidad de los Datos Recolectados
+                    </h5>
+                    <p>
+                      Los datos solicitados al momento de reservar (nombre y número de contacto) se utilizan <strong>exclusivamente</strong> para:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1 pt-1 opacity-85">
+                      <li>Confirmación y recordatorios de tu cita agendada.</li>
+                      <li>Comunicación directa ante reprogramaciones o novedades de horario.</li>
+                      <li>Atención personalizada durante tu visita a <strong>{data.name}</strong>.</li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
+                      3. Confidencialidad y No Transferencia
+                    </h5>
+                    <p>
+                      No comercializamos ni cedemos tu información personal a terceros ajenos a la prestación de tu servicio de barbería.
                     </p>
                   </div>
                 </>
@@ -2230,10 +2131,10 @@ export default function PublicBusinessPage() {
                 <>
                   <div className="space-y-1.5">
                     <h5 className="font-black text-sm uppercase tracking-wider" style={{ color: colors.accent }}>
-                      1. Autorización de Tratamiento (Ley 1581 de 2012)
+                      1. Autorización de Tratamiento (Habeas Data — Ley 1581 de 2012)
                     </h5>
                     <p>
-                      Al agendar tu turno en <strong>{data.name}</strong>, autorizas de manera previa, expresa e informada el tratamiento de tus datos de contacto básicos (nombre, teléfono y preferencias de servicio).
+                      Al registrar tu reserva en <strong>{data.name}</strong>, autorizas de manera previa, expresa e informada el tratamiento de tus datos de contacto para la gestión operativa de tus citas.
                     </p>
                   </div>
 
@@ -2242,7 +2143,7 @@ export default function PublicBusinessPage() {
                       2. Ejercicio de Derechos ARCO
                     </h5>
                     <p>
-                      Tienes derecho a conocer, actualizar, rectificar y suprimir tus datos personales registrados en el sistema, así como a revocar la autorización enviando un mensaje directo a los canales oficiales del establecimiento o al correo legal de la plataforma.
+                      Como titular de los datos tienes derecho en todo momento a conocer, actualizar, rectificar y solicitar la supresión de tu información comunicándote directamente con los canales de atención de <strong>{data.name}</strong>.
                     </p>
                   </div>
                 </>
@@ -2262,6 +2163,26 @@ export default function PublicBusinessPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Botón Flotante de WhatsApp (Visible solo si está habilitado y tiene número válido) */}
+      {showWhatsapp && whatsappUrl && (
+        <aside
+          aria-label="Contacto por WhatsApp"
+          className="fixed bottom-6 right-6 z-40"
+        >
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 px-4 py-3 rounded-full bg-[#25d366] text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all text-xs font-bold"
+            title="Escríbenos por WhatsApp"
+            aria-label="Chat directo por WhatsApp"
+          >
+            <WhatsAppIcon />
+            <span className="hidden sm:inline font-black tracking-tight">WhatsApp</span>
+          </a>
+        </aside>
       )}
     </div>
   )

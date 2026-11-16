@@ -8,6 +8,7 @@ import {
   safeDeleteTenantImage,
   CLOUDINARY_FOLDERS,
 } from '@/lib/cloudinary'
+import { GALLERY_MAX_PER_CATEGORY, normalizeGalleryCategory } from '@/lib/gallery'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,21 +16,27 @@ interface GalleryItem {
   id: string
   url: string
   publicId?: string
-  caption: string
-  category: 'cortes' | 'barbas' | 'instalaciones'
+  caption?: string
+  title?: string
+  description?: string
+  category: string
+  categoryLabel?: string
+  serviceId?: string | null
+  order?: number
+  width?: number
+  height?: number
   createdAt?: string
 }
 
-const VALID_CATEGORIES = ['cortes', 'barbas', 'instalaciones'] as const
-const MAX_PER_CATEGORY = 6
+const DEFAULT_KEYS = ['cortes', 'barbas', 'instalaciones']
+const MAX_PER_CATEGORY = GALLERY_MAX_PER_CATEGORY
+const MAX_CATEGORIES = 8
 const VALID_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
-function normalizeCat(cat: string): 'cortes' | 'barbas' | 'instalaciones' {
-  const c = (cat || '').toLowerCase().trim()
-  if (c === 'barba' || c === 'barbas') return 'barbas'
-  if (c === 'instalacion' || c === 'instalaciones') return 'instalaciones'
-  return 'cortes'
+/** Conserva compatibilidad con categorías antiguas y admite categorías personalizadas. */
+function normalizeCat(cat: string): string {
+  return normalizeGalleryCategory(cat)
 }
 
 /**
@@ -68,6 +75,8 @@ export async function POST(request: Request) {
     const formData = await request.formData()
     const rawCategory = (formData.get('category') as string) || 'cortes'
     const category = normalizeCat(rawCategory)
+    const rawCategoryLabel = ((formData.get('categoryLabel') as string) || '').trim().slice(0, 40)
+    const categoryLabel = DEFAULT_KEYS.includes(category) ? '' : rawCategoryLabel
     const caption = (formData.get('caption') as string) || ''
     const replaceId = formData.get('replaceId') as string | null
 
@@ -95,6 +104,16 @@ export async function POST(request: Request) {
 
     const currentGallery: GalleryItem[] = Array.isArray(page.gallery) ? (page.gallery as any) : []
     const categoryItems = currentGallery.filter(item => normalizeCat(item.category) === category)
+
+    if (!replaceId && categoryItems.length === 0) {
+      const usedCategories = new Set(currentGallery.map(item => normalizeCat(item.category)))
+      if (usedCategories.size >= MAX_CATEGORIES) {
+        return NextResponse.json(
+          { error: `Puedes usar hasta ${MAX_CATEGORIES} categorías en la galería.` },
+          { status: 400 }
+        )
+      }
+    }
 
     // Validar límite si no es reemplazo
     if (!replaceId) {
@@ -146,20 +165,24 @@ export async function POST(request: Request) {
       const arrayBuffer = await file.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
 
+      // Se conserva el archivo original (sin transformación entrante destructiva).
+      // Las variantes optimizadas se generan al vuelo por URL (f_auto,q_auto,c_limit).
       const uploadResult = await uploadImageFromBuffer(buffer, folder, {
-        transformation: [
-          { width: 1200, height: 1200, crop: 'limit' },
-        ],
+        transformation: [],
       })
-
-      const itemCaption = caption.trim() || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
 
       uploadedItems.push({
         id: crypto.randomUUID(),
         url: uploadResult.secureUrl,
         publicId: uploadResult.publicId,
-        caption: itemCaption,
+        // Nunca se usa el nombre del archivo como título: si no hay título, la foto va sin título.
+        caption: '',
+        title: caption.trim().slice(0, 80),
         category,
+        ...(categoryLabel ? { categoryLabel } : {}),
+        order: currentGallery.length + i,
+        width: uploadResult.width,
+        height: uploadResult.height,
         createdAt: new Date().toISOString(),
       })
     }
@@ -173,10 +196,15 @@ export async function POST(request: Request) {
 
       updatedGallery = currentGallery.map(item => {
         if (item.id === replaceId) {
+          // Reemplazo: cambia el archivo pero conserva título, categoría, servicio y orden.
           return {
-            ...newItem,
-            id: replaceId, // Mantener el mismo ID para consistencia
-            caption: caption.trim() || item.caption,
+            ...item,
+            url: newItem.url,
+            publicId: newItem.publicId,
+            width: newItem.width,
+            height: newItem.height,
+            id: replaceId,
+            ...(caption.trim() ? { title: caption.trim().slice(0, 80) } : {}),
           }
         }
         return item
@@ -280,7 +308,7 @@ export async function DELETE(request: Request) {
 }
 
 /**
- * PATCH: Actualizar el título o categoría de una foto existente
+ * PATCH: Actualizar metadata de fotos, reordenar o renombrar colecciones
  */
 export async function PATCH(request: Request) {
   const session = await getSession()
@@ -290,18 +318,77 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json()
-    const { id, caption, category } = body
-
-    if (!id) {
-      return NextResponse.json({ error: 'ID de la foto es requerido' }, { status: 400 })
-    }
-
     const page = await prisma.businessPage.findUnique({
       where: { businessId: session.businessId },
       select: { gallery: true },
     })
 
     const currentGallery: GalleryItem[] = Array.isArray(page?.gallery) ? (page?.gallery as any) : []
+
+    // ── ACCIÓN 1: Reordenar elementos de la galería ──
+    if (body.action === 'REORDER' && Array.isArray(body.items)) {
+      const idToOrder = new Map<string, number>()
+      body.items.forEach((it: any, index: number) => {
+        const itemId = typeof it === 'string' ? it : it?.id
+        const orderVal = typeof it === 'object' && typeof it?.order === 'number' ? it.order : index
+        if (itemId) idToOrder.set(itemId, orderVal)
+      })
+
+      const updatedGallery = currentGallery.map(item => {
+        if (idToOrder.has(item.id)) {
+          return { ...item, order: idToOrder.get(item.id)! }
+        }
+        return item
+      }).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+
+      await prisma.businessPage.update({
+        where: { businessId: session.businessId },
+        data: { gallery: updatedGallery as any },
+      })
+
+      return NextResponse.json({
+        success: true,
+        gallery: updatedGallery,
+        message: 'Orden de fotografías actualizado exitosamente.',
+      })
+    }
+
+    // ── ACCIÓN 2: Renombrar una colección / categoría completa ──
+    if (body.action === 'RENAME_COLLECTION' && body.oldCategory && body.newCategoryLabel) {
+      const oldCat = normalizeCat(body.oldCategory)
+      const newLabel = String(body.newCategoryLabel).trim().slice(0, 40)
+      const newSlug = normalizeCat(body.newCategorySlug || newLabel)
+
+      const updatedGallery = currentGallery.map(item => {
+        if (normalizeCat(item.category) === oldCat) {
+          return {
+            ...item,
+            category: newSlug,
+            categoryLabel: newLabel,
+          }
+        }
+        return item
+      })
+
+      await prisma.businessPage.update({
+        where: { businessId: session.businessId },
+        data: { gallery: updatedGallery as any },
+      })
+
+      return NextResponse.json({
+        success: true,
+        gallery: updatedGallery,
+        message: `Colección renombrada a "${newLabel}".`,
+      })
+    }
+
+    // ── ACCIÓN 3: Actualizar una fotografía individual ──
+    const { id, caption, title, description, serviceId, category, categoryLabel } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID de la foto o acción válida es requerida' }, { status: 400 })
+    }
+
     let found = false
 
     const updatedGallery = currentGallery.map(item => {
@@ -309,8 +396,12 @@ export async function PATCH(request: Request) {
         found = true
         return {
           ...item,
-          ...(caption !== undefined ? { caption: String(caption).trim() } : {}),
+          ...(caption !== undefined ? { caption: String(caption).trim().slice(0, 120) } : {}),
+          ...(title !== undefined ? { title: String(title).trim().slice(0, 80) } : {}),
+          ...(description !== undefined ? { description: String(description).trim().slice(0, 280) } : {}),
+          ...(serviceId !== undefined ? { serviceId: serviceId ? String(serviceId).slice(0, 80) : null } : {}),
           ...(category ? { category: normalizeCat(category) } : {}),
+          ...(categoryLabel !== undefined ? { categoryLabel: String(categoryLabel).trim().slice(0, 40) } : {}),
         }
       }
       return item
@@ -325,9 +416,13 @@ export async function PATCH(request: Request) {
       data: { gallery: updatedGallery as any },
     })
 
-    return NextResponse.json({ success: true, gallery: updatedGallery })
+    return NextResponse.json({
+      success: true,
+      gallery: updatedGallery,
+      message: 'Foto actualizada correctamente.',
+    })
   } catch (error) {
     console.error('[Gallery PATCH] Error:', error)
-    return NextResponse.json({ error: 'Error al actualizar información de la foto' }, { status: 500 })
+    return NextResponse.json({ error: 'Error al actualizar información de la galería' }, { status: 500 })
   }
 }
