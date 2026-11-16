@@ -403,7 +403,7 @@ export default function WebpageEditor() {
           logo: logoUrl,
           page: {
             ...pageConfig,
-            coverTitle: '',
+            coverTitle: pageConfig.coverTitle ? pageConfig.coverTitle.trim() : '',
             bannerUrl: resolveCoverBannerUrl(pageConfig.bannerUrl),
             showPhone: pageConfig.showPhone,
             showEmail: pageConfig.showEmail,
@@ -1164,7 +1164,7 @@ export default function WebpageEditor() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-zinc-800 block mb-1">
+                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                     Nombre Comercial de la Barbería <span className="text-amber-600">*</span>
                   </label>
                   <input
@@ -1172,15 +1172,15 @@ export default function WebpageEditor() {
                     value={businessForm.name}
                     onChange={e => setBizField('name', e.target.value)}
                     placeholder="Ej: Barbería Studio Central"
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-zinc-900 focus:bg-white transition-all"
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 focus:bg-white dark:focus:bg-zinc-900 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                   />
-                  <span className="text-[10px] text-zinc-400 block mt-1">
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">
                     Nombre oficial del establecimiento. Cambiarlo aquí actualiza la portada, navegación y recibos.
                   </span>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-zinc-800 block mb-1">
+                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                     Descripción Breve del Negocio
                   </label>
                   <textarea
@@ -1188,15 +1188,15 @@ export default function WebpageEditor() {
                     value={businessForm.description}
                     onChange={e => setBizField('description', e.target.value)}
                     placeholder="Describe en pocas líneas el concepto, estilo y propuesta de valor de tu barbería..."
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 outline-none focus:border-zinc-900 focus:bg-white resize-none transition-all"
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 focus:bg-white dark:focus:bg-zinc-900 resize-none transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                   />
-                  <span className="text-[10px] text-zinc-400 block mt-1">
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">
                     Se utiliza en la sección Sobre Nosotros y metadatos compartibles.
                   </span>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-zinc-800 block mb-1">
+                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                     Eslogan o Frase Distintiva <span className="text-zinc-400 font-normal">(Opcional)</span>
                   </label>
                   <input
@@ -1204,30 +1204,30 @@ export default function WebpageEditor() {
                     value={pageConfig.slogan}
                     onChange={e => set('slogan', e.target.value)}
                     placeholder="Ej: Cortes de precisión y afeitado tradicional"
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 outline-none focus:border-zinc-900 focus:bg-white transition-all"
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 focus:bg-white dark:focus:bg-zinc-900 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                   />
-                  <span className="text-[10px] text-zinc-400 block mt-1">
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">
                     Aparece con tipografía elegante como subtítulo distintivo en la portada, sin competir con el nombre.
                   </span>
                 </div>
 
                 {/* Canales de Contacto con Visibilidad Independiente (Fase 2) */}
-                <div className="space-y-3.5 pt-2 border-t border-zinc-100">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
+                <div className="space-y-3.5 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
                     Canales de Contacto & Visibilidad Pública
                   </span>
 
                   {/* Teléfono */}
-                  <div className="p-3.5 rounded-xl border border-zinc-200 bg-zinc-50/50 space-y-2">
+                  <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/50 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Phone className="w-3.5 h-3.5 text-zinc-600" />
-                        <label className="text-xs font-bold text-zinc-800">
+                        <Phone className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-300" />
+                        <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
                           Teléfono Público
                         </label>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-zinc-500">
+                        <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">
                           {pageConfig.showPhone ? 'Visible en web' : 'Oculto'}
                         </span>
                         <button
@@ -1253,24 +1253,24 @@ export default function WebpageEditor() {
                       value={businessForm.phone}
                       onChange={e => setBizField('phone', e.target.value)}
                       placeholder="+57 300 123 4567"
-                      className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 outline-none focus:border-zinc-900 transition-all"
+                      className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 font-mono"
                     />
-                    <span className="text-[10px] text-zinc-400 block">
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block">
                       Si el switch está desactivado o el campo está vacío, no se mostrará ningún botón ni dato telefónico en la web pública.
                     </span>
                   </div>
 
                   {/* Correo Electrónico */}
-                  <div className="p-3.5 rounded-xl border border-zinc-200 bg-zinc-50/50 space-y-2">
+                  <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/50 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-zinc-600">@</span>
-                        <label className="text-xs font-bold text-zinc-800">
+                        <span className="text-xs font-black text-zinc-600 dark:text-zinc-300">@</span>
+                        <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
                           Correo Electrónico Público
                         </label>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-zinc-500">
+                        <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">
                           {pageConfig.showEmail ? 'Visible en web' : 'Oculto'}
                         </span>
                         <button
@@ -1296,26 +1296,26 @@ export default function WebpageEditor() {
                       value={businessForm.email}
                       onChange={e => setBizField('email', e.target.value)}
                       placeholder="contacto@mibarberia.com"
-                      className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 outline-none focus:border-zinc-900 transition-all"
+                      className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 font-mono"
                     />
-                    <span className="text-[10px] text-zinc-400 block">
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block">
                       Si el switch está desactivado o el campo está vacío, el correo quedará completamente oculto de la web pública.
                     </span>
                   </div>
 
                   {/* WhatsApp */}
-                  <div className="p-3.5 rounded-xl border border-zinc-200 bg-zinc-50/50 space-y-2">
+                  <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/50 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 text-[#25d366]">
                           <WhatsAppIcon />
                         </div>
-                        <label className="text-xs font-bold text-zinc-800">
+                        <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
                           WhatsApp de Reservas & Atención
                         </label>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-zinc-500">
+                        <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">
                           {pageConfig.showWhatsapp ? 'Visible en web' : 'Oculto'}
                         </span>
                         <button
@@ -1341,9 +1341,9 @@ export default function WebpageEditor() {
                       value={pageConfig.whatsapp}
                       onChange={e => set('whatsapp', e.target.value)}
                       placeholder="+57 300 123 4567 o https://wa.link/mi-barberia"
-                      className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 outline-none focus:border-zinc-900 transition-all"
+                      className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 font-mono"
                     />
-                    <span className="text-[10px] text-zinc-400 block">
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block">
                       Solo se mostrará el botón flotante y el acceso a chat si el switch está activo y contiene un número o enlace válido.
                     </span>
                   </div>
@@ -1358,45 +1358,51 @@ export default function WebpageEditor() {
           {activeTab === 'appearance' && (
             <div className="space-y-6">
               {/* Modo de Color Predeterminado para Visitantes (Fase 3) */}
-              <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-4 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
-                      <Palette className="w-3.5 h-3.5 text-zinc-700" /> Modo de Color Predeterminado del Negocio
-                    </h4>
-                    <p className="text-[11px] text-zinc-500 font-medium mt-0.5">
-                      Define cómo se muestra tu página pública a los visitantes que ingresan por primera vez.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-zinc-200 shadow-2xs shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        set('defaultColorMode', 'dark')
-                        setPreviewColorMode('dark')
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        pageConfig.defaultColorMode === 'dark' ? 'bg-zinc-900 text-white shadow-xs' : 'text-zinc-500 hover:text-zinc-900'
-                      }`}
-                    >
-                      <Moon className="w-3.5 h-3.5" /> Oscuro por defecto
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        set('defaultColorMode', 'light')
-                        setPreviewColorMode('light')
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        pageConfig.defaultColorMode === 'light' ? 'bg-zinc-200 text-zinc-900 font-black shadow-xs' : 'text-zinc-500 hover:text-zinc-900'
-                      }`}
-                    >
-                      <Sun className="w-3.5 h-3.5" /> Claro por defecto
-                    </button>
-                  </div>
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 space-y-4 shadow-xs">
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-950 dark:text-white flex items-center gap-2">
+                    <Palette className="w-4 h-4 text-amber-500" /> Modo de Color Predeterminado del Negocio
+                  </h4>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1 leading-relaxed">
+                    Define la apariencia visual inicial con la que se exhibe tu barbería a visitantes nuevos.
+                  </p>
                 </div>
-                <p className="text-[10px] text-zinc-400 leading-relaxed border-t border-zinc-200/60 pt-2">
-                  Los visitantes siempre podrán alternar entre tema claro u oscuro con el botón de sol/luna en la barra superior. Su preferencia personal se recordará en su dispositivo en visitas futuras.
+
+                <div className="grid grid-cols-2 gap-2 p-1.5 bg-zinc-100 dark:bg-zinc-950/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 w-full">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      set('defaultColorMode', 'dark')
+                      setPreviewColorMode('dark')
+                    }}
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wide transition-all cursor-pointer ${
+                      pageConfig.defaultColorMode === 'dark'
+                        ? 'bg-zinc-950 dark:bg-zinc-800 text-white shadow-sm ring-1 ring-white/10'
+                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
+                    }`}
+                  >
+                    <Moon className="w-3.5 h-3.5" />
+                    <span>Oscuro</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      set('defaultColorMode', 'light')
+                      setPreviewColorMode('light')
+                    }}
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wide transition-all cursor-pointer ${
+                      pageConfig.defaultColorMode === 'light'
+                        ? 'bg-white dark:bg-zinc-200 text-zinc-950 shadow-sm ring-1 ring-zinc-300'
+                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
+                    }`}
+                  >
+                    <Sun className="w-3.5 h-3.5" />
+                    <span>Claro</span>
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-relaxed border-t border-zinc-100 dark:border-zinc-800 pt-3">
+                  Los visitantes siempre podrán alternar entre modo claro u oscuro mediante el botón de sol/luna en la barra superior. Su preferencia personal se recordará en su dispositivo en visitas futuras.
                 </p>
               </div>
 
@@ -1681,18 +1687,34 @@ export default function WebpageEditor() {
               </div>
 
               {/* Textos y Narrativa de la Portada */}
-              <div className="bg-white border border-zinc-200 rounded-2xl p-4 space-y-4 shadow-2xs">
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 space-y-4 shadow-xs">
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-900">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-950 dark:text-white">
                     Textos de la Portada
                   </h3>
-                  <p className="text-[11px] text-zinc-500 font-medium mt-0.5">
-                    Personaliza el eslogan distintivo y la descripción de presentación. El titular principal refleja siempre el nombre oficial de tu barbería.
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                    Personaliza el título, eslogan distintivo y descripción de presentación del encabezado de tu barbería.
                   </p>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-zinc-800 block mb-1">
+                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
+                    Título Principal de la Portada <span className="text-zinc-400 font-normal">(Opcional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={pageConfig.coverTitle || ''}
+                    onChange={e => set('coverTitle', e.target.value)}
+                    placeholder={businessForm.name || 'Ej: Barbería Don Juan'}
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 focus:bg-white dark:focus:bg-zinc-900 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                  />
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">
+                    Si lo dejas vacío, la portada proyectará automáticamente el nombre comercial oficial de tu barbería (<strong>{businessForm.name || 'tu negocio'}</strong>).
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                     Eslogan o Subtítulo Distintivo (Eyebrow del Hero)
                   </label>
                   <input
@@ -1700,15 +1722,15 @@ export default function WebpageEditor() {
                     value={pageConfig.slogan}
                     onChange={e => set('slogan', e.target.value)}
                     placeholder="Ej: Barbería Clásica & Contemporánea"
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 outline-none focus:border-zinc-900 focus:bg-white transition-all"
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 focus:bg-white dark:focus:bg-zinc-900 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                   />
-                  <span className="text-[10px] text-zinc-400 block mt-1">
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">
                     Aparece con elegancia sobre el nombre de tu barbería en letras mayúsculas de autor.
                   </span>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-zinc-800 block mb-1">
+                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                     Descripción Breve de Presentación (Subtítulo del Hero)
                   </label>
                   <textarea
@@ -1716,9 +1738,9 @@ export default function WebpageEditor() {
                     value={pageConfig.coverSubtitle}
                     onChange={e => set('coverSubtitle', e.target.value)}
                     placeholder="Describe en 1 o 2 líneas la experiencia de autor o especialidad de tu barbería..."
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 outline-none focus:border-zinc-900 focus:bg-white resize-none transition-all"
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 focus:bg-white dark:focus:bg-zinc-900 resize-none transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                   />
-                  <span className="text-[10px] text-zinc-400 block mt-1">
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">
                     Texto breve bajo el nombre en la portada para presentar tu propuesta de valor.
                   </span>
                 </div>
@@ -1879,7 +1901,7 @@ export default function WebpageEditor() {
                       value={newCategoryInput}
                       onChange={e => setNewCategoryInput(e.target.value)}
                       placeholder="Ej: Colorimetría, Barbería VIP..."
-                      className="flex-1 px-3 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 outline-none focus:border-zinc-900"
+                      className="flex-1 px-3 py-1.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 transition-colors"
                     />
                     <button
                       type="button"
@@ -1918,11 +1940,11 @@ export default function WebpageEditor() {
                 return (
                   <div className="space-y-4">
                     {/* Header de la categoría con acciones */}
-                    <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-2xs space-y-3">
+                    <div className="bg-white dark:bg-[#141418] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-2xs space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-black text-zinc-900">
+                            <h4 className="text-sm font-black text-zinc-900 dark:text-zinc-100">
                               {activeCatObj.label}
                             </h4>
                             <button
@@ -1931,20 +1953,20 @@ export default function WebpageEditor() {
                                 setRenamingCollection(activeCatObj)
                                 setNewCollectionLabelInput(activeCatObj.label)
                               }}
-                              className="text-zinc-400 hover:text-zinc-900 p-1 rounded-md transition-colors"
+                              className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 p-1 rounded-md transition-colors"
                               title="Renombrar esta colección"
                             >
                               <Edit2 size={12} />
                             </button>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                               isFull
-                                ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                             }`}>
                               {isFull ? `Límite (${GALLERY_MAX_PER_CATEGORY}/${GALLERY_MAX_PER_CATEGORY})` : `${availableQuota} cupos disponibles`}
                             </span>
                           </div>
-                          <p className="text-[11px] text-zinc-500 mt-0.5">
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
                             {catDesc}
                           </p>
                         </div>
@@ -1984,8 +2006,8 @@ export default function WebpageEditor() {
 
                       {/* Modal/Formulario inline para renombrar colección */}
                       {renamingCollection?.id === activeCatObj.id && (
-                        <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
-                          <label className="text-xs font-bold text-amber-900 block">
+                        <div className="p-3 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/80 rounded-xl space-y-2">
+                          <label className="text-xs font-bold text-amber-900 dark:text-amber-200 block">
                             Renombrar Colección "{activeCatObj.label}"
                           </label>
                           <div className="flex items-center gap-2">
@@ -1993,20 +2015,20 @@ export default function WebpageEditor() {
                               type="text"
                               value={newCollectionLabelInput}
                               onChange={e => setNewCollectionLabelInput(e.target.value)}
-                              className="flex-1 px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold outline-none"
+                              className="flex-1 px-3 py-1.5 bg-white dark:bg-zinc-900 border border-amber-300 dark:border-amber-700 rounded-lg text-xs font-bold text-zinc-950 dark:text-zinc-100 outline-none"
                               placeholder="Nuevo nombre de colección"
                             />
                             <button
                               type="button"
                               onClick={handleExecuteRenameCollection}
-                              className="px-3 py-1.5 bg-zinc-900 text-white rounded-lg text-xs font-bold cursor-pointer"
+                              className="px-3 py-1.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg text-xs font-bold cursor-pointer"
                             >
                               Guardar
                             </button>
                             <button
                               type="button"
                               onClick={() => setRenamingCollection(null)}
-                              className="px-2 py-1.5 text-zinc-500 text-xs font-medium cursor-pointer"
+                              className="px-2 py-1.5 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 text-xs font-medium cursor-pointer"
                             >
                               Cancelar
                             </button>
@@ -2026,12 +2048,12 @@ export default function WebpageEditor() {
 
                     {/* Lista editable de fotos de la categoría */}
                     {visibleItems.length === 0 ? (
-                      <div className="p-8 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 text-center flex flex-col items-center justify-center space-y-3">
-                        <div className="w-12 h-12 rounded-2xl bg-zinc-200/70 text-zinc-500 flex items-center justify-center">
+                      <div className="p-8 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 text-center flex flex-col items-center justify-center space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-zinc-200/70 dark:bg-zinc-800 text-zinc-500 flex items-center justify-center">
                           <Camera className="w-6 h-6" />
                         </div>
                         <div>
-                          <p className="text-xs font-black text-zinc-800 uppercase tracking-tight">
+                          <p className="text-xs font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-tight">
                             Sin fotografías en {activeCatObj.label}
                           </p>
                           <p className="text-[11px] text-zinc-400 max-w-xs mt-0.5">
@@ -2057,10 +2079,10 @@ export default function WebpageEditor() {
                           return (
                             <div
                               key={item.id}
-                              className="bg-white border border-zinc-200 rounded-2xl p-3.5 shadow-2xs space-y-3 transition-all hover:border-zinc-300"
+                              className="bg-white dark:bg-[#141418] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-3.5 shadow-2xs space-y-3 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
                             >
                               <div className="flex items-start gap-3.5">
-                                <div className="relative w-24 h-24 rounded-xl bg-zinc-100 overflow-hidden shrink-0 border border-zinc-200">
+                                <div className="relative w-24 h-24 rounded-xl bg-zinc-100 dark:bg-zinc-900 overflow-hidden shrink-0 border border-zinc-200 dark:border-zinc-800">
                                   <img
                                     src={item.url}
                                     alt={item.title || activeCatObj.label}
@@ -2083,7 +2105,7 @@ export default function WebpageEditor() {
                                         type="button"
                                         disabled={idx === 0}
                                         onClick={() => moveGalleryItem(item.id, 'up')}
-                                        className="p-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 disabled:opacity-30 cursor-pointer"
+                                        className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer"
                                         title="Mover antes"
                                       >
                                         <ArrowUp size={12} />
@@ -2092,7 +2114,7 @@ export default function WebpageEditor() {
                                         type="button"
                                         disabled={idx === visibleItems.length - 1}
                                         onClick={() => moveGalleryItem(item.id, 'down')}
-                                        className="p-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 disabled:opacity-30 cursor-pointer"
+                                        className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-30 cursor-pointer"
                                         title="Mover después"
                                       >
                                         <ArrowDown size={12} />
@@ -2104,7 +2126,7 @@ export default function WebpageEditor() {
                                         type="button"
                                         disabled={isBeingReplaced || isBeingDeleted || uploadingGallery}
                                         onClick={() => handleTriggerReplace(item.id)}
-                                        className="px-2.5 py-1 rounded-lg border border-zinc-200 text-[11px] font-bold text-zinc-700 hover:text-zinc-950 hover:bg-zinc-50 flex items-center gap-1 cursor-pointer"
+                                        className="px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 text-[11px] font-bold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-1 cursor-pointer"
                                       >
                                         <RefreshCw size={11} /> Reemplazar
                                       </button>
@@ -2112,7 +2134,7 @@ export default function WebpageEditor() {
                                         type="button"
                                         disabled={isBeingReplaced || isBeingDeleted || uploadingGallery}
                                         onClick={() => setGalleryItemToDelete(item.id)}
-                                        className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer"
+                                        className="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
                                         title="Eliminar foto"
                                       >
                                         <Trash2 size={12} />
@@ -2126,7 +2148,7 @@ export default function WebpageEditor() {
                                       value={item.title ?? ''}
                                       onChange={e => updateGalleryItem(item.id, { title: e.target.value })}
                                       placeholder="Título opcional (vacío = sin etiqueta)"
-                                      className="w-full px-2.5 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 outline-none focus:border-zinc-900 focus:bg-white"
+                                      className="w-full px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-zinc-950 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 focus:bg-white dark:focus:bg-zinc-900 transition-colors"
                                     />
                                   </div>
 
@@ -2138,7 +2160,7 @@ export default function WebpageEditor() {
                                       <select
                                         value={normalizeGalleryCategory(item.category)}
                                         onChange={e => updateGalleryItem(item.id, { category: e.target.value })}
-                                        className="w-full px-2 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-[11px] font-bold text-zinc-800 outline-none focus:border-zinc-900"
+                                        className="w-full px-2 py-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-[11px] font-bold text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
                                       >
                                         {allGalleryCategories.map(c => (
                                           <option key={c.id} value={c.id}>
@@ -2155,7 +2177,7 @@ export default function WebpageEditor() {
                                       <select
                                         value={item.serviceId || ''}
                                         onChange={e => updateGalleryItem(item.id, { serviceId: e.target.value || undefined })}
-                                        className="w-full px-2 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-[11px] font-medium text-zinc-800 outline-none focus:border-zinc-900"
+                                        className="w-full px-2 py-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-[11px] font-medium text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
                                       >
                                         <option value="">Ninguno (solo categoría)</option>
                                         {availableServices.map((srv: any) => (
@@ -2170,8 +2192,8 @@ export default function WebpageEditor() {
                               </div>
 
                               {lowRes && (
-                                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 font-medium">
-                                  <AlertCircle size={13} className="shrink-0 text-amber-600" />
+                                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300 font-medium">
+                                  <AlertCircle size={13} className="shrink-0 text-amber-600 dark:text-amber-400" />
                                   <span>
                                     Resolución baja ({item.width || '?'}×{item.height || '?'}px). Te sugerimos reemplazarla por una foto de al menos 1000px.
                                   </span>
@@ -2194,18 +2216,18 @@ export default function WebpageEditor() {
           {activeTab === 'location_hours' && (
             <div className="space-y-6">
               {/* Sección A: Ubicación Física y Google Maps */}
-              <div className="bg-white border border-zinc-200 rounded-2xl p-4 space-y-4 shadow-2xs">
+              <div className="bg-white dark:bg-[#141418] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 space-y-4 shadow-2xs">
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-zinc-700" /> Ubicación & Google Maps
+                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-zinc-700 dark:text-zinc-300" /> Ubicación & Google Maps
                   </h3>
-                  <p className="text-[11px] text-zinc-500 font-medium mt-0.5">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
                     Configura la dirección física y el mapa interactivo para que tus clientes lleguen fácilmente.
                   </p>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-zinc-800 block mb-1">
+                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                     Dirección Física del Local
                   </label>
                   <input
@@ -2213,7 +2235,7 @@ export default function WebpageEditor() {
                     value={businessForm.address}
                     onChange={e => setBizField('address', e.target.value)}
                     placeholder="Ej: Calle 85 # 14-20, Barrio Chicó, Bogotá"
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 outline-none focus:border-zinc-900 focus:bg-white transition-all"
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 focus:bg-white dark:focus:bg-zinc-900 transition-all"
                   />
                   <span className="text-[10px] text-zinc-400 block mt-1">
                     Dirección legible que se muestra en la sección Visítanos y pie de página.
@@ -2221,7 +2243,7 @@ export default function WebpageEditor() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-zinc-800 block mb-1">
+                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
                     Enlace de Compartir o Código Iframe de Google Maps
                   </label>
                   <input
@@ -2229,7 +2251,7 @@ export default function WebpageEditor() {
                     value={businessForm.mapsUrl}
                     onChange={e => setBizField('mapsUrl', e.target.value)}
                     placeholder="https://maps.app.goo.gl/... o código <iframe> de Google Maps"
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono text-zinc-900 outline-none focus:border-zinc-900 focus:bg-white transition-all"
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-mono text-zinc-950 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 focus:bg-white dark:focus:bg-zinc-900 transition-all"
                   />
                   <span className="text-[10px] text-zinc-400 block mt-1">
                     Acepta enlaces cortos <code>maps.app.goo.gl</code>, enlaces de navegador o código embed copiado de Google Maps.
@@ -2240,13 +2262,13 @@ export default function WebpageEditor() {
                 {mapsValidation && (
                   <div>
                     {mapsValidation.isValid ? (
-                      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-medium">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <span>Enlace de Google Maps verificado y seguro.</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
-                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs font-medium">
+                        <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                         <span>{mapsValidation.error}</span>
                       </div>
                     )}
@@ -2255,11 +2277,11 @@ export default function WebpageEditor() {
 
                 {/* Previsualización del mapa si locationPreview tiene embedUrl */}
                 {locationPreview?.embedUrl && (
-                  <div className="space-y-2 pt-1 border-t border-zinc-100">
+                  <div className="space-y-2 pt-1 border-t border-zinc-100 dark:border-zinc-800">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
                       Vista previa del mapa interactivo:
                     </span>
-                    <div className="w-full h-44 rounded-xl overflow-hidden border border-zinc-200 bg-zinc-900 shadow-xs">
+                    <div className="w-full h-44 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-900 shadow-xs">
                       <iframe
                         src={locationPreview.embedUrl}
                         title="Vista previa del mapa"
@@ -2272,7 +2294,7 @@ export default function WebpageEditor() {
                         href={locationPreview.directionsUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 hover:text-amber-800"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
                       >
                         <Navigation className="w-3.5 h-3.5" /> Probar enlace de "Cómo llegar" en nueva pestaña
                       </a>
@@ -2282,27 +2304,27 @@ export default function WebpageEditor() {
               </div>
 
               {/* Sección B: Horarios Semanales Completos */}
-              <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-4 space-y-4">
+              <div className="bg-zinc-50 dark:bg-[#101014] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-zinc-900" />
-                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-900">
+                    <Clock className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />
+                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
                       Horarios Semanales de Atención
                     </h3>
                   </div>
-                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/80">
                     Sincronización en Vivo
                   </span>
                 </div>
-                <p className="text-xs text-zinc-500 leading-relaxed">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
                   Configura cada día de la semana. Los días cerrados se reflejan en el motor de reservas y en el calendario.
                 </p>
 
-                <div className="flex flex-wrap gap-2 pt-1 border-t border-zinc-200/70">
+                <div className="flex flex-wrap gap-2 pt-1 border-t border-zinc-200/70 dark:border-zinc-800">
                   <button
                     type="button"
                     onClick={() => copyDayToWeekdays(1)}
-                    className="text-[11px] font-bold text-zinc-700 hover:text-zinc-950 bg-white border border-zinc-200 hover:border-zinc-300 px-3 py-1.5 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-white dark:bg-[#18181c] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 px-3 py-1.5 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-2xs"
                   >
                     <Copy className="w-3 h-3 text-zinc-500" />
                     Copiar Lunes a Lun-Sáb
@@ -2310,7 +2332,7 @@ export default function WebpageEditor() {
                   <button
                     type="button"
                     onClick={applyDefaultHours}
-                    className="text-[11px] font-bold text-zinc-500 hover:text-zinc-800 bg-white border border-zinc-200 hover:border-zinc-300 px-3 py-1.5 rounded-lg transition-all active:scale-95 cursor-pointer shadow-2xs"
+                    className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 bg-white dark:bg-[#18181c] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 px-3 py-1.5 rounded-lg transition-all active:scale-95 cursor-pointer shadow-2xs"
                   >
                     Restablecer por defecto
                   </button>
@@ -2334,23 +2356,23 @@ export default function WebpageEditor() {
                             : 'bg-zinc-50 dark:bg-[#0d0d10] border-zinc-200/70 dark:border-zinc-800/80'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-sm font-black text-zinc-900 dark:text-white">{item.day}</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm font-black text-zinc-900 dark:text-white shrink-0 min-w-[75px]">{item.day}</span>
                             {item.isOpen ? (
-                              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                {formattedOpen} - {formattedClose}
+                              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 px-2 py-0.5 rounded-full flex items-center gap-1 truncate">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                <span className="truncate">{formattedOpen} - {formattedClose}</span>
                               </span>
                             ) : (
-                              <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                {item.customMessage?.trim() || 'Cerrado'}
+                              <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 px-2 py-0.5 rounded-full flex items-center gap-1 truncate">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                                <span className="truncate">{item.customMessage?.trim() || 'Cerrado'}</span>
                               </span>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-2.5">
+                          <div className="flex items-center gap-2.5 shrink-0">
                             <span className={`text-[11px] font-black uppercase tracking-wider transition-colors ${
                               item.isOpen ? 'text-emerald-500 dark:text-emerald-400' : 'text-zinc-400'
                             }`}>
@@ -2359,7 +2381,7 @@ export default function WebpageEditor() {
                             <button
                               type="button"
                               onClick={() => updateDaySchedule(item.dayIndex, { isOpen: !item.isOpen })}
-                              className={`w-11 h-6 rounded-full transition-all relative cursor-pointer ${
+                              className={`w-11 h-6 rounded-full transition-all relative cursor-pointer shrink-0 ${
                                 item.isOpen 
                                   ? 'bg-emerald-500 shadow-md shadow-emerald-500/40 ring-2 ring-emerald-500/30' 
                                   : 'bg-zinc-300 dark:bg-zinc-800 border border-zinc-400/30 dark:border-zinc-700'
@@ -2378,31 +2400,31 @@ export default function WebpageEditor() {
                         {item.isOpen ? (
                           <div className="grid grid-cols-2 gap-3 pt-1">
                             <div>
-                              <label className="text-[11px] font-bold text-zinc-500 block mb-1">
+                              <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 block mb-1">
                                 Apertura
                               </label>
                               <input
                                 type="time"
                                 value={item.openTime}
                                 onChange={e => updateDaySchedule(item.dayIndex, { openTime: e.target.value })}
-                                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-900 outline-none focus:border-zinc-900"
+                                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-mono font-semibold text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
                               />
                             </div>
                             <div>
-                              <label className="text-[11px] font-bold text-zinc-500 block mb-1">
+                              <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 block mb-1">
                                 Cierre
                               </label>
                               <input
                                 type="time"
                                 value={item.closeTime}
                                 onChange={e => updateDaySchedule(item.dayIndex, { closeTime: e.target.value })}
-                                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-900 outline-none focus:border-zinc-900"
+                                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-mono font-semibold text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
                               />
                             </div>
                           </div>
                         ) : (
                           <div className="pt-1">
-                            <label className="text-[11px] font-bold text-zinc-500 block mb-1">
+                            <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 block mb-1">
                               Mensaje personalizado para este día cerrado
                             </label>
                             <input
@@ -2410,7 +2432,7 @@ export default function WebpageEditor() {
                               value={item.customMessage || ''}
                               onChange={e => updateDaySchedule(item.dayIndex, { customMessage: e.target.value })}
                               placeholder="Ej: Cerrado por descanso del equipo"
-                              className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-medium text-zinc-800 outline-none focus:border-zinc-900"
+                              className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
                             />
                           </div>
                         )}
@@ -2428,12 +2450,12 @@ export default function WebpageEditor() {
           {activeTab === 'contact_socials' && (
             <div className="space-y-6">
               {/* Canales y Redes Sociales */}
-              <div className="bg-white border border-zinc-200 rounded-2xl p-4 space-y-4 shadow-2xs">
+              <div className="bg-white dark:bg-[#141418] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 space-y-4 shadow-2xs">
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
-                    <Share2 className="w-3.5 h-3.5 text-zinc-700" /> Canales Oficiales & Redes Sociales
+                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                    <Share2 className="w-3.5 h-3.5 text-zinc-700 dark:text-zinc-300" /> Canales Oficiales & Redes Sociales
                   </h3>
-                  <p className="text-[11px] text-zinc-500 font-medium mt-0.5">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
                     Solo los canales que actives con el interruptor aparecerán en tu página pública.
                   </p>
                 </div>
@@ -2445,14 +2467,14 @@ export default function WebpageEditor() {
                     const resolvedUrl = buildSocialUrl(net.key, urlVal)
 
                     return (
-                      <div key={net.key} className="p-3.5 rounded-2xl border border-zinc-200 bg-zinc-50/50 space-y-2.5 shadow-2xs">
+                      <div key={net.key} className="p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 space-y-2.5 shadow-2xs">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 rounded-xl flex items-center justify-center text-white shadow-2xs" style={{ backgroundColor: net.color }}>
                               {net.icon}
                             </div>
                             <div>
-                              <span className="text-xs font-black text-zinc-900 block">{net.label}</span>
+                              <span className="text-xs font-black text-zinc-900 dark:text-zinc-100 block">{net.label}</span>
                               <span className="text-[10px] text-zinc-400 font-medium">{net.description}</span>
                             </div>
                           </div>
@@ -2477,7 +2499,7 @@ export default function WebpageEditor() {
                           value={urlVal}
                           onChange={e => set(net.key as keyof PageConfig, e.target.value)}
                           placeholder={net.placeholder}
-                          className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 outline-none focus:border-zinc-900 transition-all"
+                          className="w-full px-3 py-2 bg-white dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 transition-all"
                         />
 
                         {urlVal.trim() && (
@@ -2487,7 +2509,7 @@ export default function WebpageEditor() {
                               href={resolvedUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[10px] font-mono font-medium text-blue-600 hover:underline truncate max-w-[280px] inline-flex items-center gap-1"
+                              className="text-[10px] font-mono font-medium text-blue-600 dark:text-blue-400 hover:underline truncate max-w-[280px] inline-flex items-center gap-1"
                             >
                               <ExternalLink className="w-2.5 h-2.5 shrink-0" />
                               <span className="truncate">{resolvedUrl}</span>
@@ -2501,43 +2523,43 @@ export default function WebpageEditor() {
               </div>
 
               {/* Testimonios & Reseñas de Clientes */}
-              <div className="bg-white border border-zinc-200 rounded-2xl p-4 space-y-4 shadow-2xs">
+              <div className="bg-white dark:bg-[#141418] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 space-y-4 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                       <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Reseñas de Clientes
                     </h3>
-                    <p className="text-[11px] text-zinc-500 font-medium mt-0.5">
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
                       Agrega o edita testimonios reales para reforzar la credibilidad de tu página.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={applyDefaultTestimonials}
-                    className="text-[11px] font-bold text-zinc-700 hover:text-zinc-950 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 px-2.5 py-1 rounded-lg transition-all active:scale-95 cursor-pointer shadow-2xs"
+                    className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 px-2.5 py-1 rounded-lg transition-all active:scale-95 cursor-pointer shadow-2xs"
                   >
                     Restablecer 3
                   </button>
                 </div>
 
                 {/* Formulario para añadir nueva reseña */}
-                <div className="p-3.5 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/70 space-y-3">
-                  <span className="text-xs font-black text-zinc-900 block flex items-center gap-1.5">
-                    <Plus className="w-3.5 h-3.5 text-zinc-500" /> Añadir Reseña de Cliente
+                <div className="p-3.5 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/30 space-y-3">
+                  <span className="text-xs font-black text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" /> Añadir Reseña de Cliente
                   </span>
                   <input
                     type="text"
                     value={newTestimonialName}
                     onChange={e => setNewTestimonialName(e.target.value)}
                     placeholder="Nombre del cliente (ej: Santiago Vélez)"
-                    className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-medium outline-none focus:border-zinc-900"
+                    className="w-full px-3 py-2 bg-white dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
                   />
                   <textarea
                     rows={2}
                     value={newTestimonialComment}
                     onChange={e => setNewTestimonialComment(e.target.value)}
                     placeholder="Comentario o experiencia del cliente..."
-                    className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-medium outline-none focus:border-zinc-900 resize-none"
+                    className="w-full px-3 py-2 bg-white dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 resize-none"
                   />
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
@@ -2549,7 +2571,7 @@ export default function WebpageEditor() {
                           className="cursor-pointer"
                           title={`${star} estrellas`}
                         >
-                          <Star className={`w-4 h-4 ${star <= newTestimonialRating ? 'text-amber-400 fill-amber-400' : 'text-zinc-300'}`} />
+                          <Star className={`w-4 h-4 ${star <= newTestimonialRating ? 'text-amber-400 fill-amber-400' : 'text-zinc-300 dark:text-zinc-600'}`} />
                         </button>
                       ))}
                     </div>
@@ -2571,7 +2593,7 @@ export default function WebpageEditor() {
 
                   {pageConfig.testimonials && pageConfig.testimonials.length > 0 ? (
                     pageConfig.testimonials.map((item, idx) => (
-                      <div key={item.id || idx} className="p-3.5 rounded-2xl border border-zinc-200 bg-zinc-50/50 space-y-3 shadow-2xs">
+                      <div key={item.id || idx} className="p-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 space-y-3 shadow-2xs">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map(star => (
@@ -2582,14 +2604,14 @@ export default function WebpageEditor() {
                                 className="cursor-pointer"
                                 title={`Cambiar a ${star} estrellas`}
                               >
-                                <Star className={`w-3.5 h-3.5 ${star <= (item.rating || 5) ? 'text-amber-400 fill-amber-400' : 'text-zinc-300'}`} />
+                                <Star className={`w-3.5 h-3.5 ${star <= (item.rating || 5) ? 'text-amber-400 fill-amber-400' : 'text-zinc-300 dark:text-zinc-600'}`} />
                               </button>
                             ))}
                           </div>
                           <button
                             type="button"
                             onClick={() => removeTestimonialItem(item.id)}
-                            className="text-zinc-400 hover:text-rose-600 p-1 cursor-pointer transition-colors"
+                            className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 cursor-pointer transition-colors"
                             title="Eliminar testimonio"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -2602,7 +2624,7 @@ export default function WebpageEditor() {
                             value={item.name}
                             onChange={e => updateTestimonialItem(item.id, { name: e.target.value })}
                             placeholder="Nombre del cliente"
-                            className="w-full px-3 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-bold text-zinc-900 outline-none focus:border-zinc-900"
+                            className="w-full px-3 py-1.5 bg-white dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-bold text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-zinc-100"
                           />
                         </div>
 
@@ -2612,18 +2634,18 @@ export default function WebpageEditor() {
                             value={item.comment}
                             onChange={e => updateTestimonialItem(item.id, { comment: e.target.value })}
                             placeholder="Escribe el testimonio aquí..."
-                            className="w-full px-3 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-800 outline-none focus:border-zinc-900 resize-none"
+                            className="w-full px-3 py-1.5 bg-white dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 resize-none"
                           />
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-50 text-center">
+                    <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 text-center">
                       <p className="text-xs text-zinc-400 italic mb-2">No hay testimonios agregados.</p>
                       <button
                         type="button"
                         onClick={applyDefaultTestimonials}
-                        className="text-xs font-bold text-zinc-900 underline cursor-pointer"
+                        className="text-xs font-bold text-zinc-900 dark:text-zinc-100 underline cursor-pointer"
                       >
                         Cargar testimonios por defecto
                       </button>

@@ -49,6 +49,7 @@ interface WhatsAppData {
   businessName?: string
   businessSlug?: string
   isEnabled: boolean
+  canUseWhatsApp?: boolean
   provider: 'META' | 'NONE'
   connectionStatus: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'FAILED'
   phoneNumber: string | null
@@ -102,6 +103,147 @@ interface WhatsAppData {
     confirm: string
     reminder: string
     welcome: string
+  }
+}
+
+export type DetailedConnectionStatus =
+  | 'NOT_CONFIGURED'
+  | 'INCOMPLETE_CONFIG'
+  | 'READY_TO_CONNECT'
+  | 'CONNECTING'
+  | 'CONNECTED'
+  | 'REQUIRES_ATTENTION'
+  | 'DISCONNECTED'
+
+export function resolveDetailedConnectionState(
+  data: WhatsAppData | null,
+  isVerifying: boolean
+): {
+  status: DetailedConnectionStatus
+  label: string
+  colorClass: string
+  badgeBg: string
+  badgeBorder: string
+  badgeText: string
+  description: string
+  canSendTest: boolean
+} {
+  if (isVerifying) {
+    return {
+      status: 'CONNECTING',
+      label: 'Verificando con Meta...',
+      colorClass: 'text-sky-400',
+      badgeBg: 'bg-sky-500/15',
+      badgeBorder: 'border-sky-500/30',
+      badgeText: 'text-sky-400',
+      description: 'Consultando en tiempo real la validez del Phone Number ID y Access Token con Meta Graph API v22.0...',
+      canSendTest: false
+    }
+  }
+
+  if (!data) {
+    return {
+      status: 'NOT_CONFIGURED',
+      label: 'Sin configurar',
+      colorClass: 'text-zinc-400',
+      badgeBg: 'bg-zinc-500/10',
+      badgeBorder: 'border-zinc-500/20',
+      badgeText: 'text-zinc-400',
+      description: 'Aún no has conectado una cuenta oficial de WhatsApp Business ni registrado credenciales.',
+      canSendTest: false
+    }
+  }
+
+  if (data.canUseWhatsApp === false) {
+    return {
+      status: 'REQUIRES_ATTENTION',
+      label: 'Requiere atención (Plan)',
+      colorClass: 'text-amber-400',
+      badgeBg: 'bg-amber-500/15',
+      badgeBorder: 'border-amber-500/30',
+      badgeText: 'text-amber-400',
+      description: 'Tu plan comercial actual no incluye automatización de WhatsApp Business. Actualiza a Plan Profesional o Premium en Suscripción.',
+      canSendTest: false
+    }
+  }
+
+  const hasTokens = Boolean(data.hasMetaAccessToken)
+  const hasPhoneId = Boolean(data.metaPhoneNumberId)
+
+  if (!hasTokens && !hasPhoneId) {
+    return {
+      status: 'NOT_CONFIGURED',
+      label: 'Sin configurar',
+      colorClass: 'text-zinc-400',
+      badgeBg: 'bg-zinc-500/10',
+      badgeBorder: 'border-zinc-500/20',
+      badgeText: 'text-zinc-400',
+      description: 'Inicia la vinculación con el botón oficial o ingresa tus credenciales de Meta manualmente.',
+      canSendTest: false
+    }
+  }
+
+  if (!hasTokens || !hasPhoneId) {
+    return {
+      status: 'INCOMPLETE_CONFIG',
+      label: 'Configuración incompleta',
+      colorClass: 'text-amber-400',
+      badgeBg: 'bg-amber-500/15',
+      badgeBorder: 'border-amber-500/30',
+      badgeText: 'text-amber-400',
+      description: !hasTokens ? 'Falta registrar el Access Token de Meta.' : 'Falta configurar el Phone Number ID de Meta.',
+      canSendTest: false
+    }
+  }
+
+  if (data.connectionStatus === 'FAILED') {
+    return {
+      status: 'REQUIRES_ATTENTION',
+      label: 'Requiere atención',
+      colorClass: 'text-rose-400',
+      badgeBg: 'bg-rose-500/15',
+      badgeBorder: 'border-rose-500/30',
+      badgeText: 'text-rose-400',
+      description: 'Meta rechazó las credenciales o el token expiró. Ejecuta "Probar Conexión" para verificar el motivo o reingresa tus credenciales.',
+      canSendTest: false
+    }
+  }
+
+  if (!data.isEnabled || data.provider !== 'META') {
+    return {
+      status: 'READY_TO_CONNECT',
+      label: 'Listo para conectar',
+      colorClass: 'text-sky-400',
+      badgeBg: 'bg-sky-500/15',
+      badgeBorder: 'border-sky-500/30',
+      badgeText: 'text-sky-400',
+      description: 'Credenciales de Meta registradas. Activa el interruptor para habilitar la atención automática y los envíos transaccionales.',
+      canSendTest: true
+    }
+  }
+
+  if (data.connectionStatus === 'CONNECTED' && data.isEnabled && data.provider === 'META') {
+    return {
+      status: 'CONNECTED',
+      label: 'Conectado (Oficial)',
+      colorClass: 'text-emerald-400',
+      badgeBg: 'bg-emerald-500/15',
+      badgeBorder: 'border-emerald-500/30',
+      badgeText: 'text-emerald-400',
+      description: 'Canal oficial activo con Meta Cloud API y Coexistencia Móvil habilitada.',
+      canSendTest: true
+    }
+  }
+
+  return {
+    status: 'DISCONNECTED',
+    label: 'Desconectado',
+    colorClass: 'text-zinc-400',
+    badgeBg: 'bg-zinc-500/10',
+    badgeBorder: 'border-zinc-500/20',
+    badgeText: 'text-zinc-400',
+    description: 'La integración está pausada manualmente en este negocio.',
+    canSendTest: hasTokens && hasPhoneId
   }
 }
 
@@ -199,7 +341,7 @@ export default function WhatsAppIntegrationSettings() {
           appId: metaAppId,
           autoLogAppEvents: true,
           xfbml: true,
-          version: 'v21.0'
+          version: 'v22.0'
         })
       } catch (e) {
         console.warn('Error inicializando FB SDK:', e)
@@ -491,6 +633,7 @@ export default function WhatsAppIntegrationSettings() {
               override_default_response_type: true,
               extras: {
                 setup: {},
+                featureType: 'whatsapp_business_app_onboarding',
                 sessionInfoVersion: '3'
               }
             }
@@ -523,7 +666,7 @@ export default function WhatsAppIntegrationSettings() {
             appId: metaAppId,
             autoLogAppEvents: true,
             xfbml: true,
-            version: 'v21.0'
+            version: 'v22.0'
           })
           launchSignup()
         } catch {
@@ -606,11 +749,11 @@ export default function WhatsAppIntegrationSettings() {
     }
   }
 
-  // Probar y Verificar credenciales de Meta en vivo contra Meta Graph API
-  const handleSaveMetaCredentials = async (e?: React.FormEvent, isSim = false) => {
+  // Probar y Verificar credenciales de Meta en vivo contra Meta Graph API v22.0
+  const handleSaveMetaCredentials = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    if (!isSim && (!metaForm.phoneNumberId || (!metaForm.accessToken && !data?.hasMetaAccessToken))) {
-      toast.error('Ingresa al menos el Meta Number ID y el Meta JWT Token')
+    if (!metaForm.phoneNumberId || (!metaForm.accessToken && !data?.hasMetaAccessToken)) {
+      toast.error('Ingresa al menos el Phone Number ID y el Access Token de Meta')
       return
     }
 
@@ -625,8 +768,7 @@ export default function WhatsAppIntegrationSettings() {
           phoneNumberId: metaForm.phoneNumberId,
           wabaId: metaForm.wabaId,
           accessToken: metaForm.accessToken,
-          webhookSecret: metaForm.webhookSecret || 'barberos_secure_webhook_token_2026',
-          isSimulation: isSim
+          webhookSecret: metaForm.webhookSecret || 'barberos_secure_webhook_token_2026'
         })
       })
 
@@ -641,10 +783,30 @@ export default function WhatsAppIntegrationSettings() {
         })
         await fetchConfig()
       } else {
-        toast.error(resData.error || 'No se pudo validar la conexión con Meta Graph API. Revisa el Token y Number ID.')
+        toast.error(resData.error || 'No se pudo validar la conexión con Meta Graph API. Revisa el Token y Phone Number ID.')
       }
     } catch {
-      toast.error('Error de conexión al autenticar con Meta')
+      toast.error('Error de red al autenticar credenciales con Meta Graph API')
+    } finally {
+      setMetaVerifying(false)
+    }
+  }
+
+  // Comprobar y verificar credenciales de Meta actualmente guardadas en tiempo real (sin enviar mensaje)
+  const handleVerifyStoredConnection = async () => {
+    setMetaVerifying(true)
+    try {
+      const res = await fetch('/api/owner/integrations/whatsapp/meta/verify')
+      const json = await res.json()
+      if (res.ok && json.valid) {
+        toast.success(`¡Conexión con Meta validada exitosamente! ${json.verifiedName ? `(${json.verifiedName})` : ''} 🚀`)
+        await fetchConfig()
+      } else {
+        toast.error(json.error || 'No se pudo validar la conexión con Meta Graph API', { duration: 6000 })
+        await fetchConfig()
+      }
+    } catch {
+      toast.error('Error de red al comprobar conexión con Meta')
     } finally {
       setMetaVerifying(false)
     }
@@ -695,18 +857,19 @@ export default function WhatsAppIntegrationSettings() {
   }
 
   const isMetaActive = data.isEnabled && data.provider === 'META'
+  const connState = resolveDetailedConnectionState(data, metaVerifying)
 
   // Renderizador de vista previa de plantilla
   const previewConfirm = (data.confirmTemplate || '')
     .replace(/\{cliente\}/g, 'Carlos Mendoza')
-    .replace(/\{barberia\}/g, 'Barbería Elite')
+    .replace(/\{barberia\}/g, data.businessName || 'Mi Barbería')
     .replace(/\{barbero\}/g, 'Mateo Gómez')
     .replace(/\{servicio\}/g, 'Corte Clásico & Barba')
     .replace(/\{precio\}/g, '$35.000')
     .replace(/\{fecha\}/g, 'Viernes, 24 de Octubre 2026')
     .replace(/\{hora\}/g, '04:30 PM')
     .replace(/\{codigo\}/g, 'RES-8942')
-    .replace(/\{enlace_agenda\}/g, 'https://sas-barbery.vercel.app/b/elite')
+    .replace(/\{enlace_agenda\}/g, `https://sas-barbery.vercel.app/b/${data.businessSlug || 'mi-barberia'}`)
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -722,16 +885,12 @@ export default function WhatsAppIntegrationSettings() {
                 <h2 className="text-lg font-black text-zinc-950 dark:text-white tracking-tight">
                   WhatsApp y Reservas Automáticas
                 </h2>
-                {data.isEnabled ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${connState.badgeBg} ${connState.badgeBorder} ${connState.badgeText}`}>
+                  {connState.status === 'CONNECTED' && (
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Conectado ({data.provider === 'META' ? 'Meta Cloud API' : 'WhatsApp QR'})
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border border-zinc-200 dark:border-zinc-700">
-                    Desconectado
-                  </span>
-                )}
+                  )}
+                  {connState.label}
+                </span>
                 {data.humanConversations && data.humanConversations.length > 0 && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                     <Headphones size={12} /> {data.humanConversations.length} esperando asesor
@@ -805,62 +964,73 @@ export default function WhatsAppIntegrationSettings() {
       </div>
 
       {/* ───────────────────────── CONEXIÓN WHATSAPP OFICIAL (META CLOUD API) */}
-      <div>
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-1">
-            <h3 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
-              Conexión WhatsApp Business Oficial
-            </h3>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full">
-              Meta Cloud API
-            </span>
+      <div className="w-full">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h3 className="text-base font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
+                Conexión WhatsApp Business Oficial
+              </h3>
+              <span className="text-[10px] font-black uppercase px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full font-mono">
+                Meta Cloud API v22.0
+              </span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Cada barbería opera con aislamiento total respaldado por la infraestructura oficial de Meta WhatsApp.
+            </p>
           </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Cada barbería opera con aislamiento total respaldado por la API oficial de Meta WhatsApp.
-          </p>
+          <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 dark:text-zinc-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Infraestructura Oficial Meta Direct</span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 max-w-4xl">
+        <div className="w-full">
           {/* ══════════════════════════════════════════════════════════════
-              CARD: META CLOUD API (CONEXIÓN OFICIAL)
+              CARD: META CLOUD API (CONEXIÓN OFICIAL EXPANDIDA Y CENTRADA)
              ══════════════════════════════════════════════════════════════ */}
           <div
-            className={`rounded-3xl flex flex-col justify-between transition-all duration-500 relative overflow-hidden backdrop-blur-xl ${
+            className={`w-full rounded-3xl transition-all duration-500 relative overflow-hidden backdrop-blur-xl ${
               isMetaActive
                 ? 'shadow-[0_0_60px_-10px_rgba(0,129,251,0.4)] border-2 border-[#0081FB]/80 ring-1 ring-[#0081FB]/30'
-                : 'border border-white/10 hover:border-[#0081FB]/30 shadow-lg'
+                : 'border border-white/10 hover:border-[#0081FB]/30 shadow-xl'
             }`}
             style={{ background: 'linear-gradient(145deg, #070e1c 0%, #0b172a 45%, #060c18 100%)' }}
           >
             {/* Ambient Lighting Orbs */}
-            <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-25 pointer-events-none blur-3xl" style={{ background: 'radial-gradient(circle, #0081FB 0%, transparent 70%)' }} />
-            <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full opacity-15 pointer-events-none blur-2xl" style={{ background: 'radial-gradient(circle, #0052cc 0%, transparent 70%)' }} />
+            <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full opacity-25 pointer-events-none blur-3xl" style={{ background: 'radial-gradient(circle, #0081FB 0%, transparent 70%)' }} />
+            <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full opacity-20 pointer-events-none blur-3xl" style={{ background: 'radial-gradient(circle, #0052cc 0%, transparent 70%)' }} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full opacity-15 pointer-events-none blur-3xl" style={{ background: 'radial-gradient(ellipse, #0081FB 0%, transparent 70%)' }} />
 
-            <div>
-              {/* Header: Badge + Status + Switch */}
-              <div className="relative px-6 pt-6 pb-4 flex items-center justify-between border-b border-white/5">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#0081FB]/15 text-[#60a5fa] border border-[#0081FB]/30 shadow-sm">
-                    ⭐ Oficial · Meta Direct
+            {/* Header: Badge + Status + Switch */}
+            <div className="relative px-6 sm:px-8 pt-6 pb-4 flex items-center justify-between border-b border-white/10 bg-white/[0.01]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#0081FB]/15 text-[#60a5fa] border border-[#0081FB]/30 shadow-sm">
+                  ⭐ Oficial · Meta Direct
+                </span>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border ${connState.badgeBg} ${connState.badgeBorder} ${connState.badgeText}`}>
+                  {connState.status === 'CONNECTED' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                  {connState.label}
+                </span>
+                <span className="hidden md:inline-flex text-[10px] text-zinc-400 font-mono">
+                  Graph API v22.0 · Coexistencia v4
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {data.hasMetaAccessToken && data.metaPhoneNumberId ? (
+                  <span className="text-[11px] font-bold text-emerald-400 hidden sm:inline-flex items-center gap-1">
+                    <CheckCircle2 size={13} /> Cuenta Vinculada
                   </span>
-                  {isMetaActive && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Activo
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {data.hasMetaAccessToken && data.metaPhoneNumberId ? (
-                    <span className="text-[11px] font-bold text-emerald-400 hidden sm:inline-flex items-center gap-1">
-                      <CheckCircle2 size={12} /> Cuenta Vinculada
-                    </span>
-                  ) : (
-                    <span className="text-[11px] font-medium text-zinc-400 hidden sm:inline-flex items-center gap-1">
-                      <AlertCircle size={12} /> Sin vincular
-                    </span>
-                  )}
+                ) : (
+                  <span className="text-[11px] font-medium text-zinc-400 hidden sm:inline-flex items-center gap-1">
+                    <AlertCircle size={13} /> {connState.label}
+                  </span>
+                )}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 hidden sm:inline">
+                    {isMetaActive ? 'Activo' : 'Inactivo'}
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleSelectProvider('META')}
@@ -874,167 +1044,255 @@ export default function WhatsAppIntegrationSettings() {
                   </button>
                 </div>
               </div>
-
-              {/* Hero: 3D Meta Icon + Title + Description */}
-              <div className="relative p-6 space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="relative shrink-0">
-                    <div
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl flex items-center justify-center shadow-2xl transition-transform duration-300 hover:scale-105"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(0,129,251,0.2) 0%, rgba(0,70,180,0.08) 100%)',
-                        border: '1px solid rgba(0,129,251,0.3)',
-                        boxShadow: '0 12px 32px -8px rgba(0,129,251,0.35)'
-                      }}
-                    >
-                      <svg viewBox="0 0 24 24" className="w-10 h-10 sm:w-12 sm:h-12" fill="none">
-                        <defs>
-                          <linearGradient id="metaGlow" x1="0%" y1="100%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#0064e0" />
-                            <stop offset="100%" stopColor="#00a3ff" />
-                          </linearGradient>
-                        </defs>
-                        <path fill="url(#metaGlow)" d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-xl font-black text-white tracking-tight">Meta Cloud API</h4>
-                      <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-full">
-                        WhatsApp Business Oficial
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-                      Conexión empresarial directa con la nube de Meta. Mayor confiabilidad, soporte para número verificado y envío transaccional a gran escala.
-                    </p>
-                  </div>
-                </div>
-
-                {/* 2x2 Feature Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all">
-                    <div className="w-7 h-7 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0 text-blue-400">
-                      <ShieldCheck size={15} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-zinc-100">Número Verificado</p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Identidad comercial oficial respaldada por Meta.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all">
-                    <div className="w-7 h-7 rounded-xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center shrink-0 text-sky-400">
-                      <Rocket size={15} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-zinc-100">Alto Volumen</p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Sin suspensiones ni bloqueos por envíos masivos.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all">
-                    <div className="w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0 text-amber-400">
-                      <Lock size={15} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-zinc-100">OAuth 2.0 Permanente</p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Token cifrado de forma segura en base de datos.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all">
-                    <div className="w-7 h-7 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0 text-emerald-400">
-                      <Sparkles size={15} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-zinc-100">Políticas Oficiales</p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">100% alineado con las normativas comerciales de WhatsApp.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Primary CTA Buttons */}
-                <div className="pt-2 space-y-2">
-                  <button
-                    type="button"
-                    onClick={handleEmbeddedSignup}
-                    disabled={embeddedSignupLoading}
-                    className="w-full py-3.5 px-5 rounded-2xl text-white text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all cursor-pointer group shadow-xl hover:shadow-[0_12px_40px_-8px_rgba(0,129,251,0.6)] disabled:opacity-60"
-                    style={{
-                      background: 'linear-gradient(135deg, #0056cc 0%, #0081FB 50%, #1a94ff 100%)',
-                      border: '1px solid rgba(255,255,255,0.2)'
-                    }}
-                  >
-                    {embeddedSignupLoading ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin text-white" />
-                        Iniciando Meta Embedded Signup...
-                      </>
-                    ) : (
-                      <>
-                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white shrink-0 group-hover:scale-110 transition-transform">
-                          <path d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"/>
-                        </svg>
-                        Conectar con WhatsApp Business (Meta)
-                      </>
-                    )}
-                  </button>
-                  <p className="text-center text-[10px] text-zinc-400 mt-1">
-                    Vinculación oficial automática en 1 clic (Embedded Signup)
-                  </p>
-                </div>
-              </div>
             </div>
 
-            {/* Symmetrical Utility Footer */}
-            <div className="relative px-6 py-4 border-t border-white/5 bg-white/[0.01] flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2 flex-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMetaModalTab('manual')
-                    setShowMetaModal(true)
-                  }}
-                  className="flex-1 py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white transition-all cursor-pointer border border-white/10 flex items-center justify-center gap-1.5 text-xs font-bold"
-                >
-                  <SettingsIcon size={13} className="text-[#0081FB]" /> Manual (Token)
-                </button>
-                <button
-                  type="button"
-                  onClick={handleOpenMetaQrModal}
-                  className="flex-1 py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white transition-all cursor-pointer border border-white/10 flex items-center justify-center gap-1.5 text-xs font-bold"
-                >
-                  <QrCode size={13} className="text-emerald-400" /> QR Negocio
-                </button>
-              </div>
+            {/* Main Content: 2-Column Responsive Layout */}
+            <div className="relative p-6 sm:p-8 lg:p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                {/* ── LEFT COLUMN: Hero Brand + Primary Action + Utility Bar ── */}
+                <div className="lg:col-span-5 flex flex-col justify-between space-y-6">
+                  {/* Hero Identity */}
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className="relative shrink-0">
+                        <div
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl flex items-center justify-center shadow-2xl transition-transform duration-300 hover:scale-105"
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(0,129,251,0.25) 0%, rgba(0,70,180,0.12) 100%)',
+                            border: '1px solid rgba(0,129,251,0.4)',
+                            boxShadow: '0 12px 32px -8px rgba(0,129,251,0.4)'
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" className="w-10 h-10 sm:w-12 sm:h-12" fill="none">
+                            <defs>
+                              <linearGradient id="metaGlow" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#0064e0" />
+                                <stop offset="100%" stopColor="#00a3ff" />
+                              </linearGradient>
+                            </defs>
+                            <path fill="url(#metaGlow)" d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z" />
+                          </svg>
+                        </div>
+                      </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(getWhatsAppWebhookUrl())
-                    toast.success('Webhook copiado al portapapeles 📋')
-                  }}
-                  title="Copiar URL del Webhook para Meta"
-                  className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-all cursor-pointer border border-white/10"
-                >
-                  <Plug size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowTestModal(true)}
-                  title="Probar envío con simulador"
-                  className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-all cursor-pointer border border-white/10"
-                >
-                  <Play size={14} />
-                </button>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-xl sm:text-2xl font-black text-white tracking-tight">Meta Cloud API</h4>
+                          <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-full">
+                            WhatsApp Business Oficial
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+                          Conexión empresarial directa con la infraestructura oficial de Meta. Mayor confiabilidad, soporte para número verificado y envío transaccional masivo sin riesgos.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Banner de Estado Contextual */}
+                    {connState.status !== 'CONNECTED' && connState.status !== 'NOT_CONFIGURED' && (
+                      <div className={`p-3.5 rounded-2xl flex items-start gap-2.5 text-xs border ${connState.badgeBg} ${connState.badgeBorder} ${connState.colorClass}`}>
+                        <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">{connState.label}: </span>
+                          <span className="opacity-90">{connState.description}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Advertencia si el plan comercial no incluye WhatsApp */}
+                    {data && data.canUseWhatsApp === false && (
+                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-200">
+                        <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-amber-300">Plan actual sin WhatsApp Automatizado: </span>
+                          Tu barbería está en modo Sandbox o en un plan básico. Tus credenciales se guardan de forma segura, pero la automatización requiere Plan Profesional o Premium.
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Requisito de protocolo seguro (HTTPS) para vincular mediante popup de Meta */}
+                    {typeof window !== 'undefined' && window.location.protocol === 'http:' && (
+                      <div className="p-3.5 rounded-2xl bg-sky-950/40 border border-sky-500/30 flex items-start gap-2.5 text-xs text-sky-200">
+                        <Info size={16} className="text-sky-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <div>
+                            <span className="font-bold text-sky-300">Conexión con Meta WhatsApp: </span>
+                            Meta bloquea el popup de Embedded Signup en conexiones http://.
+                          </div>
+                          <div className="text-[11px] text-zinc-300">
+                            Para probar en local corre <code className="px-1.5 py-0.5 bg-black/40 rounded font-mono text-white">npm run dev:https</code> o ingresa tus credenciales en el botón <strong>Manual (Token)</strong>. En producción funciona automáticamente con HTTPS.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Primary CTA Button & Utilities */}
+                  <div className="space-y-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleEmbeddedSignup}
+                      disabled={embeddedSignupLoading}
+                      className="w-full py-4 px-6 rounded-2xl text-white text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-3 transition-all cursor-pointer group shadow-xl hover:shadow-[0_12px_40px_-8px_rgba(0,129,251,0.6)] disabled:opacity-60"
+                      style={{
+                        background: 'linear-gradient(135deg, #0056cc 0%, #0081FB 50%, #1a94ff 100%)',
+                        border: '1px solid rgba(255,255,255,0.2)'
+                      }}
+                    >
+                      {embeddedSignupLoading ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin text-white" />
+                          Iniciando Meta Embedded Signup...
+                        </>
+                      ) : (
+                        <>
+                          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white shrink-0 group-hover:scale-110 transition-transform">
+                            <path d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"/>
+                          </svg>
+                          Conectar con WhatsApp Business (Meta)
+                        </>
+                      )}
+                    </button>
+                    <p className="text-center text-[10px] text-zinc-400">
+                      Vinculación oficial automática en 1 clic (Embedded Signup)
+                    </p>
+
+                    {/* Symmetrical Utility Footer */}
+                    <div className="pt-2 flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMetaModalTab('manual')
+                            setShowMetaModal(true)
+                          }}
+                          className="flex-1 py-2.5 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white transition-all cursor-pointer border border-white/10 flex items-center justify-center gap-1.5 text-xs font-bold"
+                        >
+                          <SettingsIcon size={13} className="text-[#0081FB]" /> Manual (Token)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleOpenMetaQrModal}
+                          className="flex-1 py-2.5 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white transition-all cursor-pointer border border-white/10 flex items-center justify-center gap-1.5 text-xs font-bold"
+                        >
+                          <QrCode size={13} className="text-emerald-400" /> QR Negocio
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(getWhatsAppWebhookUrl())
+                            toast.success('Webhook copiado al portapapeles 📋')
+                          }}
+                          title="Copiar URL del Webhook para Meta"
+                          className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-all cursor-pointer border border-white/10"
+                        >
+                          <Plug size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowTestModal(true)}
+                          title="Enviar mensaje de prueba real vía Meta API"
+                          className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-all cursor-pointer border border-white/10"
+                        >
+                          <Play size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── RIGHT COLUMN: Official Meta Enterprise Features Grid ── */}
+                <div className="lg:col-span-7 bg-white/[0.02] border border-white/10 rounded-2xl p-5 sm:p-6 backdrop-blur-md space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-sky-400" />
+                      <span className="text-xs font-black uppercase tracking-wider text-zinc-200">
+                        Capacidades Oficiales de Meta Cloud API
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Aislamiento por Negocio
+                    </span>
+                  </div>
+
+                  {/* 6 Balanced Feature Cards (2 cols x 3 rows) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0 text-blue-400">
+                        <ShieldCheck size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-zinc-100">Número Verificado</p>
+                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Identidad comercial oficial respaldada por Meta.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0 text-emerald-400">
+                        <Smartphone size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-zinc-100">Coexistencia Móvil v4</p>
+                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Conserva tu app móvil de WhatsApp Business mientras BarberOS opera en paralelo.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all">
+                      <div className="w-8 h-8 rounded-xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center shrink-0 text-sky-400">
+                        <Rocket size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-zinc-100">Alto Volumen Oficial</p>
+                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Sin bloqueos por envíos masivos ni caídas inesperadas de sesión.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0 text-amber-400">
+                        <Lock size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-zinc-100">Cifrado AES-256-GCM</p>
+                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Token de acceso cifrado en reposo para máxima seguridad bancaria.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0 text-blue-400">
+                        <Sparkles size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-zinc-100">Políticas Oficiales Meta</p>
+                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">API Graph v22.0 con subscripción automática a Webhooks.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all">
+                      <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center shrink-0 text-purple-400">
+                        <Bot size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-zinc-100">Respuestas Interactivas</p>
+                        <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">Botones dinámicos de confirmación, cancelación y reprogramación 24/7.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex items-center justify-between text-[11px] text-zinc-400">
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck size={14} className="text-emerald-400" />
+                      Disponibilidad respaldada por SLA de Meta (99.99%)
+                    </span>
+                    <span className="font-mono text-zinc-500">v22.0 · Encriptado</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          
         </div>
       </div>
 
@@ -1061,22 +1319,23 @@ export default function WhatsAppIntegrationSettings() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {/* 1. SECCIÓN DE SANDBOX: PROBAR CONEXIÓN */}
-            <div className="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-800/50 p-1.5 rounded-2xl border border-zinc-200/60 dark:border-zinc-700/60">
+            {/* 1. SECCIÓN DE PRUEBAS Y VALIDACIÓN */}
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
-                disabled={testSending}
-                onClick={handleQuickTestToOwner}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50"
+                disabled={metaVerifying}
+                onClick={handleVerifyStoredConnection}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-blue-600/20 flex items-center gap-2 disabled:opacity-50"
+                title="Comprueba la validez del Access Token y Phone Number ID con Meta Graph API v22.0 sin enviar mensajes"
               >
-                {testSending ? (
+                {metaVerifying ? (
                   <>
                     <Loader2 size={13} className="animate-spin" />
-                    Enviando...
+                    Verificando...
                   </>
                 ) : (
                   <>
-                    <Send size={13} />
+                    <Wifi size={13} />
                     Probar Conexión
                   </>
                 )}
@@ -1087,10 +1346,11 @@ export default function WhatsAppIntegrationSettings() {
                   setTestPhone(data.phoneNumber || '')
                   setShowTestModal(true)
                 }}
-                title="Configurar número personalizado de prueba"
-                className="p-2.5 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-emerald-600/20 flex items-center gap-2"
+                title="Enviar un mensaje de prueba real a un número de WhatsApp"
               >
-                <SettingsIcon size={14} />
+                <Send size={13} />
+                <span>Enviar Prueba</span>
               </button>
             </div>
 
@@ -2077,7 +2337,7 @@ export default function WhatsAppIntegrationSettings() {
                     <button
                       type="button"
                       disabled={metaVerifying}
-                      onClick={() => handleSaveMetaCredentials(undefined, false)}
+                      onClick={() => handleSaveMetaCredentials()}
                       className="py-2.5 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-zinc-700 cursor-pointer disabled:opacity-50"
                     >
                       {metaVerifying ? <Loader2 size={15} className="animate-spin" /> : <Wifi size={15} />}
@@ -2378,7 +2638,7 @@ export default function WhatsAppIntegrationSettings() {
                     disabled={metaVerifying}
                     onClick={async () => {
                       await handleSaveMetaOnly()
-                      await handleSaveMetaCredentials(undefined, false)
+                      await handleSaveMetaCredentials()
                       setShowWizardModal(false)
                     }}
                     className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/30"
@@ -2517,8 +2777,17 @@ export default function WhatsAppIntegrationSettings() {
                 />
               </div>
 
+              {!connState.canSendTest && (
+                <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/30 text-[11px] text-amber-300 flex items-start gap-2">
+                  <AlertTriangle size={14} className="shrink-0 mt-0.5 text-amber-400" />
+                  <span>
+                    No hay credenciales activas de Meta para este negocio. Debes vincular tu cuenta o ingresar credenciales en <strong>Manual (Token)</strong> antes de enviar mensajes reales.
+                  </span>
+                </div>
+              )}
+
               <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-[11px] text-zinc-400">
-                Se enviará a través de: <strong className="text-white">{data.provider === 'META' ? 'Meta Cloud API' : 'WhatsApp QR'}</strong>
+                Se enviará a través de: <strong className="text-white">Meta WhatsApp Cloud API v22.0</strong>
               </div>
 
               <div className="pt-2 flex gap-3">
@@ -2531,8 +2800,8 @@ export default function WhatsAppIntegrationSettings() {
                 </button>
                 <button
                   type="submit"
-                  disabled={testSending}
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
+                  disabled={testSending || !connState.canSendTest}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {testSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                   Enviar Ahora
