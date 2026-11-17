@@ -403,7 +403,9 @@ export default function WebpageEditor() {
           logo: logoUrl,
           page: {
             ...pageConfig,
-            coverTitle: pageConfig.coverTitle ? pageConfig.coverTitle.trim() : '',
+            coverTitle: '',
+            coverSubtitle: '',
+            slogan: pageConfig.slogan ? pageConfig.slogan.trim() : '',
             bannerUrl: resolveCoverBannerUrl(pageConfig.bannerUrl),
             showPhone: pageConfig.showPhone,
             showEmail: pageConfig.showEmail,
@@ -1584,26 +1586,87 @@ export default function WebpageEditor() {
           )}
 
           {/* ════════════════════════════════════════════════════════
-              3. PORTADAS PREDISEÑADAS BARBEROS & TEXTOS (Fase 4)
+              3. PORTADA — SELECCIÓN DE IMAGEN PREDETERMINADA
           ════════════════════════════════════════════════════════ */}
           {activeTab === 'cover' && (
-            <div className="space-y-6">
-              {/* Catálogo de Portadas Oficiales Prediseñadas */}
-              <div className="bg-white border border-zinc-200 rounded-2xl p-4 space-y-4 shadow-2xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Catálogo de Portadas Oficiales BarberOS
-                    </h3>
-                    <p className="text-[11px] text-zinc-500 font-medium mt-0.5">
-                      Elige el estilo visual para el Hero de tu página pública. Movimiento, iluminación y contraste preconfigurados.
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full shrink-0 self-start sm:self-auto">
-                    {BARBEROS_OFFICIAL_COVERS.length} estilos de autor
-                  </span>
+            <div className="space-y-5">
+              <div className="bg-white dark:bg-[#141418] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xs">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-zinc-950 dark:text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500" /> Portada
+                  </h3>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium mt-1">
+                    Selecciona la imagen que aparecerá en la portada de tu página web.
+                  </p>
+                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
+                    El nombre comercial, el eslogan y la descripción se administran directamente desde la sección <strong className="text-zinc-700 dark:text-zinc-300">Identidad</strong>.
+                  </p>
                 </div>
 
+                {/* Si hay una portada personalizada histórica que no coincide con las oficiales, se conserva y muestra */}
+                {(() => {
+                  const hasCustomCover =
+                    pageConfig.bannerUrl &&
+                    !BARBEROS_OFFICIAL_COVERS.some(
+                      c => c.url === pageConfig.bannerUrl || c.id === pageConfig.bannerUrl
+                    )
+
+                  if (!hasCustomCover) return null
+
+                  const isCustomSelected =
+                    !BARBEROS_OFFICIAL_COVERS.some(
+                      c => c.url === pageConfig.bannerUrl || c.id === pageConfig.bannerUrl
+                    )
+
+                  return (
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => set('bannerUrl', pageConfig.bannerUrl)}
+                      className={`group relative text-left rounded-2xl border-2 overflow-hidden transition-all duration-200 cursor-pointer flex flex-col focus:outline-none mb-3 ${
+                        isCustomSelected
+                          ? 'border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/30 dark:ring-amber-400/30 shadow-lg shadow-amber-500/10 bg-white dark:bg-[#141418]'
+                          : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-white dark:bg-[#141418]'
+                      }`}
+                    >
+                      <div className="relative aspect-video w-full overflow-hidden bg-zinc-900">
+                        <img
+                          src={pageConfig.bannerUrl}
+                          alt="Portada personalizada actual"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-md border border-white/20">
+                            Tu Portada Personalizada
+                          </span>
+                        </div>
+                        {isCustomSelected && (
+                          <div className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-amber-500 text-black flex items-center justify-center shadow-md z-10">
+                            <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3.5 flex items-center justify-between gap-2">
+                        <div>
+                          <span className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
+                            Portada personalizada actual
+                          </span>
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                            Referencia previa conservada. Si eliges una portada predeterminada de abajo, puedes volver a cambiarla cuando quieras.
+                          </p>
+                        </div>
+                        {isCustomSelected && (
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 shrink-0">
+                            Activa
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Grilla de Portadas Prediseñadas Oficiales */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
                   {BARBEROS_OFFICIAL_COVERS.map((cover) => {
                     const isSelected =
@@ -1612,17 +1675,25 @@ export default function WebpageEditor() {
                       (!pageConfig.bannerUrl && cover.id === DEFAULT_COVER_ID)
 
                     return (
-                      <button
+                      <div
                         key={cover.id}
-                        type="button"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => {
                           set('bannerUrl', cover.url)
                           set('motionStyle', cover.motionStyle)
                         }}
-                        className={`group relative text-left rounded-2xl border overflow-hidden transition-all duration-200 cursor-pointer flex flex-col ${
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            set('bannerUrl', cover.url)
+                            set('motionStyle', cover.motionStyle)
+                          }
+                        }}
+                        className={`group relative text-left rounded-2xl border-2 overflow-hidden transition-all duration-200 cursor-pointer flex flex-col focus:outline-none ${
                           isSelected
-                            ? 'ring-2 ring-zinc-900 border-zinc-900 shadow-md bg-zinc-950 text-white'
-                            : 'border-zinc-200 hover:border-zinc-300 bg-white hover:bg-zinc-50/80 text-zinc-900'
+                            ? 'border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/30 dark:ring-amber-400/30 shadow-lg shadow-amber-500/10 bg-white dark:bg-[#141418]'
+                            : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-white dark:bg-[#141418] hover:bg-zinc-50/70 dark:hover:bg-[#181820]'
                         }`}
                       >
                         {/* Miniatura 16:9 con Badge */}
@@ -1634,11 +1705,11 @@ export default function WebpageEditor() {
                               isSelected ? 'scale-105' : 'group-hover:scale-105 opacity-90 group-hover:opacity-100'
                             }`}
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
-                          {/* Badge de recomendación / estilo */}
-                          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                            <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-md border border-white/20">
+                          {/* Badge de estilo / recomendación */}
+                          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-md border border-white/20">
                               {cover.badge}
                             </span>
                             {cover.recommended && (
@@ -1650,15 +1721,15 @@ export default function WebpageEditor() {
 
                           {/* Checkmark de Selección Activa */}
                           {isSelected && (
-                            <div className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md">
+                            <div className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-amber-500 text-black flex items-center justify-center shadow-md z-10">
                               <Check className="w-3.5 h-3.5" strokeWidth={3} />
                             </div>
                           )}
 
                           {/* Iluminación & Motion Badge sobre la imagen */}
-                          <div className="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between text-[10px] text-zinc-300 font-medium">
+                          <div className="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between text-[10px] text-zinc-300 font-medium z-10">
                             <span className="truncate">{cover.lighting}</span>
-                            <span className="text-[9px] font-mono uppercase tracking-wider text-amber-300 bg-black/50 px-1.5 py-0.5 rounded border border-white/10 shrink-0 ml-1">
+                            <span className="text-[9px] font-mono uppercase tracking-wider text-amber-300 bg-black/60 px-1.5 py-0.5 rounded border border-white/10 shrink-0 ml-1">
                               {cover.motionStyle}
                             </span>
                           </div>
@@ -1667,109 +1738,25 @@ export default function WebpageEditor() {
                         {/* Metadatos y Descripción */}
                         <div className="p-3.5 flex-1 flex flex-col justify-between space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
-                            <span className={`text-xs font-black uppercase tracking-wider ${isSelected ? 'text-white' : 'text-zinc-900'}`}>
+                            <span className={`text-xs font-black uppercase tracking-wider ${
+                              isSelected ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-900 dark:text-zinc-100'
+                            }`}>
                               {cover.title}
                             </span>
                             {isSelected && (
-                              <span className="text-[10px] font-bold text-emerald-400">
-                                Activo
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                                Seleccionada
                               </span>
                             )}
                           </div>
-                          <p className={`text-[11px] leading-relaxed line-clamp-2 ${isSelected ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                          <p className="text-[11px] leading-relaxed line-clamp-2 text-zinc-600 dark:text-zinc-400">
                             {cover.description}
                           </p>
                         </div>
-                      </button>
+                      </div>
                     )
                   })}
                 </div>
-              </div>
-
-              {/* Textos y Narrativa de la Portada */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 space-y-4 shadow-xs">
-                <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-zinc-950 dark:text-white">
-                    Textos de la Portada
-                  </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-                    Personaliza el título, eslogan distintivo y descripción de presentación del encabezado de tu barbería.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
-                    Título Principal de la Portada <span className="text-zinc-400 font-normal">(Opcional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={pageConfig.coverTitle || ''}
-                    onChange={e => set('coverTitle', e.target.value)}
-                    placeholder={businessForm.name || 'Ej: Barbería Don Juan'}
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 focus:bg-white dark:focus:bg-zinc-900 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
-                  />
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">
-                    Si lo dejas vacío, la portada proyectará automáticamente el nombre comercial oficial de tu barbería (<strong>{businessForm.name || 'tu negocio'}</strong>).
-                  </span>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
-                    Eslogan o Subtítulo Distintivo (Eyebrow del Hero)
-                  </label>
-                  <input
-                    type="text"
-                    value={pageConfig.slogan}
-                    onChange={e => set('slogan', e.target.value)}
-                    placeholder="Ej: Barbería Clásica & Contemporánea"
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 focus:bg-white dark:focus:bg-zinc-900 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
-                  />
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">
-                    Aparece con elegancia sobre el nombre de tu barbería en letras mayúsculas de autor.
-                  </span>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
-                    Descripción Breve de Presentación (Subtítulo del Hero)
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={pageConfig.coverSubtitle}
-                    onChange={e => set('coverSubtitle', e.target.value)}
-                    placeholder="Describe en 1 o 2 líneas la experiencia de autor o especialidad de tu barbería..."
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-950 dark:text-zinc-100 outline-none focus:border-zinc-900 dark:focus:border-amber-500 focus:bg-white dark:focus:bg-zinc-900 resize-none transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
-                  />
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block mt-1">
-                    Texto breve bajo el nombre en la portada para presentar tu propuesta de valor.
-                  </span>
-                </div>
-              </div>
-
-              {/* Especificaciones Técnicas del Recurso Oficial (Para Diseñadores & Fotógrafos) */}
-              <div className="bg-zinc-950 text-white rounded-2xl p-4 border border-zinc-800 space-y-3 shadow-md">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-black uppercase tracking-wider text-white">
-                      Especificación de Portadas Oficiales BarberOS
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono text-zinc-400 bg-white/10 px-2 py-0.5 rounded">
-                    Ultra HD 1440p
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono text-zinc-400 pt-1 border-t border-white/10">
-                  <div>Resolución: <span className="text-zinc-200 font-bold">{OFFICIAL_HERO_COVER_SPECS.resolution}</span></div>
-                  <div>Aspect Ratio: <span className="text-zinc-200 font-bold">{OFFICIAL_HERO_COVER_SPECS.aspectRatio}</span></div>
-                  <div>Formato: <span className="text-zinc-200 font-bold">{OFFICIAL_HERO_COVER_SPECS.format}</span></div>
-                  <div>Peso objetivo: <span className="text-zinc-200 font-bold">{OFFICIAL_HERO_COVER_SPECS.maxFileSize}</span></div>
-                </div>
-
-                <p className="text-[11px] text-zinc-400 leading-relaxed bg-white/5 p-2.5 rounded-xl border border-white/5">
-                  {OFFICIAL_HERO_COVER_SPECS.description} Las portadas se gestionan exclusivamente desde el catálogo oficial de BarberOS para proteger el rendimiento de carga y la legibilidad responsive.
-                </p>
               </div>
             </div>
           )}
@@ -1940,69 +1927,64 @@ export default function WebpageEditor() {
                 return (
                   <div className="space-y-4">
                     {/* Header de la categoría con acciones */}
-                    <div className="bg-white dark:bg-[#141418] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-2xs space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-black text-zinc-900 dark:text-zinc-100">
-                              {activeCatObj.label}
-                            </h4>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRenamingCollection(activeCatObj)
-                                setNewCollectionLabelInput(activeCatObj.label)
-                              }}
-                              className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 p-1 rounded-md transition-colors"
-                              title="Renombrar esta colección"
-                            >
-                              <Edit2 size={12} />
-                            </button>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                              isFull
-                                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                            }`}>
-                              {isFull ? `Límite (${GALLERY_MAX_PER_CATEGORY}/${GALLERY_MAX_PER_CATEGORY})` : `${availableQuota} cupos disponibles`}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                            {catDesc}
-                          </p>
-                        </div>
-
-                        {/* Botón de subida nativo */}
-                        <div className="shrink-0">
-                          <input
-                            ref={galleryFileInputRef}
-                            type="file"
-                            multiple
-                            accept="image/jpeg,image/png,image/webp"
-                            onChange={e => handleUploadGalleryPhotos(e, activeCat)}
-                            className="hidden"
-                          />
+                    <div className="bg-white dark:bg-[#141418] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-2xs space-y-3 overflow-hidden">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <h4 className="text-sm font-black text-zinc-900 dark:text-zinc-100 truncate">
+                            {activeCatObj.label}
+                          </h4>
                           <button
                             type="button"
-                            disabled={isFull || uploadingGallery}
-                            onClick={() => galleryFileInputRef.current?.click()}
-                            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all shadow-xs ${
-                              isFull
-                                ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border border-zinc-200 dark:border-zinc-700 cursor-not-allowed'
-                                : 'panel-btn-accent cursor-pointer active:scale-95'
-                            }`}
+                            onClick={() => {
+                              setRenamingCollection(activeCatObj)
+                              setNewCollectionLabelInput(activeCatObj.label)
+                            }}
+                            className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 p-1 rounded-md transition-colors shrink-0 cursor-pointer"
+                            title="Renombrar esta colección"
                           >
-                            {uploadingGallery ? (
-                              <>
-                                <Loader2 size={13} className="animate-spin" /> Subiendo...
-                              </>
-                            ) : (
-                              <>
-                                <Upload size={13} /> Subir fotografías
-                              </>
-                            )}
+                            <Edit2 size={12} />
                           </button>
                         </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                          isFull
+                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                            : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                        }`}>
+                          {catCount} / {GALLERY_MAX_PER_CATEGORY} fotos
+                        </span>
                       </div>
+
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                        {catDesc}
+                      </p>
+
+                      {/* Botón para subir fotos cuando la colección ya tiene contenido */}
+                      {visibleItems.length > 0 && (
+                        <div className="pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                          {isFull ? (
+                            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300 font-medium text-center">
+                              Límite de {GALLERY_MAX_PER_CATEGORY} fotos alcanzado en esta colección.
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={uploadingGallery}
+                              onClick={() => galleryFileInputRef.current?.click()}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black panel-btn-accent cursor-pointer active:scale-95 transition-all shadow-xs"
+                            >
+                              {uploadingGallery ? (
+                                <>
+                                  <Loader2 size={13} className="animate-spin" /> Subiendo...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload size={13} /> Subir más fotos a {activeCatObj.label} ({availableQuota} disponibles)
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      )}
 
                       {/* Modal/Formulario inline para renombrar colección */}
                       {renamingCollection?.id === activeCatObj.id && (
@@ -2037,6 +2019,16 @@ export default function WebpageEditor() {
                       )}
                     </div>
 
+                    {/* Input nativo de subida de fotos */}
+                    <input
+                      ref={galleryFileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={e => handleUploadGalleryPhotos(e, activeCat)}
+                      className="hidden"
+                    />
+
                     {/* Input oculto para la acción de reemplazo */}
                     <input
                       ref={replaceFileInputRef}
@@ -2046,27 +2038,37 @@ export default function WebpageEditor() {
                       className="hidden"
                     />
 
-                    {/* Lista editable de fotos de la categoría */}
+                    {/* Lista editable de fotos de la categoría o Zona única de subida si está vacía */}
                     {visibleItems.length === 0 ? (
-                      <div className="p-8 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 text-center flex flex-col items-center justify-center space-y-3">
-                        <div className="w-12 h-12 rounded-2xl bg-zinc-200/70 dark:bg-zinc-800 text-zinc-500 flex items-center justify-center">
-                          <Camera className="w-6 h-6" />
+                      <div
+                        onClick={() => !uploadingGallery && galleryFileInputRef.current?.click()}
+                        className="p-6 sm:p-8 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/30 hover:bg-zinc-100/70 dark:hover:bg-zinc-900/60 transition-all text-center flex flex-col items-center justify-center space-y-3 cursor-pointer group overflow-hidden"
+                      >
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 dark:bg-amber-400/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-xs">
+                          <Upload className="w-5 h-5" />
                         </div>
-                        <div>
-                          <p className="text-xs font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-tight">
-                            Sin fotografías en {activeCatObj.label}
+                        <div className="space-y-0.5 max-w-xs">
+                          <p className="text-xs font-black text-zinc-900 dark:text-zinc-100 uppercase tracking-tight">
+                            Subir fotos a {activeCatObj.label}
                           </p>
-                          <p className="text-[11px] text-zinc-400 max-w-xs mt-0.5">
-                            Sube hasta {GALLERY_MAX_PER_CATEGORY} fotos directamente desde tu dispositivo.
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                            Haz clic aquí para seleccionar hasta {GALLERY_MAX_PER_CATEGORY} fotos desde tu dispositivo (JPG, PNG o WebP).
                           </p>
                         </div>
                         <button
                           type="button"
                           disabled={uploadingGallery}
-                          onClick={() => galleryFileInputRef.current?.click()}
-                          className="flex items-center gap-2 panel-btn-accent text-xs font-black px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs"
+                          className="flex items-center gap-2 panel-btn-accent text-xs font-black px-4 py-2 rounded-xl transition-all shadow-xs pointer-events-none"
                         >
-                          <Upload size={13} /> Subir primera fotografía
+                          {uploadingGallery ? (
+                            <>
+                              <Loader2 size={13} className="animate-spin" /> Subiendo...
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={13} /> Seleccionar fotografías
+                            </>
+                          )}
                         </button>
                       </div>
                     ) : (
@@ -2356,18 +2358,20 @@ export default function WebpageEditor() {
                             : 'bg-zinc-50 dark:bg-[#0d0d10] border-zinc-200/70 dark:border-zinc-800/80'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-sm font-black text-zinc-900 dark:text-white shrink-0 min-w-[75px]">{item.day}</span>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <span className="text-sm font-black text-zinc-900 dark:text-white shrink-0 min-w-[72px]">
+                              {item.day}
+                            </span>
                             {item.isOpen ? (
-                              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 px-2 py-0.5 rounded-full flex items-center gap-1 truncate">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                                <span className="truncate">{formattedOpen} - {formattedClose}</span>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 whitespace-nowrap shrink-0">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                                <span className="whitespace-nowrap">{formattedOpen} – {formattedClose}</span>
                               </span>
                             ) : (
-                              <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 px-2 py-0.5 rounded-full flex items-center gap-1 truncate">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 whitespace-nowrap shrink-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                                <span className="truncate">{item.customMessage?.trim() || 'Cerrado'}</span>
+                                <span className="whitespace-nowrap">{item.customMessage?.trim() || 'Cerrado'}</span>
                               </span>
                             )}
                           </div>

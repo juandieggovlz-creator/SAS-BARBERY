@@ -735,8 +735,8 @@ export default function PublicBusinessPage() {
       ══════════════════════════════════════════════════════════ */}
       <CinematicHero
         businessName={data.name}
-        coverTitle={pageConfig.coverTitle}
-        coverSubtitle={pageConfig.coverSubtitle}
+        coverTitle={null}
+        coverSubtitle={null}
         slogan={pageConfig.slogan}
         businessDescription={data.description}
         bannerUrl={resolveCoverBannerUrl(pageConfig.bannerUrl || DEFAULT_BANNER)}
