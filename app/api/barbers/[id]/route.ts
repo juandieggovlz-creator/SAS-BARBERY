@@ -57,8 +57,44 @@ export async function DELETE(
       return NextResponse.json({ error: 'Barbero no encontrado' }, { status: 404 })
     }
 
-    await prisma.barber.delete({ where: { id } })
-    return NextResponse.json({ ok: true })
+    // FASE 9: Comprobar citas históricas
+    const appointmentCount = await prisma.appointment.count({
+      where: { barberId: id }
+    })
+
+    if (appointmentCount > 0) {
+      // PROTEGER HISTORIAL: Desactivar en lugar de borrar físicamente
+      await prisma.$transaction([
+        prisma.barber.update({
+          where: { id },
+          data: { status: 'INACTIVE' }
+        }),
+        prisma.user.updateMany({
+          where: { barberId: id },
+          data: {
+            isActive: false,
+            inviteToken: null,
+            inviteExpires: null
+          }
+        })
+      ])
+
+      return NextResponse.json({ 
+        ok: true, 
+        deactivated: true,
+        message: 'El barbero tiene historial de citas. Su cuenta ha sido desactivada para salvaguardar la contabilidad del negocio.' 
+      })
+    }
+
+    // Si no tiene historial, eliminar relaciones y registro limpiamente
+    await prisma.$transaction([
+      prisma.barberSchedule.deleteMany({ where: { barberId: id } }),
+      prisma.barberBlock.deleteMany({ where: { barberId: id } }),
+      prisma.user.deleteMany({ where: { barberId: id } }),
+      prisma.barber.delete({ where: { id } })
+    ])
+
+    return NextResponse.json({ ok: true, message: 'Barbero eliminado exitosamente' })
   } catch {
     return NextResponse.json({ error: 'Error al eliminar barbero' }, { status: 500 })
   }

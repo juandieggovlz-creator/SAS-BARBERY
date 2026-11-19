@@ -1,199 +1,277 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
-import { randomBytes } from 'crypto'
+import { canUsePublicBooking } from '@/lib/commercial-permissions'
+import {
+  BookingEngineError,
+  createCentralizedBooking,
+  declareWhatsAppPayment,
+  submitDepositProof,
+} from '@/lib/booking/booking-engine'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-function generateReservationCode() {
-  const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '')
-  const hex = randomBytes(4).toString('hex').toUpperCase()
-  return `${dateStr}-${hex}`
-}
-
 export async function POST(request: Request) {
   try {
     const ip = getClientIp(request)
-    const limitCheck = rateLimit(`public-appointment:${ip}`, { limit: 10, windowSeconds: 10 * 60 })
+    const limitCheck = rateLimit(`public-appointment:${ip}`, {
+      limit: 15,
+      windowSeconds: 10 * 60,
+    })
     if (!limitCheck.success) {
       return NextResponse.json(
-        { error: `Has realizado demasiadas reservas en poco tiempo. Por favor espera ${Math.ceil(limitCheck.resetSeconds / 60)} minutos.` },
+        {
+          error: `Has realizado demasiadas reservas en poco tiempo. Por favor espera ${Math.ceil(
+            limitCheck.resetSeconds / 60
+          )} minutos.`,
+        },
         { status: 429 }
       )
     }
 
     const body = await request.json()
-    const { businessId, serviceId, barberId, date, clientName, clientPhone, totalDuration } = body
+    const {
+      businessId,
+      serviceId,
+      serviceIds,
+      barberId,
+      date,
+      clientName,
+      clientPhone,
+      clientEmail,
+      notes,
+      proofUrl,
+      depositChannelLabel,
+      proofReference,
+    } = body
 
-    if (!businessId || !serviceId || !date || !clientName || !clientPhone) {
+    if (!businessId || (!serviceId && (!serviceIds || serviceIds.length === 0)) || !date || !clientName || !clientPhone) {
       return NextResponse.json(
-        { error: 'Todos los campos (barbería, servicio, fecha, nombre y teléfono) son requeridos' },
+        {
+          error:
+            'Todos los campos (barbería, servicio, fecha, nombre y teléfono) son requeridos',
+        },
         { status: 400 }
       )
     }
 
-    // 1. Validate Business & Service
-    const service = await prisma.service.findUnique({ where: { id: serviceId } })
-    if (!service || service.businessId !== businessId || !service.isActive) {
-      return NextResponse.json({ error: 'El servicio seleccionado no está disponible' }, { status: 400 })
-    }
-
-    const bookingDuration = (totalDuration && Number(totalDuration) > 0) ? Number(totalDuration) : service.duration
-
-    const appointmentDate = new Date(date)
-    if (isNaN(appointmentDate.getTime())) {
-      return NextResponse.json({ error: 'Fecha seleccionada inválida' }, { status: 400 })
-    }
-
-    if (appointmentDate < new Date()) {
-      return NextResponse.json({ error: 'No se pueden agendar citas en fechas pasadas' }, { status: 400 })
-    }
-
-    // 2. Select / Validate Barber
-    let finalBarberId = barberId
-
-    if (!finalBarberId) {
-      // Find any active barber available at this time
-      const activeBarbers = await prisma.barber.findMany({
-        where: { businessId, status: 'ACTIVE' }
-      })
-      if (activeBarbers.length === 0) {
-        return NextResponse.json({ error: 'No hay barberos disponibles en esta barbería' }, { status: 400 })
-      }
-      finalBarberId = activeBarbers[0].id
-    }
-
-    const barber = await prisma.barber.findUnique({ where: { id: finalBarberId } })
-    if (!barber || barber.businessId !== businessId || barber.status !== 'ACTIVE') {
-      return NextResponse.json({ error: 'El barbero seleccionado no está disponible' }, { status: 400 })
-    }
-
-    // 3. Customer Deduplication by Phone & Business
-    let client = await prisma.client.findFirst({
-      where: {
-        businessId,
-        phone: clientPhone.trim()
-      }
-    })
-
-    if (!client) {
-      client = await prisma.client.create({
-        data: {
-          name: clientName.trim(),
-          phone: clientPhone.trim(),
-          businessId
-        }
-      })
-    }
-
-    // 4. Server-Side Double Booking Collision Validation
-    const newStart = appointmentDate
-    const newEnd = new Date(newStart.getTime() + bookingDuration * 60 * 1000)
-
-    const dayOfWeek = newStart.getDay()
-    const schedule = await prisma.barberSchedule.findFirst({
-      where: { barberId: finalBarberId, dayOfWeek }
-    })
-
-    if (schedule && !schedule.isWorking) {
-      return NextResponse.json({ error: 'El barbero no labora en este día' }, { status: 400 })
-    }
-
-    const startOfDay = new Date(newStart.getFullYear(), newStart.getMonth(), newStart.getDate())
-    const endOfDay = new Date(newStart.getFullYear(), newStart.getMonth(), newStart.getDate(), 23, 59, 59)
-
-    // Check overlaps with blocks
-    const blocks = await prisma.barberBlock.findMany({
-      where: {
-        barberId: finalBarberId,
-        date: { gte: startOfDay, lte: endOfDay }
-      }
-    })
-
-    const pad = (n: number) => n.toString().padStart(2, '0')
-    const reqTimeStr = `${pad(newStart.getHours())}:${pad(newStart.getMinutes())}`
-    const reqEndTimeStr = `${pad(newEnd.getHours())}:${pad(newEnd.getMinutes())}`
-
-    const hasOverlapBlock = blocks.some((b: { startTime: string; endTime: string }) => {
-      return (reqTimeStr < b.endTime && reqEndTimeStr > b.startTime)
-    })
-
-    if (hasOverlapBlock) {
-      return NextResponse.json({ error: 'El horario seleccionado coincide con una pausa del barbero' }, { status: 400 })
-    }
-
-    // Check overlaps with existing appointments
-    const existingAppts = await prisma.appointment.findMany({
-      where: {
-        barberId: finalBarberId,
-        status: { in: ['PENDING', 'CONFIRMED'] },
-        date: { gte: startOfDay, lte: endOfDay }
-      },
-      include: { service: true }
-    })
-
-    const hasConflict = existingAppts.some(appt => {
-      const apptStart = new Date(appt.date)
-      const apptEnd = new Date(apptStart.getTime() + appt.service.duration * 60 * 1000)
-      return newStart < apptEnd && newEnd > apptStart
-    })
-
-    if (hasConflict) {
+    // Validación comercial del establecimiento (Prueba activa, Plan Básico/Pro/Premium vs Sandbox/Suspendido)
+    const bookingCheck = await canUsePublicBooking(businessId)
+    if (!bookingCheck.allowed) {
       return NextResponse.json(
-        { error: 'El horario seleccionado ya no está disponible. Por favor elige otro horario.' },
-        { status: 400 }
+        {
+          error: bookingCheck.reason || 'Las reservas en línea no están habilitadas para este establecimiento en este momento.',
+          code: 'PUBLIC_BOOKING_DISABLED'
+        },
+        { status: 403 }
       )
     }
 
-    // 5. Create Appointment with retry loop for unique reservationCode
-    let attempts = 0
-    while (attempts < 3) {
-      try {
-        const reservationCode = generateReservationCode()
-        const appointment = await prisma.appointment.create({
-          data: {
-            businessId,
-            clientId: client.id,
-            barberId: finalBarberId,
-            serviceId,
-            date: newStart,
-            status: 'PENDING',
-            reservationCode
-          },
-          include: {
-            client: true,
-            barber: true,
-            service: true,
-            business: { select: { name: true, slug: true } }
-          }
+    const { appointment, depositConfig, financials } = await createCentralizedBooking({
+      businessId,
+      serviceId,
+      serviceIds: Array.isArray(serviceIds) ? serviceIds : undefined,
+      barberId: barberId || null,
+      date,
+      clientName,
+      clientPhone,
+      clientEmail,
+      notes,
+      source: 'PUBLIC_WEB',
+      proofUrl: proofUrl || null,
+      depositChannelLabel: depositChannelLabel || null,
+      proofReference: proofReference || null,
+    })
+
+    // Disparo asíncrono no bloqueante de confirmación de WhatsApp
+    import('@/lib/whatsapp/whatsapp-service')
+      .then(({ WhatsAppService }) => {
+        WhatsAppService.sendAppointmentConfirmation(appointment.id).catch((err) => {
+          console.error('Error enviando confirmación de WhatsApp:', err)
         })
+      })
+      .catch(() => {})
 
-        // Disparo asíncrono no bloqueante de confirmación de WhatsApp
-        import('@/lib/whatsapp/whatsapp-service').then(({ WhatsAppService }) => {
-          WhatsAppService.sendAppointmentConfirmation(appointment.id).catch(err => {
-            console.error('Error enviando confirmación de WhatsApp:', err)
+    // Disparo asíncrono no bloqueante de confirmación por correo si el cliente tiene email registrado
+    const clientEmailToSend =
+      (clientEmail ? String(clientEmail).trim() : null) || appointment.client.email
+    if (clientEmailToSend) {
+      import('@/lib/email')
+        .then(({ sendAppointmentConfirmationEmail }) => {
+          const formattedDate = appointment.date.toLocaleDateString('es-CO', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+          const formattedTime = appointment.date.toLocaleTimeString('es-CO', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+          const origin =
+            process.env.NEXTAUTH_URL ||
+            process.env.APP_URL ||
+            new URL(request.url).origin
+          const manageLink = `${origin}/b/${appointment.business.slug || 'reserva'}`
+
+          sendAppointmentConfirmationEmail({
+            to: clientEmailToSend,
+            clientName: appointment.client.name,
+            businessName: appointment.business.name,
+            barberName: appointment.barber.name,
+            serviceName: financials.serviceNamesJoined || appointment.service.name,
+            price: `$${Number(financials.totalPrice).toLocaleString('es-CO')}`,
+            date: formattedDate,
+            time: formattedTime,
+            reservationCode: appointment.reservationCode || '',
+            manageLink,
+          }).catch((err) => {
+            console.warn(
+              'Aviso: Envío de confirmación de cita por email diferido o simulado:',
+              err
+            )
           })
         })
-
-        return NextResponse.json({
-          success: true,
-          message: 'Reserva creada con éxito',
-          appointment
-        }, { status: 201 })
-      } catch (error: unknown) {
-        if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002' && attempts < 2) {
-          attempts++
-          continue
-        }
-        throw error
-      }
+        .catch(() => {})
     }
 
-    return NextResponse.json({ error: 'Error al generar código de reserva' }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          financials.depositRequired > 0
+            ? financials.depositStatus === 'PROOF_SUBMITTED'
+              ? 'Reserva registrada. Tu comprobante de anticipo está en verificación por la barbería.'
+              : 'Reserva temporal creada. Envía el comprobante del anticipo para confirmar tu cupo.'
+            : 'Cita confirmada automáticamente con éxito. ¡Te esperamos!',
+        appointment: {
+          ...appointment,
+          financials,
+        },
+        financials,
+        depositConfig: {
+          depositEnabled: depositConfig.depositEnabled,
+          depositType: depositConfig.depositType,
+          depositPercentage: depositConfig.depositPercentage,
+          depositFixedAmount: depositConfig.depositFixedAmount,
+          cleanInstructions: depositConfig.cleanInstructions,
+          paymentMethods: depositConfig.paymentMethods,
+        },
+      },
+      { status: 201 }
+    )
   } catch (error: unknown) {
+    if (error instanceof BookingEngineError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode }
+      )
+    }
     console.error('Public Appointment Creation Error:', error)
-    const msg = error instanceof Error ? error.message : 'Error al procesar la reserva'
+    const msg =
+      error instanceof Error ? error.message : 'Error al procesar la reserva'
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}
+
+/**
+ * PATCH /api/public/appointments
+ * Permite al cliente adjuntar el comprobante de pago de su anticipo
+ * usando su código de reserva (`reservationCode`) y `businessId`.
+ */
+export async function PATCH(request: Request) {
+  try {
+    const ip = getClientIp(request)
+    const limitCheck = rateLimit(`public-deposit-proof:${ip}`, {
+      limit: 15,
+      windowSeconds: 10 * 60,
+    })
+    if (!limitCheck.success) {
+      return NextResponse.json(
+        { error: 'Demasiados intentos. Intenta nuevamente en unos minutos.' },
+        { status: 429 }
+      )
+    }
+
+    const body = await request.json()
+    const {
+      action,
+      appointmentId,
+      reservationCode,
+      businessId,
+      slug,
+      proofUrl,
+      depositChannelLabel,
+      proofReference,
+    } = body
+
+    // ── Declaración de pago vía WhatsApp (Opción B: sin adjunto directo en web) ──
+    if (action === 'DECLARE_WHATSAPP_PAYMENT') {
+      if ((!appointmentId && !reservationCode) || (!businessId && !slug)) {
+        return NextResponse.json(
+          { error: 'Se requiere el código de reserva y la barbería para registrar la notificación.' },
+          { status: 400 }
+        )
+      }
+
+      const result = await declareWhatsAppPayment({
+        reservationCode: reservationCode || '',
+        businessId,
+        slug,
+      })
+
+      return NextResponse.json({
+        success: true,
+        message:
+          'Notificación vía WhatsApp registrada con éxito. Tu horario permanece protegido mientras el establecimiento verifica el pago.',
+        appointment: {
+          ...result.appointment,
+          financials: result.financials,
+        },
+        financials: result.financials,
+      })
+    }
+
+    if ((!appointmentId && !reservationCode) || (!businessId && !slug) || !proofUrl) {
+      return NextResponse.json(
+        {
+          error:
+            'Se requiere el código de reserva, la barbería y el comprobante de pago.',
+        },
+        { status: 400 }
+      )
+    }
+
+    const result = await submitDepositProof({
+      appointmentId,
+      reservationCode,
+      businessId,
+      slug,
+      proofUrl,
+      depositChannelLabel,
+      proofReference,
+    })
+
+    return NextResponse.json({
+      success: true,
+      message:
+        'Comprobante recibido correctamente. El propietario verificará el ingreso para confirmar tu cita.',
+      appointment: {
+        ...result.appointment,
+        financials: result.financials,
+      },
+      financials: result.financials,
+    })
+  } catch (error: unknown) {
+    if (error instanceof BookingEngineError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode }
+      )
+    }
+    console.error('Public Deposit Proof Error:', error)
+    const msg =
+      error instanceof Error ? error.message : 'Error al adjuntar el comprobante'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

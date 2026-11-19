@@ -151,12 +151,33 @@ export async function PATCH(request: Request) {
       )
     }
 
-    // Solo propietarios, administradores autorizados y superadmins pueden alterar el tema del negocio
+    // Si el usuario es un BARBERO, se le permite personalizar su experiencia visual individual (User.accentColor)
+    // sin alterar el tema corporativo del negocio ni afectar a otros miembros o a la página pública.
     if (session.role === 'BARBER') {
-      return NextResponse.json(
-        { error: 'Los barberos no tienen permisos para modificar el tema corporativo del negocio.' },
-        { status: 403 }
-      )
+      const body = await request.json().catch(() => ({}))
+      const rawColor = body?.accentColor
+      if (!rawColor || typeof rawColor !== 'string') {
+        return NextResponse.json({ error: 'Color no especificado' }, { status: 400 })
+      }
+
+      const accent = getAccentByHex(rawColor)
+      if (!accent) {
+        return NextResponse.json(
+          { error: 'Color no permitido. Debe ser uno de los 4 colores aprobados de la paleta BarberOS.' },
+          { status: 400 }
+        )
+      }
+
+      await prisma.user.update({
+        where: { id: session.userId },
+        data: { accentColor: accent.hex }
+      })
+
+      return NextResponse.json({
+        success: true,
+        accentColor: accent.hex,
+        scope: 'USER_PERSONAL'
+      })
     }
 
     const body = await request.json().catch(() => ({}))

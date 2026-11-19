@@ -5,7 +5,7 @@ import { recordAuditLog } from '@/lib/audit'
 
 export async function GET() {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -23,7 +23,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -95,7 +95,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 

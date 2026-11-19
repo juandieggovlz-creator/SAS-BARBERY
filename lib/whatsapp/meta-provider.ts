@@ -42,7 +42,7 @@ export class MetaCloudProvider {
       }
 
       // Consulta a la Graph API de Meta
-      const url = `https://graph.facebook.com/v21.0/${cleanPhoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating`
+      const url = `https://graph.facebook.com/v22.0/${cleanPhoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating`
       const res = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${cleanToken}`,
@@ -127,7 +127,7 @@ export class MetaCloudProvider {
         return { success: false, error: 'Número de destinatario inválido' }
       }
 
-      const url = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`
+      const url = `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`
 
       const payload = {
         messaging_product: 'whatsapp',
@@ -172,6 +172,39 @@ export class MetaCloudProvider {
       console.error('Error enviando mensaje por Meta API:', err)
       const error = err instanceof Error ? err.message : 'Error inesperado de conexión con Meta'
       return { success: false, error }
+    }
+  }
+
+  /**
+   * Suscribe la aplicación a la WABA para recibir webhooks oficiales (mensajes y coexistencia)
+   * Endpoint oficial de Meta: POST /v22.0/{waba_id}/subscribed_apps
+   */
+  static async subscribeAppToWaba({
+    wabaId,
+    accessToken
+  }: {
+    wabaId: string
+    accessToken: string
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      const url = `https://graph.facebook.com/v22.0/${wabaId}/subscribed_apps`
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data.error) {
+        const errorMsg = data?.error?.message || 'Error al suscribir webhook en WABA'
+        console.warn('[MetaCloudProvider] Error al suscribir app a WABA:', errorMsg)
+        return { success: false, error: errorMsg }
+      }
+      return { success: true }
+    } catch (err: unknown) {
+      console.warn('[MetaCloudProvider] Fallo de red suscribiendo app a WABA:', err)
+      return { success: false, error: (err as Error)?.message || 'Error de red con Meta Graph API' }
     }
   }
 

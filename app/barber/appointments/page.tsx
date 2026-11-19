@@ -132,21 +132,22 @@ export default function MisCitasPage() {
                     </td>
                     <td className="px-8 py-6">
                       <select
+                        data-status-badge="true"
                         value={appt.status}
                         onChange={(e) => updateStatus(appt.id, e.target.value)}
-                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border outline-none cursor-pointer transition-all ${
-                          appt.status === 'COMPLETED' ? 'bg-green-50 text-green-700 border-green-200' :
-                          appt.status === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' :
-                          appt.status === 'CONFIRMED' ? 'bg-black text-white border-black' :
-                          appt.status === 'NO_SHOW' ? 'bg-zinc-100 text-zinc-600 border-zinc-300' :
-                          'bg-zinc-50 text-zinc-500 border-zinc-200'
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border outline-none cursor-pointer transition-all shadow-2xs ${
+                          appt.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700/60' :
+                          appt.status === 'CANCELLED' ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-700/60' :
+                          appt.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/80 dark:text-blue-300 dark:border-blue-700/60' :
+                          appt.status === 'NO_SHOW' ? 'bg-zinc-200 text-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700' :
+                          'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-700/60'
                         }`}
                       >
-                        <option value="PENDING">PENDING</option>
-                        <option value="CONFIRMED">CONFIRMED</option>
-                        <option value="COMPLETED">COMPLETED</option>
-                        <option value="CANCELLED">CANCELLED</option>
-                        <option value="NO_SHOW">NO_SHOW</option>
+                        <option value="PENDING" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">PENDIENTE</option>
+                        <option value="CONFIRMED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">CONFIRMADA</option>
+                        <option value="COMPLETED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">COMPLETADA</option>
+                        <option value="CANCELLED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">CANCELADA</option>
+                        <option value="NO_SHOW" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">NO ASISTIÓ</option>
                       </select>
                     </td>
                     <td className="px-8 py-6 text-right">

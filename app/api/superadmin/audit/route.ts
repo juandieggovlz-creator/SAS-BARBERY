@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth'
 
 export async function GET(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 

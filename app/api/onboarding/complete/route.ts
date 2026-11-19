@@ -122,7 +122,7 @@ export async function POST(request: Request) {
             primaryColor: '#09090b',
             accentColor: '#d4af37',
             businessHours: hoursJson,
-            bannerUrl: '/landing/pagina-web-real.png',
+            bannerUrl: '/imagenes/hero-cinematic-luxury.webp',
             coverTitle: `Bienvenido a ${cleanBizName}`,
             coverSubtitle: 'Reserva tu cita con nuestros profesionales y disfruta de una experiencia de barbería de primer nivel.',
           },

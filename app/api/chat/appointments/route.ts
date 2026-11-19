@@ -19,8 +19,7 @@ export async function GET(request: Request) {
       where: {
         businessId,
         ...(session.role === 'BARBER' && session.barberId ? {
-          // If barber, optionally prioritize or filter their appointments, but let them see appointments they need
-          // To allow clarifying any doubt, we allow searching their appointments or all if search is provided
+          barberId: session.barberId
         } : {})
       },
       include: {

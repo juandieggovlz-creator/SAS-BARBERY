@@ -5,7 +5,7 @@ import { recordAuditLog } from '@/lib/audit'
 
 export async function GET(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -104,7 +104,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 

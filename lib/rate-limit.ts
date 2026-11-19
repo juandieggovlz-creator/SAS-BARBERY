@@ -7,6 +7,8 @@
  * extender este módulo manteniendo la misma interfaz.
  */
 
+import { prisma } from '@/lib/prisma'
+
 interface RateLimitRecord {
   count: number
   resetTime: number
@@ -121,4 +123,73 @@ export function rateLimit(key: string, options: RateLimitOptions): RateLimitResu
 export function resetRateLimit(key: string): void {
   memoryStore.delete(key)
 }
+
+/**
+ * Limitador de frecuencia persistente en Neon PostgreSQL.
+ * Solución compartida y sincronizada para despliegues Serverless en Vercel.
+ */
+export async function rateLimitDB(key: string, options: RateLimitOptions): Promise<RateLimitResult> {
+  const now = new Date()
+  const windowMs = options.windowSeconds * 1000
+  const expireAt = new Date(now.getTime() + windowMs)
+
+  try {
+    const existing = await prisma.rateLimitStore.findUnique({
+      where: { key }
+    })
+
+    if (!existing || existing.expireAt <= now) {
+      await prisma.rateLimitStore.upsert({
+        where: { key },
+        create: { key, points: 1, expireAt },
+        update: { points: 1, expireAt }
+      })
+
+      return {
+        success: true,
+        remaining: options.limit - 1,
+        resetSeconds: options.windowSeconds,
+      }
+    }
+
+    if (existing.points >= options.limit) {
+      const resetSeconds = Math.ceil((existing.expireAt.getTime() - now.getTime()) / 1000)
+      return {
+        success: false,
+        remaining: 0,
+        resetSeconds: Math.max(1, resetSeconds),
+      }
+    }
+
+    const updated = await prisma.rateLimitStore.update({
+      where: { key },
+      data: { points: { increment: 1 } }
+    })
+
+    const resetSeconds = Math.ceil((updated.expireAt.getTime() - now.getTime()) / 1000)
+
+    return {
+      success: true,
+      remaining: Math.max(0, options.limit - updated.points),
+      resetSeconds: Math.max(1, resetSeconds),
+    }
+  } catch (err) {
+    // Si la DB tiene una contención temporal, recurrir transparentemente a memoria
+    console.warn('[RateLimitDB Fallback to Memory]:', err)
+    return rateLimit(key, options)
+  }
+}
+
+/**
+ * Resetea el conteo persistente en base de datos
+ */
+export async function resetRateLimitDB(key: string): Promise<void> {
+  try {
+    await prisma.rateLimitStore.delete({ where: { key } }).catch(() => {})
+  } catch {
+    // ignore
+  }
+  resetRateLimit(key)
+}
+
 

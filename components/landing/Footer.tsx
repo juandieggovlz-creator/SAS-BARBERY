@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Phone, MapPin, Heart, ShieldCheck, Globe, ExternalLink } from 'lucide-react'
+import { Phone, MapPin, Heart, ShieldCheck, Globe, ExternalLink, Mail } from 'lucide-react'
 import { getPublicSettings, getWhatsAppUrl, type PublicPlatformSettings } from '@/lib/platform-config'
 
 const FALLBACK_WA = '+57 324 2063393'
@@ -144,6 +144,16 @@ export default function Footer() {
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" aria-hidden="true" />
                 <span>Sincelejo, Sucre, Colombia</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-amber-500 shrink-0" aria-hidden="true" />
+                <a
+                  href={`mailto:${settings?.support_email || 'barberos.contacto@gmail.com'}`}
+                  className="hover:text-amber-500 transition-colors break-all"
+                  aria-label="Escribir al correo oficial de soporte BarberOS"
+                >
+                  {settings?.support_email || 'barberos.contacto@gmail.com'}
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" />

@@ -5,8 +5,8 @@ import { recordAuditLog } from '@/lib/audit'
 
 const DEFAULT_SETTINGS: Record<string, { value: string; description: string }> = {
   platform_name: { value: 'BarberOS', description: 'Nombre oficial de la plataforma' },
-  support_email: { value: 'soporte@barberos.co', description: 'Correo de soporte y contacto' },
-  support_whatsapp: { value: '+57 300 123 4567', description: 'Línea directa de WhatsApp' },
+  support_email: { value: 'barberos.contacto@gmail.com', description: 'Correo de soporte y contacto oficial' },
+  support_whatsapp: { value: '+57 324 2063393', description: 'Línea directa de WhatsApp' },
   trial_days: { value: '14', description: 'Días de prueba gratuita para nuevas barberías' },
   currency: { value: 'COP', description: 'Moneda predeterminada del sistema' },
   maintenance_mode: { value: 'false', description: 'Activar modo mantenimiento en el SaaS' },
@@ -16,7 +16,7 @@ const DEFAULT_SETTINGS: Record<string, { value: string; description: string }> =
 
 export async function GET() {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -43,7 +43,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 

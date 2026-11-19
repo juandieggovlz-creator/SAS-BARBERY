@@ -1,8 +1,9 @@
-import { getGoogleOAuthRedirectUri } from '@/lib/url'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { createSession } from '@/lib/auth'
+import { createPersistentSession } from '@/lib/session'
+import { getClientIp } from '@/lib/rate-limit'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -13,10 +14,13 @@ export async function GET(request: Request) {
   const state = requestUrl.searchParams.get('state')
   const error = requestUrl.searchParams.get('error')
 
-  // Verificación anti-CSRF del parámetro state
+  // 1. Verificación anti-CSRF del parámetro state
   const cookieStore = await cookies()
   const savedState = cookieStore.get('oauth_state')?.value
   cookieStore.delete('oauth_state')
+
+  const codeVerifier = cookieStore.get('oauth_code_verifier')?.value
+  cookieStore.delete('oauth_code_verifier')
 
   if (!state || !savedState || state !== savedState) {
     loginUrl.searchParams.set('error', 'invalid_oauth_state')
@@ -44,19 +48,25 @@ export async function GET(request: Request) {
   const redirectUri = `${appUrl}/api/auth/callback/google`
 
   try {
-    // 1. Intercambiar code por Access Token
+    // 2. Intercambiar code por Access Token con PKCE code_verifier
+    const tokenRequestBody: Record<string, string> = {
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code',
+    }
+
+    if (codeVerifier) {
+      tokenRequestBody.code_verifier = codeVerifier
+    }
+
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        code,
-        client_id: clientId,
-        client_secret: clientSecret,
-        redirect_uri: redirectUri,
-        grant_type: 'authorization_code',
-      }),
+      body: new URLSearchParams(tokenRequestBody),
     })
 
     if (!tokenResponse.ok) {
@@ -74,7 +84,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(loginUrl)
     }
 
-    // 2. Obtener la información del perfil del usuario en Google
+    // 3. Obtener la información del perfil del usuario en Google
     const userinfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -88,6 +98,7 @@ export async function GET(request: Request) {
 
     const googleProfile = await userinfoResponse.json()
     const email = googleProfile.email?.trim().toLowerCase()
+    const googleSub = googleProfile.id || googleProfile.sub
     const fullName = googleProfile.name || googleProfile.given_name || 'Propietario'
     const picture = googleProfile.picture || null
 
@@ -101,7 +112,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(loginUrl)
     }
 
-    // 3. Buscar si el usuario ya existe en la base de datos
+    // 4. Buscar si el usuario ya existe en la base de datos
     let user = await prisma.user.findFirst({
       where: {
         email: {
@@ -129,6 +140,41 @@ export async function GET(request: Request) {
         return NextResponse.redirect(loginUrl)
       }
 
+      // BLINDAJE DE PROPIETARIO RAÍZ (ROOT_PLATFORM_OWNER):
+      // No permitir vinculación automática por correo. Debe estar explícitamente vinculado por googleSub.
+      if (user.role === 'ROOT_PLATFORM_OWNER') {
+        if (!user.googleSub || user.googleSub !== googleSub) {
+          loginUrl.searchParams.set('error', 'root_google_not_linked')
+          return NextResponse.redirect(loginUrl)
+        }
+      }
+
+      // Si el usuario tiene MFA habilitado o es ROOT_PLATFORM_OWNER:
+      // Exigir segundo factor OBLIGATORIO. Emitir únicamente sesión temporal mfa_pending.
+      if (user.role === 'ROOT_PLATFORM_OWNER' || user.mfaEnabled) {
+        await createSession(
+          user.id,
+          user.role,
+          user.barberId,
+          user.businessId,
+          null,
+          null,
+          false,
+          user.companyId,
+          null,
+          true // mfaPending = true
+        )
+        return NextResponse.redirect(new URL('/login/mfa', requestUrl.origin))
+      }
+
+      // Si es un usuario regular sin googleSub registrado, vincular el ID inmutable de Google
+      if (!user.googleSub && googleSub) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { googleSub }
+        })
+      }
+
       // Actualizar datos del usuario si vinieron de Google
       await prisma.user.update({
         where: { id: user.id },
@@ -137,6 +183,15 @@ export async function GET(request: Request) {
           name: user.name || fullName,
           avatar: user.avatar || picture,
         },
+      })
+
+      // Crear sesión persistente en base de datos
+      const ip = getClientIp(request)
+      const userAgent = request.headers.get('user-agent')
+      const persistentSession = await createPersistentSession({
+        userId: user.id,
+        ipAddress: ip,
+        userAgent
       })
 
       // Verificar si el dueño ya completó el onboarding del negocio
@@ -151,7 +206,10 @@ export async function GET(request: Request) {
         user.businessId,
         null,
         null,
-        needsOnboarding
+        needsOnboarding,
+        user.companyId,
+        persistentSession.sessionId,
+        false
       )
 
       if (needsOnboarding) {
@@ -159,7 +217,7 @@ export async function GET(request: Request) {
       }
 
       let targetPath = '/dashboard'
-      if (user.role === 'SUPER_ADMIN') targetPath = '/superadmin/dashboard'
+      if (user.role === 'SUPER_ADMIN' || (user.role as string) === 'ROOT_PLATFORM_OWNER') targetPath = '/superadmin/dashboard'
       else if (user.role === 'BARBER') targetPath = '/barber/dashboard'
 
       return NextResponse.redirect(new URL(targetPath, requestUrl.origin))
@@ -168,8 +226,7 @@ export async function GET(request: Request) {
     // ──────────────────────────────────────────────────────────────────────────
     // CASO 2: EL USUARIO NO EXISTE (PRIMERA VEZ CON GOOGLE)
     // ──────────────────────────────────────────────────────────────────────────
-    // Se crea su usuario con su nombre, correo y foto de Google, pero el negocio
-    // queda marcado como incompleto (onboardingCompleted: false).
+    // Se crea nuevo negocio de prueba para dueños de barbería (NUNCA cuentas de Root/SuperAdmin)
     const tempSlug = `draft-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`
 
     const { newUser, newBusiness } = await prisma.$transaction(async (tx) => {
@@ -180,7 +237,7 @@ export async function GET(request: Request) {
           email: email,
           logo: picture,
           status: 'TRIAL',
-          onboardingCompleted: false, // Incompleto: debe completar Onboarding
+          onboardingCompleted: false,
         },
       })
 
@@ -190,6 +247,7 @@ export async function GET(request: Request) {
           name: fullName,
           avatar: picture,
           role: 'OWNER',
+          googleSub,
           businessId: newBusiness.id,
           isActive: true,
           lastLoginAt: new Date(),
@@ -199,7 +257,14 @@ export async function GET(request: Request) {
       return { newUser, newBusiness }
     })
 
-    // Iniciar sesión con needsOnboarding = true
+    const ip = getClientIp(request)
+    const userAgent = request.headers.get('user-agent')
+    const persistentSession = await createPersistentSession({
+      userId: newUser.id,
+      ipAddress: ip,
+      userAgent
+    })
+
     await createSession(
       newUser.id,
       'OWNER',
@@ -207,10 +272,12 @@ export async function GET(request: Request) {
       newBusiness.id,
       null,
       null,
-      true // needsOnboarding
+      true, // needsOnboarding
+      null,
+      persistentSession.sessionId,
+      false
     )
 
-    // Redirigir automáticamente a la pantalla de Onboarding
     return NextResponse.redirect(new URL('/onboarding', requestUrl.origin))
   } catch (err: unknown) {
     console.error('[Google OAuth Callback] Error procesando autenticación:', err)

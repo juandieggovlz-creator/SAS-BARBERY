@@ -18,9 +18,20 @@ export interface RecordAuditParams {
  */
 export async function recordAuditLog(params: RecordAuditParams) {
   try {
+    let validUserId: string | null = null
+    if (params.userId) {
+      const exists = await prisma.user.findUnique({
+        where: { id: params.userId },
+        select: { id: true },
+      })
+      if (exists) {
+        validUserId = exists.id
+      }
+    }
+
     return await prisma.auditLog.create({
       data: {
-        userId: params.userId || null,
+        userId: validUserId,
         userName: params.userName || null,
         userRole: params.userRole || null,
         businessId: params.businessId || null,

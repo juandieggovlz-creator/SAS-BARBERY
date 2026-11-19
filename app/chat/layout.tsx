@@ -1,27 +1,8 @@
 'use client'
 
-import PanelAccentProvider from '@/components/ui/PanelAccentProvider'
+import React from 'react'
+import OwnerLayoutWrapper from '@/components/owner/OwnerLayoutWrapper'
 
-import React, { useState } from 'react'
-import OwnerSidebar from '@/components/owner/OwnerSidebar'
-import TopBar from '@/components/owner/TopBar'
-import GlobalSearchModal from '@/components/owner/GlobalSearchModal'
-
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [searchOpen, setSearchOpen] = useState(false)
-
-  return (
-    <PanelAccentProvider>
-    <div className="h-screen bg-[#f8fafc] dark:bg-[#09090b] font-sans selection:bg-black selection:text-white flex overflow-hidden">
-      <OwnerSidebar />
-      <div className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden">
-        <TopBar onOpenSearch={() => setSearchOpen(true)} />
-        <main className="flex-1 p-2 sm:p-3 md:p-4 w-full flex flex-col min-h-0 overflow-hidden">
-          {children}
-        </main>
-      </div>
-      <GlobalSearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
-      </div>
-    </PanelAccentProvider>
-  )
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <OwnerLayoutWrapper fullHeight>{children}</OwnerLayoutWrapper>
 }

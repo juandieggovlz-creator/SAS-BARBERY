@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession } from '@/lib/auth'
+import { getSession, isSuperAdminRole } from '@/lib/auth'
 import { recordAuditLog } from '@/lib/audit'
+import { getEffectiveSubscription } from '@/lib/commercial-permissions'
+import { addCalendarMonths } from '@/lib/billing-dates'
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || !isSuperAdminRole(session.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -20,6 +22,7 @@ export async function GET(
         plan: true,
         company: {
           include: {
+            plan: true,
             branches: {
               select: {
                 id: true,
@@ -47,9 +50,11 @@ export async function GET(
             name: true,
             role: true,
             isActive: true,
+            barberId: true,
             lastLoginAt: true,
             createdAt: true
-          }
+          },
+          orderBy: { createdAt: 'asc' }
         },
         barbers: {
           select: {
@@ -61,8 +66,17 @@ export async function GET(
             avatar: true,
             commission: true,
             createdAt: true,
+            user: {
+              select: {
+                id: true,
+                email: true,
+                isActive: true,
+                lastLoginAt: true
+              }
+            },
             _count: { select: { appointments: true } }
-          }
+          },
+          orderBy: { createdAt: 'asc' }
         },
         services: {
           select: {
@@ -75,11 +89,20 @@ export async function GET(
         },
         saasSubscriptions: {
           orderBy: { createdAt: 'desc' },
-          take: 5
+          take: 15,
+          include: {
+            plan: {
+              select: { id: true, name: true, slug: true }
+            }
+          }
         },
         supportTickets: {
           orderBy: { createdAt: 'desc' },
-          take: 5
+          take: 10
+        },
+        auditLogs: {
+          orderBy: { createdAt: 'desc' },
+          take: 25
         },
         _count: {
           select: {
@@ -96,14 +119,17 @@ export async function GET(
       return NextResponse.json({ error: 'Barbería no encontrada' }, { status: 404 })
     }
 
-    // Aggregate financial totals from payment
-    const totalPayments = await prisma.payment.aggregate({
-      where: { businessId: id, status: 'COMPLETED' },
-      _sum: { amount: true }
-    })
+    const [totalPayments, effectiveSubscription] = await Promise.all([
+      prisma.payment.aggregate({
+        where: { businessId: id, status: { in: ['COMPLETED', 'PAID'] } },
+        _sum: { amount: true }
+      }),
+      getEffectiveSubscription(id).catch(() => null)
+    ])
 
     return NextResponse.json({
       business,
+      effectiveSubscription,
       totalIncomeRecorded: totalPayments._sum.amount || 0
     })
   } catch (error) {
@@ -117,7 +143,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || !isSuperAdminRole(session.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -141,23 +167,94 @@ export async function PATCH(
 
     const existing = await prisma.business.findUnique({
       where: { id },
-      include: { company: true }
+      include: { company: true, plan: true }
     })
 
     if (!existing) {
       return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 })
     }
 
-    // Actualizar configuración corporativa de la empresa si se modifican cupos o tarifas
-    if (existing.companyId && (maxBranches !== undefined || additionalBranchPrice !== undefined)) {
-      await prisma.company.update({
-        where: { id: existing.companyId },
-        data: {
-          ...(maxBranches !== undefined && { maxBranches: Number(maxBranches) }),
-          ...(additionalBranchPrice !== undefined && { additionalBranchPrice: Number(additionalBranchPrice) })
-        }
-      })
+    const now = new Date()
+    let targetPlan = null
+    const isPlanChanged = planId !== undefined && planId !== existing.planId
+
+    if (planId) {
+      targetPlan = await prisma.plan.findUnique({ where: { id: planId } })
+      if (!targetPlan) {
+        return NextResponse.json({ error: 'El plan especificado no existe' }, { status: 404 })
+      }
     }
+
+    const isSandboxOrRemoved =
+      (planId === null) ||
+      (targetPlan && targetPlan.slug.toLowerCase() === 'sandbox')
+
+    // Determinar nuevas fechas y estado cuando cambia el plan
+    let nextStatus = status !== undefined ? status : existing.status
+    let nextSubEnd = existing.subscriptionEndsAt
+
+    if (isPlanChanged) {
+      if (isSandboxOrRemoved) {
+        nextSubEnd = null
+      } else if (targetPlan) {
+        nextStatus = status !== undefined ? status : 'ACTIVE'
+        if (!nextSubEnd || new Date(nextSubEnd).getTime() <= now.getTime()) {
+          nextSubEnd = addCalendarMonths(now, 1)
+        }
+      }
+    }
+
+    // Actualizar configuración corporativa de la empresa para mantener sincronía multitenant
+    if (existing.companyId) {
+      const companyUpdate: Record<string, unknown> = {}
+      if (maxBranches !== undefined) {
+        companyUpdate.maxBranches = Math.max(1, Number(maxBranches))
+      } else if (isPlanChanged) {
+        companyUpdate.maxBranches = isSandboxOrRemoved ? 1 : (targetPlan?.includedBranches || 1)
+      }
+
+      if (additionalBranchPrice !== undefined) {
+        companyUpdate.additionalBranchPrice = Number(additionalBranchPrice)
+      }
+      if (planId !== undefined) {
+        companyUpdate.planId = planId
+      }
+      if (status !== undefined || isPlanChanged) {
+        companyUpdate.status = nextStatus
+      }
+      if (isPlanChanged) {
+        companyUpdate.subscriptionEndsAt = nextSubEnd
+        if (isSandboxOrRemoved) companyUpdate.trialEndsAt = null
+      }
+
+      if (Object.keys(companyUpdate).length > 0) {
+        await prisma.company.update({
+          where: { id: existing.companyId },
+          data: companyUpdate
+        })
+      }
+    }
+
+    const resolvedMaxBarbers =
+      maxBarbers !== undefined
+        ? Math.max(1, Number(maxBarbers))
+        : isPlanChanged
+        ? (isSandboxOrRemoved ? 1 : (targetPlan?.maxBarbers ?? existing.maxBarbers))
+        : undefined
+
+    const resolvedMaxClients =
+      maxClients !== undefined
+        ? Math.max(1, Number(maxClients))
+        : isPlanChanged && targetPlan
+        ? targetPlan.maxClients
+        : undefined
+
+    const resolvedMaxAppointments =
+      maxAppointments !== undefined
+        ? Math.max(1, Number(maxAppointments))
+        : isPlanChanged && targetPlan
+        ? targetPlan.maxAppointments
+        : undefined
 
     const updated = await prisma.business.update({
       where: { id },
@@ -167,22 +264,30 @@ export async function PATCH(
         ...(address !== undefined ? { address: address?.trim() || null } : {}),
         ...(email !== undefined ? { email: email?.trim() || null } : {}),
         ...(description !== undefined ? { description: description?.trim() || null } : {}),
-        ...(status !== undefined ? { status } : {}),
+        ...(status !== undefined || isPlanChanged ? { status: nextStatus } : {}),
         ...(planId !== undefined ? { planId } : {}),
-        ...(maxBarbers !== undefined ? { maxBarbers: Number(maxBarbers) } : {}),
-        ...(maxClients !== undefined ? { maxClients: Number(maxClients) } : {}),
-        ...(maxAppointments !== undefined ? { maxAppointments: Number(maxAppointments) } : {})
+        ...(isPlanChanged ? { subscriptionEndsAt: nextSubEnd } : {}),
+        ...(isPlanChanged && isSandboxOrRemoved ? { trialEndsAt: null } : {}),
+        ...(resolvedMaxBarbers !== undefined ? { maxBarbers: resolvedMaxBarbers } : {}),
+        ...(resolvedMaxClients !== undefined ? { maxClients: resolvedMaxClients } : {}),
+        ...(resolvedMaxAppointments !== undefined ? { maxAppointments: resolvedMaxAppointments } : {})
       }
     })
 
     await recordAuditLog({
       userId: session.userId,
-      userRole: 'SUPER_ADMIN',
+      userRole: session.role,
       businessId: id,
-      action: 'BUSINESS_UPDATED',
+      action: isPlanChanged ? 'PLAN_CHANGED' : 'BUSINESS_UPDATED',
       entity: 'Business',
       entityId: id,
-      details: { changes: body }
+      details: {
+        previousPlanId: existing.planId,
+        previousPlanName: existing.plan?.name || null,
+        newPlanId: updated.planId,
+        newPlanName: targetPlan?.name || null,
+        changes: body
+      }
     })
 
     return NextResponse.json({ success: true, business: updated })
@@ -197,7 +302,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || !isSuperAdminRole(session.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -212,7 +317,7 @@ export async function DELETE(
 
     await recordAuditLog({
       userId: session.userId,
-      userRole: 'SUPER_ADMIN',
+      userRole: session.role,
       businessId: id,
       action: 'BUSINESS_DELETED',
       entity: 'Business',

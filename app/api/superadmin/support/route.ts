@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { recordAuditLog } from '@/lib/audit'
+import { sendSupportTicketReplyEmail, sendSupportTicketResolvedEmail } from '@/lib/email'
 
 export async function GET(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -27,17 +28,23 @@ export async function GET(request: Request) {
       ]
     }
 
-    const tickets = await prisma.supportTicket.findMany({
-      where: whereClause,
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        business: { select: { id: true, name: true, slug: true, email: true, phone: true } },
-        user: { select: { id: true, email: true, role: true } },
-        messages: {
-          orderBy: { createdAt: 'asc' }
+    const [tickets, openCount, inProgressCount, resolvedCount, totalCount] = await Promise.all([
+      prisma.supportTicket.findMany({
+        where: whereClause,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          business: { select: { id: true, name: true, slug: true, email: true, phone: true } },
+          user: { select: { id: true, email: true, name: true, role: true } },
+          messages: {
+            orderBy: { createdAt: 'asc' }
+          }
         }
-      }
-    })
+      }),
+      prisma.supportTicket.count({ where: { status: 'OPEN' } }),
+      prisma.supportTicket.count({ where: { status: 'IN_PROGRESS' } }),
+      prisma.supportTicket.count({ where: { status: { in: ['RESOLVED', 'CLOSED'] } } }),
+      prisma.supportTicket.count()
+    ])
 
     return NextResponse.json({
       tickets: tickets.map(t => ({
@@ -53,9 +60,16 @@ export async function GET(request: Request) {
         businessName: t.business.name,
         businessSlug: t.business.slug,
         userEmail: t.user.email,
+        userName: t.user.name || t.user.email.split('@')[0],
         messagesCount: t.messages.length,
         messages: t.messages
-      }))
+      })),
+      counts: {
+        open: openCount,
+        inProgress: inProgressCount,
+        resolved: resolvedCount,
+        total: totalCount
+      }
     })
   } catch (error) {
     console.error('Super Admin Support Tickets GET Error:', error)
@@ -65,7 +79,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -79,7 +93,10 @@ export async function PATCH(request: Request) {
 
     const ticket = await prisma.supportTicket.findUnique({
       where: { id },
-      include: { business: true }
+      include: {
+        business: { select: { id: true, name: true, slug: true } },
+        user: { select: { id: true, email: true, name: true } }
+      }
     })
 
     if (!ticket) {
@@ -90,9 +107,11 @@ export async function PATCH(request: Request) {
     if (status) updateData.status = status
     if (priority) updateData.priority = priority
 
+    let newAdminMessage: any = null
+
     // If there is a reply from the super admin
     if (replyMessage && replyMessage.trim()) {
-      await prisma.ticketMessage.create({
+      newAdminMessage = await prisma.ticketMessage.create({
         data: {
           ticketId: id,
           senderId: session.userId,
@@ -122,10 +141,49 @@ export async function PATCH(request: Request) {
       entity: 'SupportTicket',
       entityId: id,
       businessId: ticket.businessId,
-      details: { status: updated.status, replyAdded: !!replyMessage }
+      details: {
+        status: updated.status,
+        previousStatus: ticket.status,
+        replyAdded: !!replyMessage
+      }
     })
 
-    return NextResponse.json({ success: true, ticket: updated })
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sas-barbery.vercel.app'
+    const ticketLink = `${appUrl}/support`
+    const clientEmail = ticket.user.email
+    const clientName = ticket.user.name || clientEmail.split('@')[0]
+
+    // ─── 1. Notificación por Correo: Nueva respuesta del Super Admin (No bloqueante) ───
+    if (replyMessage && replyMessage.trim() && clientEmail) {
+      sendSupportTicketReplyEmail({
+        to: clientEmail,
+        userName: clientName,
+        businessName: ticket.business.name,
+        ticketCode: ticket.ticketCode,
+        subject: ticket.subject,
+        senderName: 'Equipo de Soporte BarberOS',
+        replySnippet: replyMessage.trim(),
+        ticketLink
+      }).catch(err => {
+        console.error('[Resend Error - Admin Reply]:', err)
+      })
+    }
+
+    // ─── 2. Notificación por Correo: Ticket Resuelto (No bloqueante) ───
+    if (status === 'RESOLVED' && ticket.status !== 'RESOLVED' && clientEmail) {
+      sendSupportTicketResolvedEmail({
+        to: clientEmail,
+        userName: clientName,
+        businessName: ticket.business.name,
+        ticketCode: ticket.ticketCode,
+        subject: ticket.subject,
+        ticketLink
+      }).catch(err => {
+        console.error('[Resend Error - Ticket Resolved]:', err)
+      })
+    }
+
+    return NextResponse.json({ success: true, ticket: updated, message: newAdminMessage })
   } catch (error) {
     console.error('Update Support Ticket Error:', error)
     return NextResponse.json({ error: 'Error al actualizar ticket' }, { status: 500 })

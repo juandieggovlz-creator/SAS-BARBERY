@@ -113,7 +113,7 @@ export default function ClientsPage() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-zinc-800 transition-all active:scale-95 shadow-lg"
+          className="flex items-center gap-2 panel-btn-accent px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg cursor-pointer"
         >
           <UserPlus className="w-4 h-4" />
           Nuevo Cliente
@@ -275,8 +275,8 @@ export default function ClientsPage() {
                 />
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setEditingClient(null)} className="flex-1 py-3 rounded-xl border-2 border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50 transition-colors">Cancelar</button>
-                <button onClick={handleUpdate} className="flex-1 py-3 rounded-xl bg-black text-white text-sm font-bold hover:bg-zinc-800 transition-colors">Guardar Cambios</button>
+                <button onClick={() => setEditingClient(null)} className="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">Cancelar</button>
+                <button onClick={handleUpdate} className="flex-1 py-3 rounded-xl panel-btn-accent text-sm font-bold transition-all shadow-sm cursor-pointer">Guardar Cambios</button>
               </div>
             </div>
           </div>
@@ -289,40 +289,40 @@ export default function ClientsPage() {
           <div className="bg-white dark:bg-[#121215] rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-100 dark:border-zinc-800">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
-                  <UserPlus className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 panel-btn-accent rounded-xl flex items-center justify-center">
+                  <UserPlus className="w-5 h-5" />
                 </div>
-                <h3 className="font-black text-zinc-950">Nuevo Cliente</h3>
+                <h3 className="font-black text-zinc-950 dark:text-white">Nuevo Cliente</h3>
               </div>
-              <button onClick={() => setShowForm(false)} className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors">
+              <button onClick={() => setShowForm(false)} className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Nombre completo</label>
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5">Nombre completo</label>
                 <input
                   autoFocus
                   type="text"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Ej. Juan Martínez"
-                  className="w-full px-4 py-3 border-2 border-zinc-200 rounded-xl text-sm font-semibold text-zinc-950 outline-none focus:border-zinc-900 bg-white transition-colors placeholder:text-zinc-300"
+                  className="w-full px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-semibold text-zinc-950 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-amber-400 bg-white dark:bg-[#18181b] transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Teléfono</label>
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5">Teléfono</label>
                 <input
                   type="text"
                   value={formData.phone}
                   onChange={e => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="Ej. +57 321 000 0000"
-                  className="w-full px-4 py-3 border-2 border-zinc-200 rounded-xl text-sm font-semibold text-zinc-950 outline-none focus:border-zinc-900 bg-white transition-colors placeholder:text-zinc-300"
+                  className="w-full px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-semibold text-zinc-950 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-amber-400 bg-white dark:bg-[#18181b] transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                 />
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl border-2 border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50 transition-colors">Cancelar</button>
-                <button type="submit" disabled={!formData.name || !formData.phone} className="flex-1 py-3 rounded-xl bg-black text-white text-sm font-bold hover:bg-zinc-800 disabled:opacity-40 transition-colors">Registrar</button>
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">Cancelar</button>
+                <button type="submit" disabled={!formData.name || !formData.phone} className="flex-1 py-3 rounded-xl panel-btn-accent text-sm font-bold disabled:opacity-40 transition-all shadow-sm cursor-pointer">Registrar</button>
               </div>
             </form>
           </div>

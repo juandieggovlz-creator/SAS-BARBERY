@@ -47,6 +47,7 @@ next-env.d.ts
 baileys_auth/
 
 # Temporary diagnostics, scratch scripts & dumps
+.github/
 tmp_*
 *_dump*
 *.log

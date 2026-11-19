@@ -4,9 +4,10 @@ import React from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Store, User } from 'lucide-react'
+import { Store, User, Menu } from 'lucide-react'
 import NotificationBell from '@/components/notifications/NotificationBell'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import ImpersonationBanner from '@/components/ImpersonationBanner'
 
 interface BarberProfile {
   name: string
@@ -48,21 +49,33 @@ export default function BarberTopBar({ profile }: BarberTopBarProps) {
     : { title: 'Panel del Barbero', subtitle: 'Gestión de citas y servicios' }
 
   return (
-    <header
-      className="h-16 bg-white dark:bg-[#09090b] border-b border-zinc-100 dark:border-zinc-800/80 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-20 shrink-0"
-      style={{ fontFamily: "'Inter', sans-serif" }}
-    >
-      {/* Title & Subtitle */}
-      <div className="min-w-0 flex-1">
-        <h1
-          className="text-base sm:text-lg font-black tracking-tight text-zinc-950 dark:text-white flex items-center gap-2 truncate"
-          style={{ letterSpacing: '-0.02em' }}
+    <>
+      <ImpersonationBanner />
+      <header
+        className="h-16 bg-white dark:bg-[#09090b] border-b border-zinc-100 dark:border-zinc-800/80 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-20 shrink-0"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+      {/* Left: Mobile Menu Toggle + Title & Subtitle */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('open-barber-sidebar'))}
+          className="md:hidden p-2 rounded-xl bg-zinc-50 dark:bg-[#121215] border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0 cursor-pointer touch-manipulation"
+          aria-label="Abrir menú de barbero"
         >
-          {currentRoute.title}
-        </h1>
-        <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 hidden sm:block truncate">
-          {currentRoute.subtitle}
-        </p>
+          <Menu className="w-4 h-4" />
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <h1
+            className="text-sm sm:text-base md:text-lg font-black tracking-tight text-zinc-950 dark:text-white flex items-center gap-2 truncate"
+            style={{ letterSpacing: '-0.02em' }}
+          >
+            {currentRoute.title}
+          </h1>
+          <p className="text-[10px] sm:text-[11px] font-medium text-zinc-400 dark:text-zinc-400 hidden sm:block truncate">
+            {currentRoute.subtitle}
+          </p>
+        </div>
       </div>
 
       {/* Actions */}
@@ -110,7 +123,8 @@ export default function BarberTopBar({ profile }: BarberTopBarProps) {
           </div>
         </Link>
       </div>
-    </header>
+      </header>
+    </>
   )
 }
 

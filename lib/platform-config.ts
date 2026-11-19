@@ -13,7 +13,7 @@ export interface PublicPlatformSettings {
 
 const DEFAULTS: PublicPlatformSettings = {
   platform_name: 'BarberOS',
-  support_email: 'soporte@barberos.co',
+  support_email: 'barberos.contacto@gmail.com',
   support_whatsapp: '+57 324 2063393',
   platform_logo: '/logo.png'
 }

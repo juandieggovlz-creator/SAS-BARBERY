@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 
-type Theme = 'light' | 'dark'
+export type Theme = 'light' | 'dark'
 
 interface ThemeContextValue {
   theme: Theme
@@ -11,60 +11,118 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: 'light',
+  theme: 'dark',
   toggleTheme: () => {},
   setTheme: () => {},
 })
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light')
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    // Read saved preference
-    const saved = localStorage.getItem('barberos-theme') as Theme | null
-    if (saved === 'dark' || saved === 'light') {
-      applyTheme(saved)
-      setThemeState(saved)
-    } else {
-      // Detect OS preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      const initial: Theme = prefersDark ? 'dark' : 'light'
-      applyTheme(initial)
-      setThemeState(initial)
+/**
+ * Resuelve el tema inicial en el cliente.
+ * Regla de negocio: 'dark' es el tema predeterminado del sistema a menos que
+ * el usuario haya seleccionado explícitamente 'light'.
+ */
+export function getInitialTheme(defaultFallback: Theme = 'dark'): Theme {
+  if (typeof document !== 'undefined') {
+    if (document.documentElement.classList.contains('dark')) return 'dark'
+    const attr = document.documentElement.getAttribute('data-theme')
+    if (attr === 'dark' || attr === 'light') return attr
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('barberos-theme')
+      if (saved === 'dark' || saved === 'light') return saved
+      const cookieMatch = document.cookie.match(/(?:^|;\s*)barberos-theme=([^;]*)/)
+      if (cookieMatch && (cookieMatch[1] === 'dark' || cookieMatch[1] === 'light')) {
+        return cookieMatch[1] as Theme
+      }
+    } catch {
+      /* noop */
     }
-  }, [])
+  }
+  return defaultFallback
+}
 
-  const applyTheme = (t: Theme) => {
+interface ThemeProviderProps {
+  children: React.ReactNode
+  initialTheme?: Theme
+}
+
+export function ThemeProvider({ children, initialTheme = 'dark' }: ThemeProviderProps) {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return initialTheme
+    return getInitialTheme(initialTheme)
+  })
+
+  const applyTheme = useCallback((t: Theme, withTransitionGuard = false) => {
+    if (typeof document === 'undefined') return
     const root = document.documentElement
+
+    if (withTransitionGuard) {
+      root.classList.add('theme-switching')
+    }
+
     if (t === 'dark') {
       root.classList.add('dark')
     } else {
       root.classList.remove('dark')
     }
     root.setAttribute('data-theme', t)
-  }
+    root.style.colorScheme = t
 
-  const setTheme = useCallback((t: Theme) => {
-    applyTheme(t)
-    setThemeState(t)
-    localStorage.setItem('barberos-theme', t)
+    if (withTransitionGuard) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          root.classList.remove('theme-switching')
+        })
+      })
+    }
   }, [])
+
+  const persistTheme = useCallback((t: Theme) => {
+    try {
+      localStorage.setItem('barberos-theme', t)
+    } catch {
+      /* noop */
+    }
+    try {
+      document.cookie = `barberos-theme=${t}; path=/; max-age=31536000; SameSite=Lax`
+    } catch {
+      /* noop */
+    }
+  }, [])
+
+  useEffect(() => {
+    const current = getInitialTheme(initialTheme)
+    applyTheme(current, false)
+    setThemeState(current)
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'barberos-theme' && (e.newValue === 'dark' || e.newValue === 'light')) {
+        applyTheme(e.newValue, true)
+        setThemeState(e.newValue)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [applyTheme, initialTheme])
+
+  const setTheme = useCallback(
+    (t: Theme) => {
+      applyTheme(t, true)
+      setThemeState(t)
+      persistTheme(t)
+    },
+    [applyTheme, persistTheme]
+  )
 
   const toggleTheme = useCallback(() => {
-    setThemeState(prev => {
+    setThemeState((prev) => {
       const next: Theme = prev === 'light' ? 'dark' : 'light'
-      applyTheme(next)
-      localStorage.setItem('barberos-theme', next)
+      applyTheme(next, true)
+      persistTheme(next)
       return next
     })
-  }, [])
-
-  // Prevent hydration mismatch — render children only after mount
-  if (!mounted) {
-    return <>{children}</>
-  }
+  }, [applyTheme, persistTheme])
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
@@ -78,19 +136,32 @@ export function useTheme() {
 }
 
 /**
- * Inline script to inject BEFORE React hydrates — prevents flash of wrong theme.
- * Paste this as a <script> in <head> or as a dangerouslySetInnerHTML script.
+ * Script bloqueante inyectado en <head> ANTES de que el navegador pinte el primer frame.
+ * Resuelve el tema activo (dark/light) sin parpadeos ni flashes de color blanco.
+ * Para nuevos visitantes o usuarios sin selección previa, aplica inmediatamente 'dark'.
  */
 export const themeInitScript = `
 (function() {
   try {
-    var saved = localStorage.getItem('barberos-theme');
-    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var theme = saved === 'dark' || saved === 'light' ? saved : (prefersDark ? 'dark' : 'light');
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
+    var root = document.documentElement;
+    var saved = null;
+    try {
+      saved = localStorage.getItem('barberos-theme');
+    } catch(e) {}
+    if (!saved) {
+      try {
+        var m = document.cookie.match(/(?:^|;\\s*)barberos-theme=([^;]*)/);
+        if (m) saved = m[1];
+      } catch(e) {}
     }
-    document.documentElement.setAttribute('data-theme', theme);
+    var theme = (saved === 'light') ? 'light' : 'dark';
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    root.setAttribute('data-theme', theme);
+    root.style.colorScheme = theme;
   } catch(e) {}
 })();
 `

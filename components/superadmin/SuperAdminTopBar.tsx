@@ -10,7 +10,8 @@ import {
   Zap,
   Bell,
   Loader2,
-  X
+  X,
+  Menu
 } from 'lucide-react'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -23,6 +24,7 @@ export default function SuperAdminTopBar() {
   } | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -71,10 +73,29 @@ export default function SuperAdminTopBar() {
 
   return (
     <header
-      className="h-16 bg-white dark:bg-[#09090b] border-b border-zinc-100 dark:border-zinc-800/80 px-4 sm:px-6 flex items-center gap-4 sticky top-0 z-20"
+      className="h-16 bg-white dark:bg-[#09090b] border-b border-zinc-100 dark:border-zinc-800/80 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-20 shrink-0"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
-      {/* ── LEFT: SEARCH ── */}
+      {/* ── MOBILE MENU TOGGLE & BRAND ── */}
+      <div className="flex items-center gap-2 md:hidden shrink-0">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('open-superadmin-sidebar'))}
+          className="p-2 rounded-xl bg-zinc-50 dark:bg-[#121215] border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer touch-manipulation"
+          aria-label="Abrir menú de SuperAdmin"
+        >
+          <Menu className="w-4 h-4" />
+        </button>
+        <div className="flex items-center gap-1.5">
+          <span className="font-black text-xs sm:text-sm text-zinc-950 dark:text-white tracking-tight">
+            Barber<span className="text-amber-500">OS</span>
+          </span>
+          <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-500 border border-amber-500/30">
+            ADMIN
+          </span>
+        </div>
+      </div>
+
+      {/* ── SEARCH (Desktop & Tablet) ── */}
       <div ref={searchRef} className="relative flex-1 max-w-xl hidden sm:block">
         <div className="relative">
           {isSearching ? (
@@ -180,23 +201,64 @@ export default function SuperAdminTopBar() {
         )}
       </div>
 
-      {/* ── RIGHT: BADGES ── */}
-      <div className="flex items-center gap-2 ml-auto">
+      {/* ── RIGHT: BADGES & MOBILE SEARCH ── */}
+      <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0">
+        {/* Mobile Search Button */}
+        <button
+          onClick={() => setMobileSearchOpen(prev => !prev)}
+          className="sm:hidden p-2 rounded-xl bg-zinc-50 dark:bg-[#121215] border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer touch-manipulation"
+          aria-label="Buscar en SuperAdmin"
+        >
+          <Search className="w-4 h-4 text-zinc-400" />
+        </button>
+
         {/* Theme Toggle */}
         <ThemeToggle />
 
         {/* Status pill */}
-        <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-full">
+        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">SaaS Operativo</span>
         </div>
 
         {/* Master badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-950 dark:bg-amber-500 rounded-xl shadow-sm">
-          <ShieldCheck className="w-3.5 h-3.5 text-amber-400 dark:text-zinc-950" strokeWidth={2.5} />
+        <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-zinc-950 dark:bg-amber-500 rounded-xl shadow-xs shrink-0">
+          <ShieldCheck className="w-3.5 h-3.5 text-amber-400 dark:text-zinc-950 shrink-0" strokeWidth={2.5} />
           <span className="text-[10px] font-black text-white dark:text-zinc-950 uppercase tracking-wider hidden sm:inline">Modo Master</span>
         </div>
       </div>
+
+      {/* Mobile Search Overlay Bar */}
+      {mobileSearchOpen && (
+        <div className="sm:hidden absolute top-full left-0 right-0 p-3 bg-white dark:bg-[#09090b] border-b border-zinc-200 dark:border-zinc-800 shadow-xl z-50 animate-in slide-in-from-top-2 duration-150">
+          <div className="relative">
+            {isSearching ? (
+              <Loader2 className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 animate-spin" />
+            ) : (
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            )}
+            <input
+              type="text"
+              autoFocus
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onFocus={() => { if (searchResults) setShowResults(true) }}
+              placeholder="Buscar barbería, usuario, correo..."
+              className="w-full pl-9 pr-9 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-900 dark:text-white placeholder:text-zinc-400 outline-none focus:border-amber-500"
+            />
+            <button
+              onClick={() => {
+                setSearchQuery('')
+                setShowResults(false)
+                setMobileSearchOpen(false)
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

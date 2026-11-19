@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createSession } from '@/lib/auth'
-import { getClientIp, rateLimit, resetRateLimit } from '@/lib/rate-limit'
+import { createPersistentSession } from '@/lib/session'
+import { getClientIp, rateLimitDB, resetRateLimitDB } from '@/lib/rate-limit'
 import bcrypt from 'bcryptjs'
 
 export const dynamic = 'force-dynamic'
@@ -17,8 +18,8 @@ export async function POST(request: Request) {
     const cleanEmail = email.trim().toLowerCase()
     const ip = getClientIp(request)
 
-    // 1. Verificación Anti-Fuerza Bruta global por IP (máx 30 intentos / 15 min para evitar ataques distribuidos de diccionario)
-    const ipLimit = rateLimit(`login:ip:${ip}`, { limit: 30, windowSeconds: 15 * 60 })
+    // 1. Verificación Anti-Fuerza Bruta global por IP (máx 30 intentos / 15 min en Neon DB)
+    const ipLimit = await rateLimitDB(`login:ip:${ip}`, { limit: 30, windowSeconds: 15 * 60 })
     if (!ipLimit.success) {
       return NextResponse.json(
         { error: `Demasiadas solicitudes desde esta conexión. Reintenta en ${ipLimit.resetSeconds} segundos.` },
@@ -26,9 +27,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // 2. Verificación Anti-Fuerza Bruta específica por cuenta + IP (máx 5 intentos fallidos / 15 min)
+    // 2. Verificación Anti-Fuerza Bruta específica por cuenta + IP (máx 5 intentos fallidos / 15 min en Neon DB)
     const accountLimitKey = `login:acc:${ip}:${cleanEmail}`
-    const accountCheck = rateLimit(accountLimitKey, { limit: 5, windowSeconds: 15 * 60 })
+    const accountCheck = await rateLimitDB(accountLimitKey, { limit: 5, windowSeconds: 15 * 60 })
     if (!accountCheck.success) {
       return NextResponse.json(
         { error: `Demasiados intentos fallidos para esta cuenta. Tu acceso está pausado temporalmente por seguridad. Reintenta en ${accountCheck.resetSeconds} segundos.` },
@@ -48,64 +49,12 @@ export async function POST(request: Request) {
       }
     })
 
-    // Auto-recovery / Self-healing SOLO en entorno de desarrollo local (inhabilitado en producción)
-    if (process.env.NODE_ENV !== 'production') {
-      if (!user && cleanEmail === 'admin@admin.com') {
-        let business = await prisma.business.findFirst()
-        if (!business) {
-          business = await prisma.business.create({
-            data: {
-              name: "Barbería Elite SAS",
-              slug: "barberia-elite",
-              phone: "+57 300 123 4567",
-              address: "Calle 85 # 14-20, Bogotá",
-              description: "Barbería clásica y moderna con atención personalizada.",
-              email: "admin@admin.com"
-            }
-          })
-        }
-        const hashedPassword = await bcrypt.hash('admin123', 10)
-        user = await prisma.user.create({
-          data: {
-            email: 'admin@admin.com',
-            password: hashedPassword,
-            role: 'OWNER',
-            businessId: business.id
-          },
-          include: { barber: true }
-        })
-      }
-
-      if (!user && cleanEmail === 'superadmin@barberos.com') {
-        const hashedPassword = await bcrypt.hash('superadmin123', 10)
-        user = await prisma.user.create({
-          data: {
-            email: 'superadmin@barberos.com',
-            password: hashedPassword,
-            role: 'SUPER_ADMIN',
-            isActive: true
-          },
-          include: { barber: true }
-        })
-      }
-
-      if (cleanEmail === 'carlos@barberia.com' && password === 'admin123') {
-        const hashedPassword = await bcrypt.hash('admin123', 10)
-        if (user) {
-          const isMatch = user.password ? await bcrypt.compare(password, user.password) : false
-          if (!isMatch) {
-            user = await prisma.user.update({
-              where: { id: user.id },
-              data: { password: hashedPassword, isActive: true },
-              include: { barber: true }
-            })
-          }
-        }
-      }
-    }
-
     if (!user) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
+    }
+
+    if (!user.isActive) {
+      return NextResponse.json({ error: 'Esta cuenta ha sido desactivada por el administrador.' }, { status: 403 })
     }
 
     if (!user.password) {
@@ -119,43 +68,67 @@ export async function POST(request: Request) {
     }
 
     // Login exitoso: limpiar historial de intentos fallidos
-    resetRateLimit(accountLimitKey)
+    await resetRateLimitDB(accountLimitKey)
 
-    // If barber is inactive, block login
+    // Si es un barbero inactivo, bloquear login
     if (user.role === 'BARBER' && user.barber?.status === 'INACTIVE') {
       return NextResponse.json({ error: 'Tu cuenta de barbero ha sido desactivada por el administrador.' }, { status: 403 })
     }
 
-    // If barber is pending, activate upon successful login
+    // Si el barbero estaba pendiente, activarlo al iniciar sesión
     if (user.role === 'BARBER' && user.barberId) {
       await prisma.barber.update({
         where: { id: user.barberId },
         data: { status: 'ACTIVE' }
       }).catch(() => { })
-
-      // Ensure default schedules exist
-      const existingSchedCount = await prisma.barberSchedule.count({
-        where: { barberId: user.barberId }
-      })
-      if (existingSchedCount === 0) {
-        const defaultSchedules = [
-          { dayOfWeek: 0, startTime: '09:00', endTime: '14:00', isWorking: true },
-          { dayOfWeek: 1, startTime: '08:00', endTime: '19:00', isWorking: true },
-          { dayOfWeek: 2, startTime: '08:00', endTime: '19:00', isWorking: true },
-          { dayOfWeek: 3, startTime: '08:00', endTime: '19:00', isWorking: true },
-          { dayOfWeek: 4, startTime: '08:00', endTime: '19:00', isWorking: true },
-          { dayOfWeek: 5, startTime: '08:00', endTime: '19:00', isWorking: true },
-          { dayOfWeek: 6, startTime: '08:00', endTime: '19:00', isWorking: true },
-        ]
-        for (const s of defaultSchedules) {
-          await prisma.barberSchedule.create({
-            data: { barberId: user.barberId, ...s }
-          }).catch(() => { })
-        }
-      }
     }
 
-    // Set JWT cookie session
+    // ── BLINDAJE MFA / 2FA PARA ROOT_PLATFORM_OWNER Y CUENTAS CON MFA ACTIVO ──
+    if (user.role === 'ROOT_PLATFORM_OWNER' || user.mfaEnabled) {
+      const mfaPendingJwt = await createSession(
+        user.id,
+        user.role,
+        user.barberId || null,
+        user.businessId || null,
+        null,
+        null,
+        false,
+        user.companyId || null,
+        null,
+        true // mfaPending = true
+      )
+
+      const mfaCookieOpts = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax' as const,
+        path: '/',
+        maxAge: 5 * 60, // 5 minutos de vigencia
+      }
+
+      const response = NextResponse.json({
+        success: true,
+        mfaRequired: true,
+        redirect: '/login/mfa',
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role
+        }
+      })
+
+      response.cookies.set('mfa_pending_session', mfaPendingJwt, mfaCookieOpts)
+      return response
+    }
+
+    // Crear sesión persistente en base de datos para usuarios sin MFA
+    const userAgent = request.headers.get('user-agent')
+    const persistent = await createPersistentSession({
+      userId: user.id,
+      ipAddress: ip,
+      userAgent
+    })
+
     const sessionJwt = await createSession(
       user.id,
       user.role,
@@ -164,7 +137,9 @@ export async function POST(request: Request) {
       null,
       null,
       false,
-      user.companyId || null
+      user.companyId || null,
+      persistent.sessionId,
+      false
     )
 
     const cookieOpts = {
@@ -172,6 +147,7 @@ export async function POST(request: Request) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax' as const,
       path: '/',
+      maxAge: 7 * 24 * 60 * 60, // 7 días de persistencia
     }
 
     const response = NextResponse.json({
@@ -200,5 +176,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
-
-

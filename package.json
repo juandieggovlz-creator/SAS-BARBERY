@@ -8,7 +8,11 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "telegram:set-webhook": "node scripts/telegram-set-webhook.js",
+    "telegram:get-webhook": "node scripts/telegram-get-webhook.js",
+    "telegram:delete-webhook": "node scripts/telegram-delete-webhook.js",
+    "telegram:test": "node scripts/telegram-send-test.js"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -16,6 +20,8 @@
   "dependencies": {
     "@gsap/react": "^2.1.2",
     "@prisma/client": "^6.19.3",
+    "@simplewebauthn/browser": "^14.0.0",
+    "@simplewebauthn/server": "^14.1.0",
     "@types/qrcode": "^1.5.6",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.11.0",
@@ -23,6 +29,7 @@
     "framer-motion": "^13.1.1",
     "gsap": "^3.15.1",
     "jose": "^6.2.2",
+    "jsqr": "^1.4.0",
     "lucide-react": "^1.33.0",
     "moment": "^2.30.1",
     "next": "16.2.2",

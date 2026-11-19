@@ -23,7 +23,7 @@ const DEFAULT_INCIDENTS_KEY = 'superadmin_system_incidents'
 export async function GET(req: Request) {
   try {
     const session = await getSession('SUPER_ADMIN')
-    if (!session || session.role !== 'SUPER_ADMIN') {
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -115,7 +115,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getSession('SUPER_ADMIN')
-    if (!session || session.role !== 'SUPER_ADMIN') {
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -182,7 +182,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const session = await getSession('SUPER_ADMIN')
-    if (!session || session.role !== 'SUPER_ADMIN') {
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 

@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { randomBytes } from 'crypto'
 import { getSession } from '@/lib/auth'
+import {
+  BookingEngineError,
+  createCentralizedBooking,
+} from '@/lib/booking/booking-engine'
+import { expireStaleHoldsForBusiness } from '@/lib/sync/availability-engine'
+import { resolveAppointmentFinancials } from '@/lib/booking/booking-metadata'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-
-function generateReservationCode() {
-  const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '')
-  const hex = randomBytes(4).toString('hex').toUpperCase()
-  return `${dateStr}-${hex}`
-}
 
 export async function GET() {
   const session = await getSession()
@@ -18,10 +17,12 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
+  await expireStaleHoldsForBusiness(session.businessId)
+
   const where: { businessId: string; barberId?: string } = {
-    businessId: session.businessId
+    businessId: session.businessId,
   }
-  
+
   if (session.role === 'BARBER' && session.barberId) {
     where.barberId = session.barberId
   }
@@ -36,164 +37,89 @@ export async function GET() {
     },
     orderBy: { date: 'desc' },
   })
-  return NextResponse.json(appointments)
+
+  const isBarberRole = session.role === 'BARBER'
+
+  const enriched = appointments.map((appt) => {
+    const financials = resolveAppointmentFinancials(appt)
+    return {
+      ...appt,
+      notes: financials.cleanNotes || null,
+      financials: {
+        ...financials,
+        // Privacidad por rol: el comprobante financiero sólo es visible para propietario / admin
+        proofUrl: isBarberRole ? null : financials.proofUrl,
+      },
+    }
+  })
+
+  return NextResponse.json(enriched)
 }
 
 export async function POST(request: Request) {
   const session = await getSession()
-  const body = await request.json()
-  const { clientId, barberId, serviceId, date } = body
-
-  // Determine businessId from Session or from Barber/Service
-  let businessId = session?.businessId || null
-  
-  const service = await prisma.service.findUnique({ where: { id: serviceId } })
-  if (!service) return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 400 })
-
-  if (!businessId) {
-    businessId = service.businessId
-  } else if (service.businessId !== businessId) {
-    return NextResponse.json({ error: 'El servicio no pertenece a tu negocio' }, { status: 403 })
+  if (!session || !session.businessId) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
-  // Resolve client ID either directly or via clientName & clientPhone
-  let finalClientId = clientId
-  if (!finalClientId && body.clientName && businessId) {
-    const cleanName = String(body.clientName).trim()
-    const cleanPhone = String(body.clientPhone || '0000000000').trim()
-    let client = await prisma.client.findFirst({
-      where: {
-        businessId,
-        name: { equals: cleanName, mode: 'insensitive' }
-      }
+  try {
+    const body = await request.json()
+    const {
+      clientId,
+      clientName,
+      clientPhone,
+      clientEmail,
+      barberId,
+      serviceId,
+      serviceIds,
+      date,
+      notes,
+    } = body
+
+    // Si es un barbero creando una cita, sólo puede asignarla a sí mismo
+    const effectiveBarberId =
+      session.role === 'BARBER' && session.barberId ? session.barberId : barberId
+
+    const { appointment, financials } = await createCentralizedBooking({
+      businessId: session.businessId,
+      serviceId,
+      serviceIds: Array.isArray(serviceIds) ? serviceIds : undefined,
+      barberId: effectiveBarberId,
+      date,
+      clientId: clientId || null,
+      clientName: clientName || null,
+      clientPhone: clientPhone || null,
+      clientEmail: clientEmail || null,
+      notes: notes || null,
+      source: session.role === 'BARBER' ? 'BARBER_DASHBOARD' : 'OWNER_DASHBOARD',
+      skipPastDateCheck: true,
     })
-    if (!client) {
-      client = await prisma.client.create({
-        data: {
-          businessId,
-          name: cleanName,
-          phone: cleanPhone
-        }
-      })
-    }
-    finalClientId = client.id
-  }
 
-  if (!finalClientId || !barberId || !serviceId || !date) {
-    return NextResponse.json({ error: 'Datos de la cita incompletos' }, { status: 400 })
-  }
-
-  const barber = await prisma.barber.findUnique({ where: { id: barberId } })
-  if (!barber || barber.businessId !== businessId) {
-    return NextResponse.json({ error: 'Barbero no encontrado o no pertenece a este negocio' }, { status: 400 })
-  }
-
-  const newStart = new Date(date)
-  const newEnd = new Date(newStart.getTime() + service.duration * 60000)
-
-  // 1. Barber Schedule Check
-  const dayOfWeek = newStart.getDay() // 0-6
-  const schedule = await prisma.barberSchedule.findFirst({
-    where: { barberId, dayOfWeek }
-  })
-
-  if (!schedule) {
-    return NextResponse.json({ error: 'El barbero no tiene horario configurado para este día.' }, { status: 400 })
-  }
-
-  if (!schedule.isWorking) {
-    return NextResponse.json({ error: 'El barbero no trabaja este día.' }, { status: 400 })
-  }
-
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  const reqTimeStr = `${pad(newStart.getHours())}:${pad(newStart.getMinutes())}`
-  const reqEndTimeStr = `${pad(newEnd.getHours())}:${pad(newEnd.getMinutes())}`
-
-  if (reqTimeStr < schedule.startTime || reqEndTimeStr > schedule.endTime) {
-    return NextResponse.json({ error: `El horario laboral es de ${schedule.startTime} a ${schedule.endTime}.` }, { status: 400 })
-  }
-
-  // 2. Personal Blocks Check
-  const startOfDay = new Date(newStart.getFullYear(), newStart.getMonth(), newStart.getDate())
-  const blocks = await prisma.barberBlock.findMany({
-    where: { 
-      barberId,
-      date: {
-        gte: startOfDay,
-        lt: new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000)
-      }
-    }
-  })
-
-  const hasOverlapBlock = blocks.some((b: { startTime: string; endTime: string }) => {
-    return (reqTimeStr < b.endTime && reqEndTimeStr > b.startTime)
-  })
-
-  if (hasOverlapBlock) {
-     return NextResponse.json({ error: 'El barbero no está disponible en este horario (Bloqueado temporalmente).' }, { status: 400 })
-  }
-
-  // 3. Appointments Solapamientos Check
-  const existingAppts = await prisma.appointment.findMany({
-    where: {
-      barberId,
-      status: { in: ['PENDING', 'CONFIRMED'] },
-      date: {
-        gte: startOfDay,
-        lt: new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000)
-      }
-    },
-    include: { service: true }
-  })
-
-  const hasConflict = existingAppts.some(appt => {
-    const existingStart = new Date(appt.date)
-    const existingEnd = new Date(existingStart.getTime() + appt.service.duration * 60000)
-    return newStart < existingEnd && newEnd > existingStart
-  })
-
-  if (hasConflict) {
-    return NextResponse.json({ error: 'Este barbero ya tiene una cita en ese horario' }, { status: 400 })
-  }
-
-  let attempts = 0
-  const maxAttempts = 2
-
-  while (attempts < maxAttempts) {
-    try {
-      const reservationCode = generateReservationCode()
-      const appointment = await prisma.appointment.create({
-        data: { 
-          businessId,
-          clientId: finalClientId, 
-          barberId, 
-          serviceId, 
-          date: new Date(date),
-          reservationCode
-        },
-        include: { client: true, barber: true, service: true },
-      })
-
-      // Disparo de confirmación de WhatsApp
-      import('@/lib/whatsapp/whatsapp-service').then(({ WhatsAppService }) => {
-        WhatsAppService.sendAppointmentConfirmation(appointment.id).catch(err => {
+    // Disparo asíncrono de confirmación de WhatsApp
+    import('@/lib/whatsapp/whatsapp-service')
+      .then(({ WhatsAppService }) => {
+        WhatsAppService.sendAppointmentConfirmation(appointment.id).catch((err) => {
           console.error('Error enviando confirmación de WhatsApp:', err)
         })
       })
+      .catch(() => {})
 
-      return NextResponse.json(appointment, { status: 201 })
-    } catch (error: unknown) {
-      if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === 'P2002' && attempts < maxAttempts - 1) {
-        attempts++
-        continue
-      }
-      const msg = error instanceof Error ? error.message : 'Error al crear la cita'
+    return NextResponse.json(
+      {
+        ...appointment,
+        notes: financials.cleanNotes || null,
+        financials,
+      },
+      { status: 201 }
+    )
+  } catch (error: unknown) {
+    if (error instanceof BookingEngineError) {
       return NextResponse.json(
-        { error: msg }, 
-        { status: 500 }
+        { error: error.message, code: error.code },
+        { status: error.statusCode }
       )
     }
+    const msg = error instanceof Error ? error.message : 'Error al crear la cita'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
-  
-  return NextResponse.json({ error: 'Fallo al generar código único' }, { status: 500 })
 }

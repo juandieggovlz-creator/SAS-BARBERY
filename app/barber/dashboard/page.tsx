@@ -333,8 +333,8 @@ export default function BarberDashboard() {
             </div>
 
             {/* Selector de Estado del Día */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <div className="bg-zinc-900 border border-zinc-800 p-1.5 rounded-2xl flex items-center gap-1">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
+              <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-2xl flex items-center justify-between sm:justify-start gap-1 w-full sm:w-auto">
                 {[
                   { id: 'available', label: 'Disponible', dot: 'bg-emerald-500' },
                   { id: 'working',   label: 'En atención', dot: 'bg-blue-500' },
@@ -343,19 +343,19 @@ export default function BarberDashboard() {
                   <button
                     key={st.id}
                     onClick={() => setDayStatus(st.id as 'available' | 'working' | 'break')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    className={`flex-1 sm:flex-initial px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                       dayStatus === st.id ? 'bg-white text-zinc-950 shadow-md font-black' : 'text-zinc-400 hover:text-white'
                     }`}
                   >
-                    <span className={`w-2 h-2 rounded-full ${st.dot} ${dayStatus === st.id ? 'animate-pulse' : ''}`} />
-                    <span>{st.label}</span>
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot} ${dayStatus === st.id ? 'animate-pulse' : ''}`} />
+                    <span className="truncate">{st.label}</span>
                   </button>
                 ))}
               </div>
 
               <button
                 onClick={() => { setLoading(true); fetchDashboardData(); toast.info('Actualizando datos...') }}
-                className="p-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 transition-colors"
+                className="p-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 transition-colors self-end sm:self-auto"
                 title="Sincronizar ahora"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -392,7 +392,7 @@ export default function BarberDashboard() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 sm:gap-3">
           {[
             { id: 'ALL',         label: 'Citas Hoy',   count: todayStats.total,      color: 'text-white',       bg: 'bg-zinc-800',         border: 'border-zinc-700',       ring: 'ring-white' },
             { id: 'PENDING',     label: 'Pendientes',  count: todayStats.pending,    color: 'text-amber-300',   bg: 'bg-amber-950/60',     border: 'border-amber-700/60',   ring: 'ring-amber-400' },
@@ -407,14 +407,14 @@ export default function BarberDashboard() {
               <button
                 key={card.id}
                 onClick={() => setFilterStatus(card.id)}
-                className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden group ${
+                className={`p-3 sm:p-4 rounded-2xl border text-left transition-all relative overflow-hidden group touch-manipulation ${
                   isSelected
                     ? `ring-2 ${card.ring} shadow-lg ${card.bg} ${card.border}`
                     : `${card.bg} ${card.border} hover:brightness-125 hover:shadow-md`
                 }`}
               >
                 <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block truncate">{card.label}</span>
-                <span className={`text-2xl font-black ${card.color} block mt-1`}>{card.count}</span>
+                <span className={`text-xl sm:text-2xl font-black ${card.color} block mt-1`}>{card.count}</span>
                 {isSelected && <span className={`absolute top-2 right-2 w-2 h-2 rounded-full ${card.color.replace('text-', 'bg-')}`} />}
               </button>
             )
@@ -425,7 +425,7 @@ export default function BarberDashboard() {
       {/* ═══════════════════════════════════════════════════════
           SECCIÓN 3: PRÓXIMA CITA
       ═══════════════════════════════════════════════════════ */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-lg space-y-5">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-8 shadow-lg space-y-5">
         <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
@@ -455,9 +455,9 @@ export default function BarberDashboard() {
                 </span>
               </div>
               <h4 className="text-xl font-black text-white tracking-tight">{nextAppt.clientName}</h4>
-              <p className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                <Scissors className="w-3.5 h-3.5" />
-                {nextAppt.serviceName} · {formatCOP(nextAppt.price)}
+              <p className="text-xs font-bold text-amber-400 flex items-center gap-1.5 flex-wrap">
+                <Scissors className="w-3.5 h-3.5 shrink-0" />
+                <span>{nextAppt.serviceName} · {formatCOP(nextAppt.price)}</span>
                 <span className="text-zinc-400 font-medium">(Tu comisión: {formatCOP(nextAppt.barberCommission)})</span>
               </p>
               {nextAppt.notes && (
@@ -467,36 +467,13 @@ export default function BarberDashboard() {
               )}
             </div>
 
-            {/* Botones de acción rápida */}
-            <div className="flex flex-wrap items-center gap-2">
-              {nextAppt.clientPhone && (
-                <>
-                  <a
-                    href={`tel:${nextAppt.clientPhone}`}
-                    className="p-3 rounded-2xl border border-zinc-700 hover:bg-zinc-800 text-zinc-200 transition-all font-bold text-xs flex items-center gap-1.5"
-                    title="Llamar al cliente"
-                  >
-                    <Phone className="w-4 h-4" />
-                    <span>Llamar</span>
-                  </a>
-                  <a
-                    href={buildSocialUrl('whatsapp', nextAppt.clientPhone)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-3 rounded-2xl border border-emerald-700/60 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 transition-all font-bold text-xs flex items-center gap-1.5"
-                    title="WhatsApp"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>WhatsApp</span>
-                  </a>
-                </>
-              )}
-
+            {/* Botones de acción rápida optimizados para teléfono con una mano */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
               {nextAppt.status === 'PENDING' && (
                 <button
                   disabled={updatingId === nextAppt.id}
                   onClick={() => handleUpdateStatus(nextAppt.id, 'CONFIRMED')}
-                  className="px-5 py-3 rounded-2xl bg-blue-600 text-white font-black text-xs uppercase tracking-wider hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
+                  className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-blue-600 text-white font-black text-xs uppercase tracking-wider hover:bg-blue-700 transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 touch-manipulation"
                 >
                   <UserIcon className="w-4 h-4" />
                   <span>Marcar Llegada</span>
@@ -507,7 +484,7 @@ export default function BarberDashboard() {
                 <button
                   disabled={updatingId === nextAppt.id}
                   onClick={() => handleUpdateStatus(nextAppt.id, 'IN_PROGRESS')}
-                  className="px-5 py-3 rounded-2xl bg-purple-600 text-white font-black text-xs uppercase tracking-wider hover:bg-purple-700 transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
+                  className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-purple-600 text-white font-black text-xs uppercase tracking-wider hover:bg-purple-700 transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 touch-manipulation"
                 >
                   <Play className="w-4 h-4" />
                   <span>Iniciar Servicio</span>
@@ -518,11 +495,34 @@ export default function BarberDashboard() {
                 <button
                   disabled={updatingId === nextAppt.id}
                   onClick={() => handleUpdateStatus(nextAppt.id, 'COMPLETED')}
-                  className="px-6 py-3 rounded-2xl bg-emerald-600 text-white font-black text-xs uppercase tracking-wider hover:bg-emerald-700 transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 text-white font-black text-xs uppercase tracking-wider hover:bg-emerald-700 transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 touch-manipulation"
                 >
                   <Check className="w-4 h-4" />
                   <span>Finalizar Servicio</span>
                 </button>
+              )}
+
+              {nextAppt.clientPhone && (
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <a
+                    href={`tel:${nextAppt.clientPhone}`}
+                    className="flex-1 sm:flex-initial p-3 rounded-2xl border border-zinc-700 hover:bg-zinc-800 text-zinc-200 transition-all font-bold text-xs flex items-center justify-center gap-1.5 touch-manipulation"
+                    title="Llamar al cliente"
+                  >
+                    <Phone className="w-4 h-4" />
+                    <span>Llamar</span>
+                  </a>
+                  <a
+                    href={buildSocialUrl('whatsapp', nextAppt.clientPhone)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 sm:flex-initial p-3 rounded-2xl border border-emerald-700/60 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 transition-all font-bold text-xs flex items-center justify-center gap-1.5 touch-manipulation"
+                    title="WhatsApp"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>WhatsApp</span>
+                  </a>
+                </div>
               )}
             </div>
           </div>
@@ -1003,8 +1003,14 @@ export default function BarberDashboard() {
           MODAL: DETALLE DE CITA
       ═══════════════════════════════════════════════════════ */}
       {selectedApptDetail && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-2xl border border-zinc-800 space-y-6">
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedApptDetail(null)}
+        >
+          <div
+            className="bg-zinc-900 rounded-3xl p-5 sm:p-8 w-full max-w-lg shadow-2xl border border-zinc-800 space-y-6 max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
               <div>
                 <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Detalle de Reserva</span>
@@ -1012,14 +1018,14 @@ export default function BarberDashboard() {
               </div>
               <button
                 onClick={() => setSelectedApptDetail(null)}
-                className="p-2 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
+                className="p-2 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors touch-manipulation"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4 text-xs font-medium">
-              <div className="grid grid-cols-2 gap-4 bg-zinc-800 p-4 rounded-2xl border border-zinc-700">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-zinc-800 p-4 rounded-2xl border border-zinc-700">
                 <div>
                   <span className="text-[10px] font-black uppercase text-zinc-400 block">Cliente</span>
                   <span className="font-bold text-white text-sm">{selectedApptDetail.clientName}</span>
@@ -1032,7 +1038,7 @@ export default function BarberDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 bg-zinc-800 p-4 rounded-2xl border border-zinc-700">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-zinc-800 p-4 rounded-2xl border border-zinc-700">
                 <div>
                   <span className="text-[10px] font-black uppercase text-zinc-400 block">Servicio</span>
                   <span className="font-bold text-white">{selectedApptDetail.serviceName}</span>
@@ -1069,7 +1075,7 @@ export default function BarberDashboard() {
               <button
                 type="button"
                 onClick={() => setSelectedApptDetail(null)}
-                className="w-full py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-black uppercase tracking-wider transition-colors"
+                className="w-full py-3.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-black uppercase tracking-wider transition-colors touch-manipulation"
               >
                 Cerrar Detalle
               </button>
@@ -1082,8 +1088,14 @@ export default function BarberDashboard() {
           MODAL: CANCELAR / NO ASISTIÓ
       ═══════════════════════════════════════════════════════ */}
       {cancelModalAppt && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl border border-zinc-800 space-y-5">
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setCancelModalAppt(null)}
+        >
+          <div
+            className="bg-zinc-900 rounded-3xl p-5 sm:p-8 w-full max-w-md shadow-2xl border border-zinc-800 space-y-5 max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 bg-rose-950/50 rounded-2xl flex items-center justify-center shrink-0 text-rose-400 border border-rose-700/40">
                 <XCircle className="w-6 h-6" />
@@ -1100,7 +1112,7 @@ export default function BarberDashboard() {
               <button
                 onClick={() => handleUpdateStatus(cancelModalAppt.id, 'CANCELLED')}
                 disabled={updatingId === cancelModalAppt.id}
-                className="w-full py-3.5 rounded-2xl bg-rose-950/50 border border-rose-700/60 text-rose-300 hover:bg-rose-900/60 text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50"
+                className="w-full py-3.5 rounded-2xl bg-rose-950/50 border border-rose-700/60 text-rose-300 hover:bg-rose-900/60 text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 touch-manipulation"
               >
                 Marcar como Cancelada
               </button>
@@ -1108,14 +1120,14 @@ export default function BarberDashboard() {
               <button
                 onClick={() => handleUpdateStatus(cancelModalAppt.id, 'NO_SHOW')}
                 disabled={updatingId === cancelModalAppt.id}
-                className="w-full py-3.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50"
+                className="w-full py-3.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-black uppercase tracking-wider transition-all disabled:opacity-50 touch-manipulation"
               >
                 Marcar como No Asistió (No Show)
               </button>
 
               <button
                 onClick={() => setCancelModalAppt(null)}
-                className="w-full py-3 rounded-2xl text-zinc-500 hover:text-zinc-300 text-xs font-bold uppercase tracking-wider transition-colors"
+                className="w-full py-3 rounded-2xl text-zinc-500 hover:text-zinc-300 text-xs font-bold uppercase tracking-wider transition-colors touch-manipulation"
               >
                 Regresar sin cambios
               </button>
@@ -1128,8 +1140,14 @@ export default function BarberDashboard() {
           MODAL: NOTA RÁPIDA DE CLIENTE
       ═══════════════════════════════════════════════════════ */}
       {clientNoteModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl border border-zinc-800 space-y-5">
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setClientNoteModal(null)}
+        >
+          <div
+            className="bg-zinc-900 rounded-3xl p-5 sm:p-8 w-full max-w-md shadow-2xl border border-zinc-800 space-y-5 max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-amber-500/20 rounded-2xl flex items-center justify-center text-amber-400">
@@ -1142,7 +1160,7 @@ export default function BarberDashboard() {
               </div>
               <button
                 onClick={() => setClientNoteModal(null)}
-                className="p-2 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
+                className="p-2 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors touch-manipulation"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1168,14 +1186,14 @@ export default function BarberDashboard() {
                 <button
                   type="button"
                   onClick={() => setClientNoteModal(null)}
-                  className="flex-1 py-3 rounded-2xl border border-zinc-700 text-xs font-black uppercase text-zinc-400 hover:bg-zinc-800 transition-colors"
+                  className="flex-1 py-3.5 rounded-2xl border border-zinc-700 text-xs font-black uppercase text-zinc-400 hover:bg-zinc-800 transition-colors touch-manipulation"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={!noteContent.trim() || savingNote}
-                  className="flex-1 py-3 rounded-2xl bg-amber-500 text-zinc-950 text-xs font-black uppercase tracking-wider hover:bg-amber-400 disabled:opacity-50 transition-colors shadow-lg"
+                  className="flex-1 py-3.5 rounded-2xl bg-amber-500 text-zinc-950 text-xs font-black uppercase tracking-wider hover:bg-amber-400 disabled:opacity-50 transition-colors shadow-lg touch-manipulation"
                 >
                   {savingNote ? 'Guardando...' : 'Guardar Nota'}
                 </button>

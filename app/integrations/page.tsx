@@ -6,7 +6,7 @@ import { MessageCircle, ShieldCheck, Zap } from 'lucide-react'
 
 export default function IntegrationsPage() {
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-16 animate-fadeIn">
+    <div className="space-y-8 w-full max-w-7xl mx-auto pb-16 animate-fadeIn">
       {/* ── HEADER DE SECCIÓN ── */}
       <div className="bg-white dark:bg-[#111317] p-6 sm:p-8 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">

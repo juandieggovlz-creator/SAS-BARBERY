@@ -48,6 +48,9 @@ interface BusinessDetail {
   status: 'ACTIVE' | 'TRIAL' | 'SUSPENDED' | 'CANCELLED'
   planId?: string | null
   plan?: { id: string; name: string; slug: string; price: number; maxBarbers: number; maxClients: number; maxAppointments: number } | null
+  maxBarbers?: number | null
+  maxClients?: number | null
+  maxAppointments?: number | null
   trialEndsAt?: string | null
   subscriptionEndsAt?: string | null
   subscriptionStatus?: string | null
@@ -55,14 +58,48 @@ interface BusinessDetail {
   updatedAt: string
   users: Array<{
     id: string
+    name?: string | null
     email: string
     role: string
+    isActive?: boolean
     lastLoginAt?: string | null
   }>
   barbers: Array<{
     id: string
     name: string
+    phone?: string | null
+    specialty?: string | null
     status: string
+    user?: { id: string; email: string; isActive: boolean } | null
+    _count?: { appointments: number }
+  }>
+  saasSubscriptions?: Array<{
+    id: string
+    amount: number
+    status: string
+    paymentMethod?: string | null
+    currentPeriodStart: string
+    currentPeriodEnd: string
+    notes?: string | null
+    createdAt: string
+    plan?: { id: string; name: string; slug: string } | null
+  }>
+  supportTickets?: Array<{
+    id: string
+    ticketCode: string
+    subject: string
+    status: string
+    priority: string
+    createdAt: string
+  }>
+  auditLogs?: Array<{
+    id: string
+    action: string
+    entity: string
+    userName?: string | null
+    userRole?: string | null
+    details?: any
+    createdAt: string
   }>
   _count: {
     clients: number
@@ -123,10 +160,17 @@ export default function BusinessDetailPage() {
   const [editPlanId, setEditPlanId] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
 
-  // Multisedes state
+  // Multisedes & Limits state
   const [maxBranchesInput, setMaxBranchesInput] = useState<number>(1)
   const [additionalPriceInput, setAdditionalPriceInput] = useState<number>(50000)
   const [savingMultiBranch, setSavingMultiBranch] = useState(false)
+  const [maxBarbersInput, setMaxBarbersInput] = useState<number>(3)
+  const [maxClientsInput, setMaxClientsInput] = useState<number>(500)
+  const [maxAppointmentsInput, setMaxAppointmentsInput] = useState<number>(1000)
+  const [savingLimits, setSavingLimits] = useState(false)
+  const [selectedPlanForActivation, setSelectedPlanForActivation] = useState<string>('')
+  const [customExpirationDate, setCustomExpirationDate] = useState<string>('')
+  const [supportReason, setSupportReason] = useState<string>('Soporte técnico, inspección y resolución de incidencias')
 
   // Branch exception state
   const [branchException, setBranchException] = useState<{ hasException: boolean; grantedAt?: string; notes?: string } | null>(null)
@@ -157,6 +201,13 @@ export default function BusinessDetailPage() {
         setEditEmail(bJson.business.email || '')
         setEditAddress(bJson.business.address || '')
         setEditPlanId(bJson.business.planId || '')
+        setSelectedPlanForActivation(bJson.business.planId || '')
+        setMaxBarbersInput(bJson.business.maxBarbers || bJson.business.plan?.maxBarbers || 3)
+        setMaxClientsInput(bJson.business.maxClients || bJson.business.plan?.maxClients || 500)
+        setMaxAppointmentsInput(bJson.business.maxAppointments || bJson.business.plan?.maxAppointments || 1000)
+        if (bJson.business.subscriptionEndsAt) {
+          setCustomExpirationDate(new Date(bJson.business.subscriptionEndsAt).toISOString().slice(0, 10))
+        }
         if (bJson.business?.company) {
           setMaxBranchesInput(bJson.business.company.maxBranches || 1)
           setAdditionalPriceInput(Number(bJson.business.company.additionalBranchPrice) || 50000)
@@ -194,28 +245,65 @@ export default function BusinessDetailPage() {
     if (businessId) fetchBusiness()
   }, [businessId])
 
-  // Impersonation (Login as owner with audit)
-  const handleImpersonate = async () => {
+  // Impersonation (Support access to Owner, Branch Admin or Barber panel with audit)
+  const handleImpersonate = async (
+    targetPanel: 'OWNER' | 'BRANCH_ADMIN' | 'BARBER' = 'OWNER',
+    barberId?: string,
+    branchId?: string
+  ) => {
     if (!business) return
     setImpersonating(true)
     try {
       const res = await fetch('/api/superadmin/impersonate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessId: business.id })
+        body: JSON.stringify({
+          businessId: business.id,
+          targetPanel,
+          barberId,
+          branchId,
+          reason: supportReason || 'Soporte técnico y supervisión desde Super Admin'
+        })
       })
 
       const json = await res.json()
       if (res.ok && json.redirect) {
-        toast.success(`Ingresando a ${business.name} como propietario`)
+        toast.success(json.message || `Ingresando en modo soporte a ${business.name}`)
         window.location.href = json.redirect
       } else {
-        toast.error(json.error || 'Error al iniciar sesión como propietario')
+        toast.error(json.error || 'Error al iniciar sesión de soporte')
         setImpersonating(false)
       }
     } catch {
       toast.error('Error de conexión')
       setImpersonating(false)
+    }
+  }
+
+  const handleSaveCustomLimits = async () => {
+    if (!business) return
+    setSavingLimits(true)
+    try {
+      const res = await fetch(`/api/superadmin/businesses/${business.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          maxBarbers: maxBarbersInput,
+          maxClients: maxClientsInput,
+          maxAppointments: maxAppointmentsInput,
+          maxBranches: maxBranchesInput
+        })
+      })
+      if (res.ok) {
+        toast.success('Límites permitidos actualizados para esta barbería')
+        await fetchBusiness()
+      } else {
+        toast.error('Error al actualizar límites')
+      }
+    } catch {
+      toast.error('Error de conexión al guardar límites')
+    } finally {
+      setSavingLimits(false)
     }
   }
 
@@ -466,20 +554,42 @@ export default function BusinessDetailPage() {
             </button>
           )}
 
-          {/* 9. INGRESAR COMO PROPIETARIO */}
+          {/* 9. ACCESO ADMINISTRATIVO TEMPORAL (SOPORTE) */}
           <button
-            onClick={handleImpersonate}
+            onClick={() => handleImpersonate('OWNER')}
             disabled={impersonating}
             className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-zinc-950 font-black rounded-2xl text-xs uppercase tracking-wider transition-all shadow-md shadow-amber-500/20 cursor-pointer"
-            title="Ingresa al panel del negocio para soporte técnico (se guarda auditoría de la sesión)"
+            title="Ingresa al panel del propietario en modo soporte temporal (2h máx, auditado)"
           >
             {impersonating ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <ShieldCheck className="w-4 h-4" />
             )}
-            <span>Ingresar como Propietario</span>
+            <span>Panel Propietario</span>
           </button>
+
+          <button
+            onClick={() => handleImpersonate('BRANCH_ADMIN')}
+            disabled={impersonating}
+            className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white font-black rounded-2xl text-xs uppercase tracking-wider transition-all shadow-xs cursor-pointer"
+            title="Ingresa al panel de administración de sedes en modo soporte temporal"
+          >
+            <Building2 className="w-3.5 h-3.5 text-amber-400" />
+            <span>Panel Sedes</span>
+          </button>
+
+          {business.barbers.length > 0 && (
+            <button
+              onClick={() => handleImpersonate('BARBER', business.barbers[0].id)}
+              disabled={impersonating}
+              className="flex items-center gap-2 px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border border-zinc-300 font-black rounded-2xl text-xs uppercase tracking-wider transition-all shadow-xs cursor-pointer"
+              title="Ingresa al panel de barberos en modo soporte temporal"
+            >
+              <Scissors className="w-3.5 h-3.5 text-amber-600" />
+              <span>Panel Barbero</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -542,7 +652,7 @@ export default function BusinessDetailPage() {
                 <span>Registrado el {new Date(business.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
                 <span>•</span>
                 <a
-                  href={`/barberia/${business.slug}`}
+                  href={`/b/${business.slug}`}
                   target="_blank"
                   rel="noreferrer"
                   className="text-amber-600 hover:text-amber-700 font-semibold inline-flex items-center gap-1"
@@ -722,31 +832,63 @@ export default function BusinessDetailPage() {
             </div>
           </div>
 
-          {/* Sub-bloque B: Activar Plan */}
+          {/* Sub-bloque B: Cambiar y Activar Plan */}
           <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-200 space-y-3 flex flex-col justify-between">
-            <div>
+            <div className="space-y-2.5">
               <div className="flex items-center gap-2 mb-1">
                 <CreditCard className="w-4 h-4 text-emerald-500" />
-                <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">Activar Plan</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">Cambiar / Activar Plan</h4>
               </div>
               <p className="text-[11px] text-zinc-500">
-                Pasa la barbería a plan de pago según la vigencia comercial acordada.
+                Selecciona el plan comercial y asígnalo de inmediato o actívalo por período.
               </p>
+
+              <div className="space-y-1.5 pt-1">
+                <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block">
+                  Plan Objetivo
+                </label>
+                <div className="flex gap-1.5">
+                  <select
+                    value={selectedPlanForActivation || business.planId || ''}
+                    onChange={e => setSelectedPlanForActivation(e.target.value)}
+                    className="flex-1 px-2.5 py-2 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none"
+                  >
+                    <option value="">Seleccionar plan...</option>
+                    {plans.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({formatCOP(p.price)})
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() =>
+                      handleSubscriptionAction({
+                        action: 'CHANGE_PLAN',
+                        planId: selectedPlanForActivation || business.planId || plans[0]?.id
+                      })
+                    }
+                    disabled={submittingAction || (!selectedPlanForActivation && !business.planId)}
+                    className="px-3 py-2 bg-zinc-950 hover:bg-zinc-800 text-white text-[11px] font-black uppercase rounded-xl transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                  >
+                    Asignar
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-2">
               {[
-                { label: 'Mensual', period: 'monthly' },
-                { label: 'Trimestral', period: 'quarterly' },
-                { label: 'Semestral', period: 'biannual' },
-                { label: 'Anual', period: 'yearly' }
+                { label: 'Mensual (1m)', period: 'MONTHLY' },
+                { label: 'Trimestral (3m)', period: 'QUARTERLY' },
+                { label: 'Semestral (6m)', period: 'BIANNUAL' },
+                { label: 'Anual (12m)', period: 'YEARLY' }
               ].map(item => (
                 <button
                   key={item.period}
                   onClick={() => handleSubscriptionAction({
                     action: 'ACTIVATE_PLAN',
                     period: item.period,
-                    planId: business.planId || (plans[0]?.id)
+                    planId: selectedPlanForActivation || business.planId || (plans[0]?.id)
                   })}
                   disabled={submittingAction}
                   className="px-3 py-2 bg-white hover:bg-emerald-600 hover:text-white border border-zinc-200 text-zinc-800 text-xs font-black rounded-xl transition-all cursor-pointer shadow-2xs text-center"
@@ -757,30 +899,81 @@ export default function BusinessDetailPage() {
             </div>
           </div>
 
-          {/* Sub-bloque C: Extender Plan */}
+          {/* Sub-bloque C: Extender Vigencia (Días, Meses o Fecha Exacta) */}
           <div className="p-5 bg-zinc-50 rounded-2xl border border-zinc-200 space-y-3 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Calendar className="w-4 h-4 text-blue-500" />
-                <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">Extender Plan</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">Extender Suscripción</h4>
               </div>
               <p className="text-[11px] text-zinc-500">
-                Suma días de gracia o vigencia adicional a la fecha fin actual.
+                Añade días, meses calendario o define una nueva fecha de vencimiento sin perder vigencia actual.
               </p>
             </div>
 
-            <div className="space-y-2 pt-2">
-              {[30, 60, 90].map(addDays => (
-                <button
-                  key={addDays}
-                  onClick={() => handleSubscriptionAction({ action: 'EXTEND_PLAN', days: addDays })}
-                  disabled={submittingAction}
-                  className="w-full px-3 py-2 bg-white hover:bg-blue-600 hover:text-white border border-zinc-200 text-zinc-800 text-xs font-black rounded-xl transition-all cursor-pointer shadow-2xs flex items-center justify-between"
-                >
-                  <span>Extensión</span>
-                  <span className="font-mono font-bold">+{addDays} días</span>
-                </button>
-              ))}
+            <div className="space-y-3 pt-1">
+              <div>
+                <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block mb-1.5">
+                  Añadir Días
+                </span>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[15, 30, 60].map(addDaysVal => (
+                    <button
+                      key={addDaysVal}
+                      onClick={() => handleSubscriptionAction({ action: 'EXTEND_PLAN', days: addDaysVal })}
+                      disabled={submittingAction}
+                      className="px-2.5 py-1.5 bg-white hover:bg-blue-600 hover:text-white border border-zinc-200 text-zinc-800 text-xs font-black rounded-xl transition-all cursor-pointer shadow-2xs text-center font-mono"
+                    >
+                      +{addDaysVal}d
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block mb-1.5">
+                  Añadir Meses Calendario
+                </span>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[1, 3, 6].map(addMonthsVal => (
+                    <button
+                      key={addMonthsVal}
+                      onClick={() => handleSubscriptionAction({ action: 'EXTEND_MONTHS', months: addMonthsVal })}
+                      disabled={submittingAction}
+                      className="px-2.5 py-1.5 bg-white hover:bg-indigo-600 hover:text-white border border-zinc-200 text-zinc-800 text-xs font-black rounded-xl transition-all cursor-pointer shadow-2xs text-center font-mono"
+                    >
+                      +{addMonthsVal} {addMonthsVal === 1 ? 'mes' : 'meses'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block mb-1">
+                  Nueva Fecha de Vencimiento Exacta
+                </span>
+                <div className="flex gap-1.5">
+                  <input
+                    type="date"
+                    value={customExpirationDate}
+                    onChange={e => setCustomExpirationDate(e.target.value)}
+                    className="flex-1 px-2.5 py-1.5 bg-white border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none"
+                  />
+                  <button
+                    onClick={() =>
+                      customExpirationDate &&
+                      handleSubscriptionAction({
+                        action: 'SET_EXPIRATION_DATE',
+                        expirationDate: customExpirationDate
+                      })
+                    }
+                    disabled={submittingAction || !customExpirationDate}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase rounded-xl transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                  >
+                    Fijar
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1119,6 +1312,277 @@ export default function BusinessDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ── 7. LÍMITES Y CUPOS OPERATIVOS DEL NEGOCIO ── */}
+      <div className="p-6 bg-white border border-zinc-200 rounded-3xl shadow-xs space-y-4">
+        <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-black uppercase tracking-tight text-zinc-950 flex items-center gap-2">
+              <Sliders className="w-5 h-5 text-amber-500" /> Límites Permitidos por Negocio
+            </h3>
+            <p className="text-xs text-zinc-400">
+              Ajusta manualmente los cupos máximos de barberos, sedes, clientes y citas para esta barbería.
+            </p>
+          </div>
+          <span className="text-[10px] font-bold text-zinc-400 uppercase">Control de Cupos</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+          <div>
+            <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block mb-1">
+              Máx. Barberos Activos
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={200}
+              value={maxBarbersInput}
+              onChange={e => setMaxBarbersInput(parseInt(e.target.value, 10) || 1)}
+              className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-black"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block mb-1">
+              Máx. Sedes Permitidas
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={maxBranchesInput}
+              onChange={e => setMaxBranchesInput(parseInt(e.target.value, 10) || 1)}
+              className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-black"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block mb-1">
+              Máx. Clientes CRM
+            </label>
+            <input
+              type="number"
+              min={50}
+              max={100000}
+              value={maxClientsInput}
+              onChange={e => setMaxClientsInput(parseInt(e.target.value, 10) || 100)}
+              className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-black"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block mb-1">
+              Máx. Citas Mensuales
+            </label>
+            <input
+              type="number"
+              min={100}
+              max={200000}
+              value={maxAppointmentsInput}
+              onChange={e => setMaxAppointmentsInput(parseInt(e.target.value, 10) || 200)}
+              className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 outline-none focus:border-black"
+            />
+          </div>
+
+          <div>
+            <button
+              onClick={handleSaveCustomLimits}
+              disabled={savingLimits}
+              className="w-full py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {savingLimits ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              <span>Guardar Límites</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 8. EQUIPO DE BARBEROS & USUARIOS DEL NEGOCIO ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Barberos Asociados */}
+        <div className="p-6 bg-white border border-zinc-200 rounded-3xl shadow-xs space-y-4">
+          <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
+            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-950 flex items-center gap-2">
+              <Scissors className="w-4 h-4 text-amber-500" /> Barberos Asociados ({business.barbers.length})
+            </h3>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase">
+              Cupo: {business.barbers.filter(b => b.status !== 'INACTIVE').length} / {business.maxBarbers || business.plan?.maxBarbers || 3}
+            </span>
+          </div>
+
+          {business.barbers.length === 0 ? (
+            <div className="p-6 text-center text-xs text-zinc-400 bg-zinc-50 rounded-2xl border border-zinc-100">
+              No hay barberos registrados en esta barbería.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {business.barbers.map(b => (
+                <div
+                  key={b.id}
+                  className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-2xl flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-zinc-900 truncate">{b.name}</span>
+                      <span
+                        className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                          b.status === 'ACTIVE'
+                            ? 'bg-emerald-500/15 text-emerald-800 border-emerald-500/40'
+                            : b.status === 'PENDING'
+                            ? 'bg-amber-500/15 text-amber-800 border-amber-500/40'
+                            : 'bg-zinc-200 text-zinc-700 border-zinc-300'
+                        }`}
+                      >
+                        {b.status}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-zinc-500 truncate mt-0.5">
+                      {b.user?.email || b.phone || b.specialty || 'Barbero Profesional'} • {b._count?.appointments ?? 0} citas
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleImpersonate('BARBER', b.id)}
+                    disabled={impersonating}
+                    className="px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shrink-0 cursor-pointer transition-all"
+                  >
+                    <ShieldCheck className="w-3 h-3 text-amber-400" />
+                    <span>Panel Barbero</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Usuarios y Cuentas del Negocio */}
+        <div className="p-6 bg-white border border-zinc-200 rounded-3xl shadow-xs space-y-4">
+          <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
+            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-950 flex items-center gap-2">
+              <Users className="w-4 h-4 text-blue-500" /> Cuentas y Roles ({business.users.length})
+            </h3>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase">Accesos Vinculados</span>
+          </div>
+
+          {business.users.length === 0 ? (
+            <div className="p-6 text-center text-xs text-zinc-400 bg-zinc-50 rounded-2xl border border-zinc-100">
+              No hay cuentas de usuario asociadas.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {business.users.map(u => (
+                <div
+                  key={u.id}
+                  className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-2xl flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-zinc-900 truncate">{u.email}</span>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-zinc-200 text-zinc-800">
+                        {u.role}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-zinc-500 mt-0.5">
+                      {u.lastLoginAt
+                        ? `Último acceso: ${new Date(u.lastLoginAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                        : 'Sin inicios de sesión recientes'}
+                    </div>
+                  </div>
+                  <span
+                    className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                      u.isActive !== false
+                        ? 'bg-emerald-500/15 text-emerald-800 border-emerald-500/40'
+                        : 'bg-rose-500/15 text-rose-700 border-rose-500/40'
+                    }`}
+                  >
+                    {u.isActive !== false ? 'Activo' : 'Inactivo'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── 9. HISTORIAL DE SUSCRIPCIONES Y AUDITORÍA ADMINISTRATIVA ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Historial de Suscripciones SaaS */}
+        <div className="p-6 bg-white border border-zinc-200 rounded-3xl shadow-xs space-y-4">
+          <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
+            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-950 flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-emerald-500" /> Historial de Suscripciones ({business.saasSubscriptions?.length || 0})
+            </h3>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase">Renovaciones y Extensiones</span>
+          </div>
+
+          {!business.saasSubscriptions || business.saasSubscriptions.length === 0 ? (
+            <div className="p-6 text-center text-xs text-zinc-400 bg-zinc-50 rounded-2xl border border-zinc-100">
+              Aún no hay registros de suscripciones comerciales en el historial.
+            </div>
+          ) : (
+            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+              {business.saasSubscriptions.map(sub => (
+                <div
+                  key={sub.id}
+                  className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-2xl text-xs space-y-1"
+                >
+                  <div className="flex items-center justify-between">
+                    <strong className="text-zinc-900">{sub.plan?.name || 'Suscripción'}</strong>
+                    <span className="font-mono font-bold text-emerald-700">
+                      {formatCOP(Number(sub.amount || 0))}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-zinc-500">
+                    Vigencia: {new Date(sub.currentPeriodStart).toLocaleDateString('es-CO')} →{' '}
+                    <strong>{new Date(sub.currentPeriodEnd).toLocaleDateString('es-CO')}</strong>
+                  </div>
+                  {sub.notes && <div className="text-[11px] text-zinc-600 italic">{sub.notes}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Registro de Auditoría Administrativa del Negocio */}
+        <div className="p-6 bg-white border border-zinc-200 rounded-3xl shadow-xs space-y-4">
+          <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
+            <h3 className="text-sm font-black uppercase tracking-tight text-zinc-950 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-amber-500" /> Historial de Modificaciones ({business.auditLogs?.length || 0})
+            </h3>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase">Trazabilidad AuditLog</span>
+          </div>
+
+          {!business.auditLogs || business.auditLogs.length === 0 ? (
+            <div className="p-6 text-center text-xs text-zinc-400 bg-zinc-50 rounded-2xl border border-zinc-100">
+              No hay eventos administrativos registrados para este negocio.
+            </div>
+          ) : (
+            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+              {business.auditLogs.map(log => (
+                <div
+                  key={log.id}
+                  className="p-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-xs space-y-1"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono font-black text-[11px] text-zinc-900">{log.action}</span>
+                    <span className="text-[10px] text-zinc-400">
+                      {new Date(log.createdAt).toLocaleString('es-CO', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-zinc-500">
+                    Entidad: <strong>{log.entity}</strong> • Rol: <strong>{log.userRole || 'SUPER_ADMIN'}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* ── MODAL SUSPENDER ACCESO CON MOTIVOS ── */}
       {suspendModalOpen && (

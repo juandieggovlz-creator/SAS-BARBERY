@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies, headers } from 'next/headers'
+import { validateSession } from '@/lib/session'
 
 function getJwtSecretKey(): Uint8Array {
   const secret = process.env.JWT_SECRET
@@ -11,23 +12,33 @@ function getJwtSecretKey(): Uint8Array {
 
 const key = getJwtSecretKey()
 
+export type AppRole = 'ROOT_PLATFORM_OWNER' | 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_ADMIN' | 'BARBER'
+
+export function isSuperAdminRole(role?: string | null): boolean {
+  return role === 'SUPER_ADMIN' || role === 'ROOT_PLATFORM_OWNER'
+}
+
 export interface SessionPayload {
   userId: string
-  role: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_ADMIN' | 'BARBER'
+  role: AppRole
   businessId: string | null
   companyId?: string | null
   barberId: string | null
   needsOnboarding?: boolean
   originalOwnerId?: string | null
   superAdminId?: string | null
+  impersonationReason?: string | null
+  impersonationExpiresAt?: string | null
+  sessionId?: string | null
+  mfaPending?: boolean
   expires?: Date
 }
 
-export async function encrypt(payload: Record<string, unknown>) {
+export async function encrypt(payload: Record<string, unknown>, expirationTime = '7d') {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime(expirationTime)
     .sign(key)
 }
 
@@ -38,13 +49,17 @@ export async function decrypt(token: string): Promise<SessionPayload | null> {
     })
     return {
       userId: payload.userId as string,
-      role: payload.role as 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_ADMIN' | 'BARBER',
+      role: payload.role as AppRole,
       businessId: (payload.businessId || payload.barbershopId || null) as string | null,
       companyId: (payload.companyId || null) as string | null,
       barberId: (payload.barberId || null) as string | null,
       needsOnboarding: Boolean(payload.needsOnboarding),
       originalOwnerId: (payload.originalOwnerId || null) as string | null,
       superAdminId: (payload.superAdminId || null) as string | null,
+      impersonationReason: (payload.impersonationReason || null) as string | null,
+      impersonationExpiresAt: (payload.impersonationExpiresAt || null) as string | null,
+      sessionId: (payload.sessionId || null) as string | null,
+      mfaPending: Boolean(payload.mfaPending),
       expires: payload.expires ? new Date(payload.expires as string) : undefined
     }
   } catch {
@@ -53,10 +68,39 @@ export async function decrypt(token: string): Promise<SessionPayload | null> {
 }
 
 /**
+ * Validador interno con verificación de sesión persistente en base de datos
+ */
+async function verifyActiveSession(payload: SessionPayload | null): Promise<SessionPayload | null> {
+  if (!payload) return null
+  if (payload.mfaPending) return null // No otorgar sesión final si está pendiente de 2FA
+
+  // Si es una sesión temporal de soporte administrativo, verificar expiración estricta
+  if (payload.superAdminId && payload.impersonationExpiresAt) {
+    if (new Date(payload.impersonationExpiresAt).getTime() <= Date.now()) {
+      return null
+    }
+  }
+
+  // Si tiene sessionId, validar existencia y no revocación en base de datos
+  if (payload.sessionId) {
+    const check = await validateSession(payload.sessionId)
+    if (!check.valid || !check.user) {
+      return null
+    }
+    // Asegurar que el rol coincida con el estado actual en la base de datos (excepto durante soporte temporal)
+    if (!payload.superAdminId && !payload.originalOwnerId) {
+      payload.role = check.user.role as AppRole
+    }
+  }
+
+  return payload
+}
+
+/**
  * Get active session.
  * Supports isolated owner_session, barber_session and superadmin checks.
  */
-export async function getSession(preferRole?: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_ADMIN' | 'BARBER'): Promise<SessionPayload | null> {
+export async function getSession(preferRole?: AppRole): Promise<SessionPayload | null> {
   try {
     const cookieStore = await cookies()
 
@@ -64,15 +108,15 @@ export async function getSession(preferRole?: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_
     const ownerCookie = cookieStore.get('owner_session')?.value
     const genericCookie = cookieStore.get('session')?.value
 
-    // 1. Explicit preference for SUPER_ADMIN
-    if (preferRole === 'SUPER_ADMIN') {
+    // 1. Explicit preference for SUPER_ADMIN o ROOT_PLATFORM_OWNER
+    if (preferRole === 'SUPER_ADMIN' || preferRole === 'ROOT_PLATFORM_OWNER') {
       if (ownerCookie) {
-        const dec = await decrypt(ownerCookie)
-        if (dec && dec.role === 'SUPER_ADMIN') return dec
+        const dec = await verifyActiveSession(await decrypt(ownerCookie))
+        if (dec && (dec.role === 'SUPER_ADMIN' || dec.role === 'ROOT_PLATFORM_OWNER')) return dec
       }
       if (genericCookie) {
-        const dec = await decrypt(genericCookie)
-        if (dec && dec.role === 'SUPER_ADMIN') return dec
+        const dec = await verifyActiveSession(await decrypt(genericCookie))
+        if (dec && (dec.role === 'SUPER_ADMIN' || dec.role === 'ROOT_PLATFORM_OWNER')) return dec
       }
       return null
     }
@@ -80,11 +124,11 @@ export async function getSession(preferRole?: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_
     // 2. Explicit preference for BARBER
     if (preferRole === 'BARBER') {
       if (barberCookie) {
-        const dec = await decrypt(barberCookie)
+        const dec = await verifyActiveSession(await decrypt(barberCookie))
         if (dec && dec.role === 'BARBER') return dec
       }
       if (genericCookie) {
-        const dec = await decrypt(genericCookie)
+        const dec = await verifyActiveSession(await decrypt(genericCookie))
         if (dec && dec.role === 'BARBER') return dec
       }
       return null
@@ -93,12 +137,12 @@ export async function getSession(preferRole?: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_
     // 3. Explicit preference for OWNER or BRANCH_ADMIN
     if (preferRole === 'OWNER' || preferRole === 'BRANCH_ADMIN') {
       if (ownerCookie) {
-        const dec = await decrypt(ownerCookie)
-        if (dec && (dec.role === 'OWNER' || dec.role === 'BRANCH_ADMIN' || dec.role === 'SUPER_ADMIN')) return dec
+        const dec = await verifyActiveSession(await decrypt(ownerCookie))
+        if (dec && (dec.role === 'OWNER' || dec.role === 'BRANCH_ADMIN' || dec.role === 'SUPER_ADMIN' || dec.role === 'ROOT_PLATFORM_OWNER')) return dec
       }
       if (genericCookie) {
-        const dec = await decrypt(genericCookie)
-        if (dec && (dec.role === 'OWNER' || dec.role === 'BRANCH_ADMIN' || dec.role === 'SUPER_ADMIN')) return dec
+        const dec = await verifyActiveSession(await decrypt(genericCookie))
+        if (dec && (dec.role === 'OWNER' || dec.role === 'BRANCH_ADMIN' || dec.role === 'SUPER_ADMIN' || dec.role === 'ROOT_PLATFORM_OWNER')) return dec
       }
       return null
     }
@@ -117,25 +161,25 @@ export async function getSession(preferRole?: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_
 
     // In a barber page context, return barber_session
     if (isBarberContext && barberCookie) {
-      const dec = await decrypt(barberCookie)
+      const dec = await verifyActiveSession(await decrypt(barberCookie))
       if (dec && dec.role === 'BARBER') return dec
     }
 
     // Default: Check owner_session first
     if (ownerCookie) {
-      const dec = await decrypt(ownerCookie)
-      if (dec && (dec.role === 'OWNER' || dec.role === 'BRANCH_ADMIN' || dec.role === 'SUPER_ADMIN')) return dec
+      const dec = await verifyActiveSession(await decrypt(ownerCookie))
+      if (dec && (dec.role === 'OWNER' || dec.role === 'BRANCH_ADMIN' || dec.role === 'SUPER_ADMIN' || dec.role === 'ROOT_PLATFORM_OWNER')) return dec
     }
 
     // Then check barber_session
     if (barberCookie) {
-      const dec = await decrypt(barberCookie)
+      const dec = await verifyActiveSession(await decrypt(barberCookie))
       if (dec && dec.role === 'BARBER') return dec
     }
 
     // Fallback to legacy 'session' cookie
     if (genericCookie) {
-      const dec = await decrypt(genericCookie)
+      const dec = await verifyActiveSession(await decrypt(genericCookie))
       if (dec) return dec
     }
 
@@ -146,30 +190,45 @@ export async function getSession(preferRole?: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_
 }
 
 /**
- * Create session with role isolation.
- * Owners & Super Admins get saved to owner_session (and session).
+ * Create session with role isolation and persistent DB binding.
+ * Owners, Super Admins & Root Platform Owner get saved to owner_session (and session).
  * Barbers get saved to barber_session (NEVER overwriting owner_session).
  */
 export async function createSession(
   userId: string, 
-  role: 'SUPER_ADMIN' | 'OWNER' | 'BRANCH_ADMIN' | 'BARBER', 
+  role: AppRole, 
   barberId?: string | null, 
   businessId?: string | null,
   originalOwnerId?: string | null,
   superAdminId?: string | null,
   needsOnboarding?: boolean,
-  companyId?: string | null
+  companyId?: string | null,
+  sessionId?: string | null,
+  mfaPending?: boolean,
+  impersonationReason?: string | null
 ) {
-  const session = await encrypt({ 
-    userId, 
-    role, 
-    barberId: barberId || null, 
-    businessId: businessId || null,
-    companyId: companyId || null,
-    needsOnboarding: Boolean(needsOnboarding),
-    originalOwnerId: originalOwnerId || null,
-    superAdminId: superAdminId || null
-  })
+  const isSupportSession = Boolean(superAdminId)
+  const supportExpiresAt = isSupportSession
+    ? new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+    : null
+
+  const session = await encrypt(
+    { 
+      userId, 
+      role, 
+      barberId: barberId || null, 
+      businessId: businessId || null,
+      companyId: companyId || null,
+      needsOnboarding: Boolean(needsOnboarding),
+      originalOwnerId: originalOwnerId || null,
+      superAdminId: superAdminId || null,
+      impersonationReason: impersonationReason || null,
+      impersonationExpiresAt: supportExpiresAt,
+      sessionId: sessionId || null,
+      mfaPending: Boolean(mfaPending)
+    },
+    isSupportSession ? '2h' : '7d'
+  )
 
   const cookieStore = await cookies()
   const cookieOpts = {
@@ -177,7 +236,20 @@ export async function createSession(
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax' as const,
     path: '/',
+    ...(isSupportSession ? { maxAge: 2 * 60 * 60 } : {})
   }
+
+  if (mfaPending) {
+    // Cookie de corta duración (5 min) exclusivamente para completar el desafío de segundo factor
+    cookieStore.set('mfa_pending_session', session, {
+      ...cookieOpts,
+      maxAge: 5 * 60
+    })
+    return session
+  }
+
+  // Si se completa el login exitoso, limpiar cualquier cookie temporal de 2FA
+  cookieStore.delete('mfa_pending_session')
 
   if (role === 'BARBER') {
     cookieStore.set('barber_session', session, cookieOpts)
@@ -193,7 +265,7 @@ export async function createSession(
  * Delete session.
  * If onlyRole is specified, only that role's cookie is cleared.
  */
-export async function deleteSession(onlyRole?: 'OWNER' | 'BRANCH_ADMIN' | 'BARBER' | 'SUPER_ADMIN') {
+export async function deleteSession(onlyRole?: AppRole) {
   try {
     const cookieStore = await cookies()
     const clearOpts = {
@@ -205,17 +277,28 @@ export async function deleteSession(onlyRole?: 'OWNER' | 'BRANCH_ADMIN' | 'BARBE
       path: '/',
     }
 
+    // Revocar sesión en DB si la cookie contiene un sessionId válido
+    const currentSessionCookie = cookieStore.get('owner_session')?.value || cookieStore.get('session')?.value
+    if (currentSessionCookie) {
+      const dec = await decrypt(currentSessionCookie)
+      if (dec && dec.sessionId) {
+        const { revokeSession } = await import('@/lib/session')
+        await revokeSession(dec.sessionId, dec.userId).catch(() => {})
+      }
+    }
+
     if (onlyRole === 'BARBER') {
       cookieStore.set('barber_session', '', clearOpts)
       cookieStore.delete('barber_session')
       return
     }
 
-    if (onlyRole === 'OWNER' || onlyRole === 'BRANCH_ADMIN' || onlyRole === 'SUPER_ADMIN') {
+    if (onlyRole === 'OWNER' || onlyRole === 'BRANCH_ADMIN' || onlyRole === 'SUPER_ADMIN' || onlyRole === 'ROOT_PLATFORM_OWNER') {
       cookieStore.set('owner_session', '', clearOpts)
       cookieStore.delete('owner_session')
       cookieStore.set('session', '', clearOpts)
       cookieStore.delete('session')
+      cookieStore.delete('mfa_pending_session')
       return
     }
 
@@ -226,6 +309,7 @@ export async function deleteSession(onlyRole?: 'OWNER' | 'BRANCH_ADMIN' | 'BARBE
     cookieStore.delete('owner_session')
     cookieStore.delete('barber_session')
     cookieStore.delete('session')
+    cookieStore.delete('mfa_pending_session')
   } catch {
     // ignore
   }

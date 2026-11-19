@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState, useMemo } from 'react'
 import { toast } from 'sonner'
 import { 
   Search, 
-  Filter, 
   Calendar as CalendarIcon, 
   Clock, 
   User, 
@@ -20,10 +19,8 @@ import {
   Sparkles,
   ChevronDown,
   CheckCircle2,
-  AlertCircle,
   CreditCard,
   Ban,
-  TrendingUp,
   RefreshCw,
   FileText,
   AlertTriangle
@@ -51,6 +48,32 @@ interface Appointment {
   status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
   paymentMethod?: string
   paidAt?: string
+  depositRequired?: number
+  depositPaid?: boolean
+  financials?: {
+    totalPrice: number
+    totalDuration: number
+    serviceNamesJoined?: string
+    depositRequired: number
+    isDepositApproved: boolean
+    depositPaidAmount: number
+    remainingBalance: number
+    depositStatus: string
+    proofUrl?: string | null
+    depositChannelLabel?: string | null
+    verifiedByName?: string | null
+    verifiedAt?: string | null
+    rejectionReason?: string | null
+    hoursAwaitingReview?: number
+    isProofOverdue?: boolean
+    refundStatus?: string | null
+    refundAmount?: number
+    retainedAmount?: number
+    pendingRefundAmount?: number
+    isRefunded?: boolean
+    refundMethod?: string | null
+    refundReason?: string | null
+  }
   client: { name: string; phone?: string }
   barber: { name: string; color?: string }
   service: { name: string; price: number; duration?: number }
@@ -75,7 +98,7 @@ export default function AppointmentsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [services, setServices] = useState<Service[]>([])
-  
+
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
   const [loading, setLoading] = useState(true)
 
@@ -120,7 +143,7 @@ export default function AppointmentsPage() {
   const barberDropdownRef = useRef<HTMLDivElement>(null)
   const serviceDropdownRef = useRef<HTMLDivElement>(null)
 
-  const isNewClient = formData.clientName.trim() !== '' && 
+  const isNewClient = formData.clientName.trim() !== '' &&
     !clients.some(c => c.name.toLowerCase() === formData.clientName.toLowerCase())
 
   const filteredBarbersForForm = barbers.filter(b =>
@@ -151,14 +174,14 @@ export default function AppointmentsPage() {
         fetch('/api/barbers'),
         fetch('/api/services')
       ])
-      
+
       const [appts, cls, barbs, servs] = await Promise.all([
         apptsRes.ok ? apptsRes.json() : [],
         clientsRes.ok ? clientsRes.json() : [],
         barbersRes.ok ? barbersRes.json() : [],
         servicesRes.ok ? servicesRes.json() : []
       ])
-      
+
       setAppointments(Array.isArray(appts) ? appts : [])
       setClients(Array.isArray(cls) ? cls : [])
       setBarbers(Array.isArray(barbs) ? barbs : [])
@@ -479,7 +502,7 @@ export default function AppointmentsPage() {
     }
   }, [filteredAppointments])
 
-  const hasActiveFilters = filters.search || filters.status !== 'ALL' || filters.dateRange !== 'ALL' || 
+  const hasActiveFilters = filters.search || filters.status !== 'ALL' || filters.dateRange !== 'ALL' ||
     filters.barberId !== 'ALL' || filters.serviceId !== 'ALL' || filters.paymentStatus !== 'ALL'
 
   const resetFilters = () => {
@@ -497,7 +520,7 @@ export default function AppointmentsPage() {
 
   return (
     <div className="w-full space-y-6 font-sans">
-      
+
       {/* ── Modal Confirmación Eliminación ──────────────────────────────────── */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
@@ -508,13 +531,13 @@ export default function AppointmentsPage() {
             <h3 className="text-xl font-black text-zinc-950 uppercase">¿Eliminar Cita?</h3>
             <p className="text-xs text-zinc-500 font-medium">Esta acción no se puede deshacer y la reserva será removida.</p>
             <div className="flex flex-col gap-2 pt-2">
-              <button 
+              <button
                 onClick={() => deleteAppointment(confirmDelete)}
                 className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-colors shadow-sm"
               >
                 Sí, eliminar
               </button>
-              <button 
+              <button
                 onClick={() => setConfirmDelete(null)}
                 className="w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-colors"
               >
@@ -550,16 +573,40 @@ export default function AppointmentsPage() {
                 <span className="font-black text-zinc-950">{payingAppt.client?.name}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500 font-medium">Servicio:</span>
-                <span className="font-bold text-zinc-800">{payingAppt.service?.name}</span>
+                <span className="text-zinc-500 font-medium">Servicio(s):</span>
+                <span className="font-bold text-zinc-800">{payingAppt.financials?.serviceNamesJoined || payingAppt.service?.name}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-zinc-500 font-medium">Barbero:</span>
                 <span className="font-bold text-zinc-800">{payingAppt.barber?.name}</span>
               </div>
+              {payingAppt.financials?.isDepositApproved && (payingAppt.financials?.depositPaidAmount || 0) > 0 && (
+                <>
+                  <div className="flex justify-between text-xs pt-1 border-t border-zinc-200/50">
+                    <span className="text-zinc-500 font-medium">Valor Total Cita:</span>
+                    <span className="font-bold text-zinc-800">{formatCOP(Number(payingAppt.financials?.totalPrice || payingAppt.service?.price || 0))}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-amber-600 font-bold">Anticipo ya verificado:</span>
+                    <span className="font-black text-amber-600">- {formatCOP(Number(payingAppt.financials?.depositPaidAmount || 0))}</span>
+                  </div>
+                </>
+              )}
               <div className="pt-2 border-t border-zinc-200/60 flex justify-between items-center">
-                <span className="text-xs font-black text-zinc-700 uppercase">Monto a Cobrar:</span>
-                <span className="text-xl font-black text-emerald-600">{formatCOP(Number(payingAppt.service?.price || 0))}</span>
+                <span className="text-xs font-black text-zinc-700 uppercase">
+                  {payingAppt.financials?.isDepositApproved && (payingAppt.financials?.depositPaidAmount || 0) > 0
+                    ? 'Saldo Restante a Cobrar:'
+                    : 'Monto a Cobrar:'}
+                </span>
+                <span className="text-xl font-black text-emerald-600">
+                  {formatCOP(
+                    Number(
+                      payingAppt.financials?.remainingBalance ??
+                      payingAppt.service?.price ??
+                      0
+                    )
+                  )}
+                </span>
               </div>
             </div>
 
@@ -571,11 +618,10 @@ export default function AppointmentsPage() {
                     key={m}
                     type="button"
                     onClick={() => setPayMethod(m)}
-                    className={`py-3 px-3 rounded-xl text-xs font-bold transition-all border text-left flex items-center justify-between ${
-                      payMethod === m 
-                        ? 'bg-zinc-950 text-white border-zinc-950 shadow-sm ring-2 ring-zinc-950/20' 
-                        : 'bg-zinc-50 text-zinc-700 border-zinc-200 hover:bg-zinc-100'
-                    }`}
+                    className={`py-3 px-3 rounded-xl text-xs font-bold transition-all border text-left flex items-center justify-between ${payMethod === m
+                      ? 'bg-zinc-950 text-white border-zinc-950 shadow-sm ring-2 ring-zinc-950/20'
+                      : 'bg-zinc-50 text-zinc-700 border-zinc-200 hover:bg-zinc-100'
+                      }`}
                   >
                     <span>{METHOD_LABELS[m]}</span>
                     {payMethod === m && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
@@ -676,7 +722,7 @@ export default function AppointmentsPage() {
 
       {/* ── TOOLBAR DE BÚSQUEDA Y FILTROS MULTIDIMENSIONALES ───────────────── */}
       <div className="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs space-y-4">
-        
+
         {/* Fila 1: Búsqueda Global + Selector de Vista */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
           <div className="relative flex-1 max-w-xl">
@@ -699,21 +745,19 @@ export default function AppointmentsPage() {
               <RefreshCw className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center bg-zinc-100 border border-zinc-200 rounded-2xl p-1 text-xs font-black uppercase">
+            <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-1 text-xs font-black uppercase">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
-                  viewMode === 'table' ? 'bg-black text-white shadow-xs' : 'text-zinc-500 hover:text-black'
-                }`}
+                className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${viewMode === 'table' ? 'panel-pill-active' : 'text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white'
+                  }`}
               >
                 <List size={14} />
                 <span>Tabla</span>
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
-                  viewMode === 'grid' ? 'bg-black text-white shadow-xs' : 'text-zinc-500 hover:text-black'
-                }`}
+                className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${viewMode === 'grid' ? 'panel-pill-active' : 'text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white'
+                  }`}
               >
                 <LayoutGrid size={14} />
                 <span>Tarjetas</span>
@@ -723,15 +767,15 @@ export default function AppointmentsPage() {
         </div>
 
         {/* Fila 2: Selectores de Filtro Avanzados (Fecha, Barbero, Servicio, Estado Cita, Estado Pago) */}
-        <div className="pt-3 border-t border-zinc-100 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
-          
+        <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+
           {/* 1. Rango de Fecha */}
           <div>
-            <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Fecha</label>
+            <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1">Fecha</label>
             <select
               value={filters.dateRange}
               onChange={(e) => setFilters({ ...filters, dateRange: e.target.value as DateRangePreset })}
-              className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-black"
+              className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:border-black dark:focus:border-amber-400 transition-colors [color-scheme:light] dark:[color-scheme:dark]"
             >
               <option value="ALL">Todas las Fechas</option>
               <option value="TODAY">Hoy</option>
@@ -744,11 +788,11 @@ export default function AppointmentsPage() {
 
           {/* 2. Estado de Cita */}
           <div>
-            <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Estado Cita</label>
+            <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1">Estado Cita</label>
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-black"
+              className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:border-black dark:focus:border-amber-400 transition-colors [color-scheme:light] dark:[color-scheme:dark]"
             >
               <option value="ALL">Todos los Estados</option>
               <option value="PENDING">Pendientes</option>
@@ -762,11 +806,11 @@ export default function AppointmentsPage() {
 
           {/* 3. Barbero */}
           <div>
-            <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Barbero</label>
+            <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1">Barbero</label>
             <select
               value={filters.barberId}
               onChange={(e) => setFilters({ ...filters, barberId: e.target.value })}
-              className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-black"
+              className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:border-black dark:focus:border-amber-400 transition-colors [color-scheme:light] dark:[color-scheme:dark]"
             >
               <option value="ALL">Todos los Barberos</option>
               {barbers.map(b => (
@@ -777,11 +821,11 @@ export default function AppointmentsPage() {
 
           {/* 4. Servicio */}
           <div>
-            <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Servicio</label>
+            <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1">Servicio</label>
             <select
               value={filters.serviceId}
               onChange={(e) => setFilters({ ...filters, serviceId: e.target.value })}
-              className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-black"
+              className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:border-black dark:focus:border-amber-400 transition-colors [color-scheme:light] dark:[color-scheme:dark]"
             >
               <option value="ALL">Todos los Servicios</option>
               {services.map(s => (
@@ -792,11 +836,11 @@ export default function AppointmentsPage() {
 
           {/* 5. Estado de Pago */}
           <div>
-            <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Estado Cobro</label>
+            <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1">Estado Cobro</label>
             <select
               value={filters.paymentStatus}
               onChange={(e) => setFilters({ ...filters, paymentStatus: e.target.value })}
-              className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:border-black"
+              className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-100 outline-none focus:border-black dark:focus:border-amber-400 transition-colors [color-scheme:light] dark:[color-scheme:dark]"
             >
               <option value="ALL">Todos los Cobros</option>
               <option value="PAID">Pagados</option>
@@ -823,23 +867,25 @@ export default function AppointmentsPage() {
 
         {/* Fila 3: Rango de Fecha Personalizado (si dateRange == 'CUSTOM') */}
         {filters.dateRange === 'CUSTOM' && (
-          <div className="pt-2 flex items-center gap-3 bg-zinc-50 p-3 rounded-2xl text-xs border border-zinc-200/80">
+          <div className="pt-2 flex items-center gap-3 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-2xl text-xs border border-zinc-200/80 dark:border-zinc-800">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-zinc-600">Desde:</span>
+              <span className="font-bold text-zinc-600 dark:text-zinc-400">Desde:</span>
               <input
                 type="date"
                 value={filters.customFrom}
+                onClick={e => e.currentTarget.showPicker?.()}
                 onChange={e => setFilters({ ...filters, customFrom: e.target.value })}
-                className="px-2.5 py-1 border border-zinc-200 rounded-lg font-bold text-zinc-950 bg-white outline-none focus:border-black"
+                className="px-2.5 py-1.5 border border-zinc-200 dark:border-zinc-700 rounded-lg font-bold text-zinc-950 dark:text-white bg-white dark:bg-zinc-800 outline-none focus:border-black dark:focus:border-amber-400 cursor-pointer [color-scheme:light] dark:[color-scheme:dark]"
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-zinc-600">Hasta:</span>
+              <span className="font-bold text-zinc-600 dark:text-zinc-400">Hasta:</span>
               <input
                 type="date"
                 value={filters.customTo}
+                onClick={e => e.currentTarget.showPicker?.()}
                 onChange={e => setFilters({ ...filters, customTo: e.target.value })}
-                className="px-2.5 py-1 border border-zinc-200 rounded-lg font-bold text-zinc-950 bg-white outline-none focus:border-black"
+                className="px-2.5 py-1.5 border border-zinc-200 dark:border-zinc-700 rounded-lg font-bold text-zinc-950 dark:text-white bg-white dark:bg-zinc-800 outline-none focus:border-black dark:focus:border-amber-400 cursor-pointer [color-scheme:light] dark:[color-scheme:dark]"
               />
             </div>
           </div>
@@ -848,7 +894,7 @@ export default function AppointmentsPage() {
 
       {/* ── LAYOUT PRINCIPAL: TABLA / GRID + SIDEBAR AGENDAR CITA ───────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* Columna Principal: Listado de Citas */}
         <div className="lg:col-span-2 space-y-6">
           {viewMode === 'table' ? (
@@ -902,36 +948,66 @@ export default function AppointmentsPage() {
                             <td className="px-4 py-4 font-black text-zinc-950">
                               {formatCOP(Number(appt.service?.price || 0))}
                             </td>
-                            
+
                             {/* Selector Estado de Cita */}
                             <td className="px-4 py-4">
                               <select
+                                data-status-badge="true"
                                 value={appt.status}
                                 onChange={(e) => updateStatusOptimistic(appt.id, e.target.value as Appointment['status'])}
-                                className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase outline-none border-none cursor-pointer ${
-                                  appt.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
-                                  appt.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                                  appt.status === 'IN_PROGRESS' ? 'bg-indigo-100 text-indigo-800' :
-                                  appt.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                                  appt.status === 'NO_SHOW' ? 'bg-zinc-200 text-zinc-700' :
-                                  'bg-amber-100 text-amber-800'
+                                className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase outline-none cursor-pointer transition-all border shadow-2xs ${
+                                  appt.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700/60' :
+                                  appt.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/80 dark:text-blue-300 dark:border-blue-700/60' :
+                                  appt.status === 'IN_PROGRESS' ? 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/80 dark:text-indigo-300 dark:border-indigo-700/60' :
+                                  appt.status === 'CANCELLED' ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-700/60' :
+                                  appt.status === 'NO_SHOW' ? 'bg-zinc-200 text-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700' :
+                                  'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-700/60'
                                 }`}
                               >
-                                <option value="PENDING">PENDIENTE</option>
-                                <option value="CONFIRMED">CONFIRMADA</option>
-                                <option value="IN_PROGRESS">EN PROGRESO</option>
-                                <option value="COMPLETED">COMPLETADA</option>
-                                <option value="CANCELLED">CANCELADA</option>
-                                <option value="NO_SHOW">NO ASISTIÓ</option>
+                                <option value="PENDING" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">PENDIENTE</option>
+                                <option value="CONFIRMED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">CONFIRMADA</option>
+                                <option value="IN_PROGRESS" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">EN PROGRESO</option>
+                                <option value="COMPLETED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">COMPLETADA</option>
+                                <option value="CANCELLED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">CANCELADA</option>
+                                <option value="NO_SHOW" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">NO ASISTIÓ</option>
                               </select>
                             </td>
 
-                            {/* Estado de Pago */}
+                            {/* Estado de Pago / Anticipo */}
                             <td className="px-4 py-4">
                               {isPaid ? (
                                 <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase px-2.5 py-1 rounded-full">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                                   Pagado ({METHOD_LABELS[appt.payment?.method || 'CASH'] || 'Efectivo'})
+                                </span>
+                              ) : appt.financials?.isDepositApproved ? (
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full w-fit">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                                    Anticipo: {formatCOP(appt.financials?.depositPaidAmount ?? 0)}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-500 font-bold pl-1">
+                                    Saldo: {formatCOP(appt.financials?.remainingBalance ?? 0)}
+                                  </span>
+                                </div>
+                              ) : appt.financials?.depositStatus === 'PROOF_SUBMITTED' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedDetailAppt(appt)}
+                                  className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase px-2.5 py-1 rounded-full cursor-pointer transition-all ${
+                                    appt.financials?.isProofOverdue
+                                      ? 'bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 shadow-xs'
+                                      : 'bg-amber-100 hover:bg-amber-200 text-amber-800'
+                                  }`}
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${appt.financials?.isProofOverdue ? 'bg-rose-600 animate-ping' : 'bg-amber-600 animate-pulse'}`} />
+                                  <span>
+                                    {appt.financials?.isProofOverdue ? `Verificar (${appt.financials?.hoursAwaitingReview ?? 0}h)` : 'Verificar Comprobante'}
+                                  </span>
+                                </button>
+                              ) : (appt.financials?.depositRequired || 0) > 0 ? (
+                                <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full">
+                                  Anticipo Pend. ({formatCOP(appt.financials?.depositRequired ?? 0)})
                                 </span>
                               ) : isPendingPay ? (
                                 <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[10px] font-black uppercase px-2.5 py-1 rounded-full">
@@ -1083,21 +1159,24 @@ export default function AppointmentsPage() {
                         </div>
 
                         <select
+                          data-status-badge="true"
                           value={appt.status}
                           onChange={(e) => updateStatusOptimistic(appt.id, e.target.value as Appointment['status'])}
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider outline-none border-none cursor-pointer ${
-                            appt.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
-                            appt.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                            appt.status === 'IN_PROGRESS' ? 'bg-indigo-100 text-indigo-800' :
-                            appt.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                            'bg-amber-100 text-amber-800'
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider outline-none cursor-pointer transition-all border shadow-2xs ${
+                            appt.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700/60' :
+                            appt.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/80 dark:text-blue-300 dark:border-blue-700/60' :
+                            appt.status === 'IN_PROGRESS' ? 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/80 dark:text-indigo-300 dark:border-indigo-700/60' :
+                            appt.status === 'CANCELLED' ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-700/60' :
+                            appt.status === 'NO_SHOW' ? 'bg-zinc-200 text-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700' :
+                            'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-700/60'
                           }`}
                         >
-                          <option value="PENDING">PENDING</option>
-                          <option value="CONFIRMED">CONFIRMED</option>
-                          <option value="IN_PROGRESS">IN_PROGRESS</option>
-                          <option value="COMPLETED">COMPLETED</option>
-                          <option value="CANCELLED">CANCELLED</option>
+                          <option value="PENDING" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">PENDIENTE</option>
+                          <option value="CONFIRMED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">CONFIRMADA</option>
+                          <option value="IN_PROGRESS" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">EN PROGRESO</option>
+                          <option value="COMPLETED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">COMPLETADA</option>
+                          <option value="CANCELLED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">CANCELADA</option>
+                          <option value="NO_SHOW" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">NO ASISTIÓ</option>
                         </select>
                       </div>
 
@@ -1183,8 +1262,8 @@ export default function AppointmentsPage() {
         <div id="new-appointment-form" className="bg-white/95 dark:bg-[#121215] backdrop-blur-md p-7 rounded-3xl border border-zinc-200/90 dark:border-zinc-800 shadow-xl space-y-6 flex flex-col justify-between h-full min-h-[620px] sticky top-20 transition-colors">
           <div>
             <div className="flex items-center gap-3 pb-5 border-b border-zinc-100 dark:border-zinc-800 mb-5">
-              <div className="w-11 h-11 rounded-2xl bg-black dark:bg-amber-400 text-white dark:text-zinc-950 flex items-center justify-center shadow-lg shrink-0">
-                <Plus size={20} className="text-white dark:text-zinc-950" />
+              <div className="w-11 h-11 rounded-2xl panel-btn-accent flex items-center justify-center shadow-lg shrink-0">
+                <Plus size={20} />
               </div>
               <div>
                 <h3 className="text-base font-black text-zinc-950 dark:text-white uppercase tracking-tight">
@@ -1204,11 +1283,11 @@ export default function AppointmentsPage() {
                   Nombre del Cliente *
                 </label>
                 <div className="relative">
-                  <input 
+                  <input
                     type="text"
                     list="clients-list"
                     value={formData.clientName}
-                    onChange={(e) => setFormData({...formData, clientName: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
                     placeholder="Escribe el nombre completo..."
                     className="w-full px-4 py-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 focus:border-black dark:focus:border-amber-400 focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-black/10 dark:focus:ring-amber-400/20 outline-none text-zinc-950 dark:text-white bg-zinc-50 dark:bg-zinc-900/90 transition-all font-semibold placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                     required
@@ -1228,10 +1307,10 @@ export default function AppointmentsPage() {
                   </p>
                   <div className="relative">
                     <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-600 dark:text-amber-400" />
-                    <input 
+                    <input
                       type="text"
                       value={formData.clientPhone}
-                      onChange={(e) => setFormData({...formData, clientPhone: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
                       placeholder="Teléfono / WhatsApp"
                       className="w-full pl-9 pr-3 py-2 rounded-xl border border-amber-300 dark:border-amber-500/50 focus:border-amber-600 dark:focus:border-amber-400 outline-none text-zinc-950 dark:text-white bg-white dark:bg-zinc-900 font-semibold placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                       required={isNewClient}
@@ -1250,11 +1329,10 @@ export default function AppointmentsPage() {
                 <button
                   type="button"
                   onClick={() => { setBarberDropdownOpen(o => !o); setServiceDropdownOpen(false) }}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border text-xs font-bold transition-all ${
-                    barberDropdownOpen
-                      ? 'border-black dark:border-amber-400 bg-white dark:bg-zinc-900 ring-2 ring-black/10 dark:ring-amber-400/20'
-                      : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/90 hover:border-zinc-400 dark:hover:border-zinc-700'
-                  }`}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border text-xs font-bold transition-all ${barberDropdownOpen
+                    ? 'border-black dark:border-amber-400 bg-white dark:bg-zinc-900 ring-2 ring-black/10 dark:ring-amber-400/20'
+                    : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/90 hover:border-zinc-400 dark:hover:border-zinc-700'
+                    }`}
                 >
                   {selectedBarber ? (
                     <span className="flex items-center gap-2 text-zinc-950 dark:text-white font-black uppercase">
@@ -1292,13 +1370,12 @@ export default function AppointmentsPage() {
                             key={b.id}
                             type="button"
                             onClick={() => {
-                              setFormData({...formData, barberId: b.id})
+                              setFormData({ ...formData, barberId: b.id })
                               setBarberDropdownOpen(false)
                               setBarberSearch('')
                             }}
-                            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold transition-colors ${
-                              isSelected ? 'bg-zinc-950 dark:bg-zinc-800 text-white' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/60 text-zinc-800 dark:text-zinc-200'
-                            }`}
+                            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold transition-colors ${isSelected ? 'bg-zinc-950 dark:bg-zinc-800 text-white' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/60 text-zinc-800 dark:text-zinc-200'
+                              }`}
                           >
                             <span className="flex items-center gap-2.5">
                               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: b.color || '#09090b' }} />
@@ -1323,11 +1400,10 @@ export default function AppointmentsPage() {
                 <button
                   type="button"
                   onClick={() => { setServiceDropdownOpen(o => !o); setBarberDropdownOpen(false) }}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border text-xs font-bold transition-all ${
-                    serviceDropdownOpen
-                      ? 'border-black dark:border-amber-400 bg-white dark:bg-zinc-900 ring-2 ring-black/10 dark:ring-amber-400/20'
-                      : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/90 hover:border-zinc-400 dark:hover:border-zinc-700'
-                  }`}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border text-xs font-bold transition-all ${serviceDropdownOpen
+                    ? 'border-black dark:border-amber-400 bg-white dark:bg-zinc-900 ring-2 ring-black/10 dark:ring-amber-400/20'
+                    : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/90 hover:border-zinc-400 dark:hover:border-zinc-700'
+                    }`}
                 >
                   {selectedServices.length > 0 ? (
                     <span className="flex items-center gap-2 text-zinc-950 dark:text-white font-black">
@@ -1385,27 +1461,23 @@ export default function AppointmentsPage() {
                             key={s.id}
                             type="button"
                             onClick={() => toggleService(s.id)}
-                            className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${
-                              isSelected ? 'bg-zinc-950 dark:bg-zinc-800 text-white' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/60 text-zinc-800 dark:text-zinc-200'
-                            }`}
+                            className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${isSelected ? 'bg-zinc-950 dark:bg-zinc-800 text-white' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/60 text-zinc-800 dark:text-zinc-200'
+                              }`}
                           >
                             <div className="flex items-center gap-3 text-left">
-                              <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
-                                isSelected ? 'bg-white/10 dark:bg-zinc-700' : 'bg-zinc-100 dark:bg-zinc-800'
-                              }`}>
+                              <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? 'bg-white/10 dark:bg-zinc-700' : 'bg-zinc-100 dark:bg-zinc-800'
+                                }`}>
                                 <Scissors size={13} className={isSelected ? 'text-white' : 'text-zinc-500 dark:text-zinc-400'} />
                               </div>
                               <div>
-                                <div className={`text-xs font-black uppercase ${
-                                  isSelected ? 'text-white' : 'text-zinc-900 dark:text-white'
-                                }`}>{s.name}</div>
+                                <div className={`text-xs font-black uppercase ${isSelected ? 'text-white' : 'text-zinc-900 dark:text-white'
+                                  }`}>{s.name}</div>
                                 <div className="text-[10px] font-semibold text-zinc-400">{s.duration ?? 30} min</div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className={`font-black text-sm ${
-                                isSelected ? 'text-emerald-400' : 'text-zinc-950 dark:text-white'
-                              }`}>{formatCOP(Number(s.price))}</span>
+                              <span className={`font-black text-sm ${isSelected ? 'text-emerald-400' : 'text-zinc-950 dark:text-white'
+                                }`}>{formatCOP(Number(s.price))}</span>
                               {isSelected
                                 ? <Check size={14} className="text-emerald-400" />
                                 : <Plus size={14} className="text-zinc-300 dark:text-zinc-600" />
@@ -1431,40 +1503,36 @@ export default function AppointmentsPage() {
               </div>
 
               {/* ── Fecha y Hora ─────────────────────────────────── */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="min-w-0">
                   <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                     <CalendarIcon size={12} className="text-zinc-500 dark:text-zinc-400" />
                     Fecha *
                   </label>
-                  <div className="flex items-center rounded-2xl border border-zinc-200 dark:border-zinc-800 focus-within:border-black dark:focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-black/10 dark:focus-within:ring-amber-400/20 bg-zinc-50 dark:bg-zinc-900/90 overflow-hidden transition-all">
-                    <div className="bg-zinc-950 dark:bg-zinc-800 px-3 py-3 flex items-center justify-center shrink-0">
-                      <CalendarIcon size={14} className="text-white dark:text-amber-400" />
-                    </div>
+                  <div className="relative">
                     <input
                       type="date"
                       value={formData.date}
-                      onChange={(e) => setFormData({...formData, date: e.target.value})}
-                      className="flex-1 px-3 py-2.5 outline-none text-zinc-950 dark:text-white bg-transparent font-semibold text-xs"
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      className="w-full pl-3.5 pr-2 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/90 text-zinc-950 dark:text-white font-medium text-xs outline-none focus:border-black dark:focus:border-amber-400 focus:ring-2 focus:ring-black/10 dark:focus:ring-amber-400/20 transition-all cursor-pointer [color-scheme:light] dark:[color-scheme:dark]"
                       required
                     />
                   </div>
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                     <Clock size={12} className="text-zinc-500 dark:text-zinc-400" />
                     Hora *
                   </label>
-                  <div className="flex items-center rounded-2xl border border-zinc-200 dark:border-zinc-800 focus-within:border-black dark:focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-black/10 dark:focus-within:ring-amber-400/20 bg-zinc-50 dark:bg-zinc-900/90 overflow-hidden transition-all">
-                    <div className="bg-zinc-950 dark:bg-zinc-800 px-3 py-3 flex items-center justify-center shrink-0">
-                      <Clock size={14} className="text-white dark:text-amber-400" />
-                    </div>
+                  <div className="relative">
                     <input
                       type="time"
                       value={formData.time}
-                      onChange={(e) => setFormData({...formData, time: e.target.value})}
-                      className="flex-1 px-3 py-2.5 outline-none text-zinc-950 dark:text-white bg-transparent font-semibold text-xs"
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                      className="w-full pl-3.5 pr-2 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/90 text-zinc-950 dark:text-white font-medium text-xs outline-none focus:border-black dark:focus:border-amber-400 focus:ring-2 focus:ring-black/10 dark:focus:ring-amber-400/20 transition-all cursor-pointer [color-scheme:light] dark:[color-scheme:dark]"
                       required
                     />
                   </div>
@@ -1507,13 +1575,13 @@ export default function AppointmentsPage() {
               )}
 
               {/* Submit Button */}
-              <button 
+              <button
                 type="submit"
                 disabled={!formData.clientName}
-                className="w-full bg-black dark:bg-amber-400 hover:bg-zinc-800 dark:hover:bg-amber-300 text-white dark:text-zinc-950 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-[1.01] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 group mt-2"
+                className="w-full panel-btn-accent py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl hover:shadow-2xl active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 group mt-2"
               >
                 <span>Confirmar Reserva</span>
-                <Sparkles size={15} className="text-amber-400 dark:text-zinc-950 group-hover:rotate-12 transition-transform" />
+                <Sparkles size={15} className="group-hover:rotate-12 transition-transform" />
               </button>
             </form>
           </div>
@@ -1537,6 +1605,32 @@ export default function AppointmentsPage() {
         onOpenPayment={(appt) => {
           setPayingAppt(appt as unknown as Appointment)
           setPayMethod('CASH')
+        }}
+        onVerifyDeposit={async (id, action) => {
+          try {
+            const res = await fetch(`/api/appointments/${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                depositAction: action,
+                paymentMethod: 'TRANSFER',
+              }),
+            })
+            const data = await res.json()
+            if (res.ok) {
+              toast.success(
+                action === 'APPROVE'
+                  ? 'Anticipo aprobado y cita confirmada'
+                  : 'Comprobante rechazado'
+              )
+              setSelectedDetailAppt(data)
+              fetchData()
+            } else {
+              toast.error(data.error || 'Error al verificar anticipo')
+            }
+          } catch {
+            toast.error('Error de conexión')
+          }
         }}
       />
     </div>

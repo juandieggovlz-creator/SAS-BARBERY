@@ -15,6 +15,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
+  // Restricción de seguridad: Impedir modificación de credenciales durante modo de soporte / supervisión
+  if (session.superAdminId || session.originalOwnerId) {
+    return NextResponse.json(
+      { error: 'Por seguridad, no se permite modificar contraseñas de usuarios durante una sesión de soporte administrativo.' },
+      { status: 403 }
+    )
+  }
+
   try {
     const ip = getClientIp(request)
 

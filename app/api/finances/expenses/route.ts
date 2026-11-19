@@ -70,6 +70,21 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Gasto no encontrado' }, { status: 404 })
     }
 
+    // Verificar si el gasto pertenece a un período de caja ya cerrado
+    const closedPeriod = await prisma.cashClose.findFirst({
+      where: {
+        businessId: session.businessId,
+        periodFrom: { lte: expense.date },
+        periodTo: { gte: expense.date },
+      }
+    })
+
+    if (closedPeriod) {
+      return NextResponse.json({
+        error: `Este gasto pertenece a un cierre de caja ya registrado (${closedPeriod.periodLabel}). Para preservar la trazabilidad contable, no puede ser eliminado.`
+      }, { status: 409 })
+    }
+
     await prisma.expense.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch {

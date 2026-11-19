@@ -2,8 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/reminders",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/subscription-check",
+      "schedule": "0 13 * * *"
     }
   ]
 }
-

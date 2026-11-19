@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import {
-  FileText, Plus, Pin, Trash2, Edit3, Copy, Search, Filter,
-  AlertTriangle, ShoppingBag, Users, Wrench, CheckCircle2,
-  Sparkles, X, ChevronDown, LayoutGrid, List, Check, Tag, Clock
+  FileText, Plus, Pin, Trash2, Edit3, Copy, Search,
+  AlertTriangle, ShoppingBag, Users, Wrench,
+  X, LayoutGrid, List, Check, Clock
 } from 'lucide-react'
 
 interface Note {

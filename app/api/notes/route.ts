@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 
+const ALLOWED_NOTE_ROLES = ['OWNER', 'BRANCH_ADMIN', 'SUPER_ADMIN', 'ROOT_PLATFORM_OWNER']
+
 export async function GET() {
   const session = await getSession()
   if (!session || !session.businessId) {
@@ -9,8 +11,12 @@ export async function GET() {
   }
 
   try {
+    const isBarber = session.role === 'BARBER'
     const notes = await prisma.note.findMany({
-      where: { businessId: session.businessId },
+      where: {
+        businessId: session.businessId,
+        ...(isBarber ? { category: { not: 'PRIVATE' } } : {})
+      },
       orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }]
     })
     return NextResponse.json(notes)
@@ -25,19 +31,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
+  if (!ALLOWED_NOTE_ROLES.includes(session.role)) {
+    return NextResponse.json(
+      { error: 'Solo propietarios y administradores pueden crear notas en este tablero' },
+      { status: 403 }
+    )
+  }
+
   try {
     const body = await request.json()
     const { title, content, isPinned, color, category, clientId, appointmentId } = body
 
-    if (!title || !content) {
+    const cleanTitle = (title || '').trim().slice(0, 150)
+    const cleanContent = (content || '').trim().slice(0, 5000)
+
+    if (!cleanTitle || !cleanContent) {
       return NextResponse.json({ error: 'Título y contenido son requeridos' }, { status: 400 })
     }
 
     const note = await prisma.note.create({
       data: {
         businessId: session.businessId,
-        title,
-        content,
+        title: cleanTitle,
+        content: cleanContent,
         isPinned: Boolean(isPinned),
         color: color || 'yellow',
         category: category || 'GENERAL',
@@ -51,7 +67,7 @@ export async function POST(request: Request) {
       try {
         await prisma.client.updateMany({
           where: { id: clientId, businessId: session.businessId },
-          data: { internalNotes: content }
+          data: { internalNotes: cleanContent }
         })
       } catch (err) {
         console.warn("Client internalNotes update skipped:", err)
@@ -71,6 +87,13 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
+  if (!ALLOWED_NOTE_ROLES.includes(session.role)) {
+    return NextResponse.json(
+      { error: 'Solo propietarios y administradores pueden modificar notas del tablero' },
+      { status: 403 }
+    )
+  }
+
   try {
     const { id, isPinned, title, content, color, category } = await request.json()
 
@@ -82,9 +105,9 @@ export async function PATCH(request: Request) {
     const updatedNote = await prisma.note.update({
       where: { id },
       data: {
-        ...(isPinned !== undefined ? { isPinned } : {}),
-        ...(title ? { title } : {}),
-        ...(content ? { content } : {}),
+        ...(isPinned !== undefined ? { isPinned: Boolean(isPinned) } : {}),
+        ...(title ? { title: String(title).trim().slice(0, 150) } : {}),
+        ...(content ? { content: String(content).trim().slice(0, 5000) } : {}),
         ...(color ? { color } : {}),
         ...(category ? { category } : {})
       }
@@ -101,6 +124,13 @@ export async function DELETE(request: Request) {
   const session = await getSession()
   if (!session || !session.businessId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
+  if (!ALLOWED_NOTE_ROLES.includes(session.role)) {
+    return NextResponse.json(
+      { error: 'Solo propietarios y administradores pueden eliminar notas del tablero' },
+      { status: 403 }
+    )
   }
 
   try {

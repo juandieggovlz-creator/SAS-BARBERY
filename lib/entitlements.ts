@@ -89,8 +89,8 @@ export async function checkEntitlement(
       }
     }
 
-    // 2. Check Plan capabilities
-    const activePlan = business.company?.plan || business.plan
+    // 2. Check Plan capabilities (prioritize the business's assigned plan, fallback to company plan)
+    const activePlan = business.plan || business.company?.plan
     const isTrial = business.status === 'TRIAL' || business.company?.status === 'TRIAL'
 
     // If on Free Trial, all core features are enabled during trial period
@@ -112,11 +112,14 @@ export async function checkEntitlement(
 
     switch (feature) {
       case 'MULTI_BRANCH': {
-        const allows = Boolean(activePlan.allowsMultiBranch) || (business.company && business.company.maxBranches > 1)
+        const allows = Boolean(activePlan.allowsMultiBranch)
+        const maxBranches = allows
+          ? Math.max(business.company?.maxBranches || 1, activePlan.includedBranches || 1)
+          : 1
         return {
           allowed: Boolean(allows),
           source: allows ? 'PLAN' : 'DENIED',
-          maxCount: activePlan.includedBranches || 1
+          maxCount: maxBranches
         }
       }
 

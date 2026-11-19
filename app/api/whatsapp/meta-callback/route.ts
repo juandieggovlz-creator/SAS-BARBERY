@@ -1,19 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { canUseWhatsApp } from '@/lib/commercial-permissions'
+import { safeEncryptToken } from '@/lib/crypto'
+import { MetaCloudProvider } from '@/lib/whatsapp/meta-provider'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * Backend API Route: /api/whatsapp/meta-callback
- * Intercambia el código de autorización de Meta Embedded Signup por el token de acceso,
- * resuelve la WABA y el Phone Number ID asignado, y activa la conexión oficial en la base de datos.
+ * 
+ * Flujo oficial Server-to-Server de Meta WhatsApp Embedded Signup v4 (Coexistence):
+ * 1. Verifica autenticación y que el plan comercial permita WhatsApp Business.
+ * 2. Intercambia el código de autorización temporal (OAuth code) por un User/System User Access Token.
+ * 3. Valida el token contra Meta Graph API v22.0 (/debug_token).
+ * 4. Resuelve la WABA (WhatsApp Business Account) y el Phone Number ID.
+ * 5. Suscribe la aplicación a la WABA (POST /v22.0/{waba_id}/subscribed_apps) para recibir webhooks de Coexistencia.
+ * 6. Cifra el token de acceso en reposo con AES-256-GCM antes de persistirlo en Neon DB.
+ * 7. Nunca expone el token crudo en la respuesta HTTP del cliente.
  */
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession()
     if (!session || !session.businessId || (session.role !== 'OWNER' && session.role !== 'SUPER_ADMIN')) {
-      return NextResponse.json({ error: 'No autorizado. Se requiere sesión de propietario.' }, { status: 401 })
+      return NextResponse.json({ error: 'No autorizado. Se requiere sesión de propietario o administrador.' }, { status: 401 })
+    }
+
+    // 1. Verificación comercial: el plan debe incluir WhatsApp
+    const allowedByPlan = await canUseWhatsApp(session.businessId)
+    if (!allowedByPlan && session.role !== 'SUPER_ADMIN') {
+      return NextResponse.json(
+        {
+          error: 'Tu plan actual no incluye automatización de WhatsApp Business. Actualiza a Plan Profesional o Premium en Suscripción para activarlo.'
+        },
+        { status: 403 }
+      )
     }
 
     const body = await req.json().catch(() => ({}))
@@ -28,19 +49,19 @@ export async function POST(req: NextRequest) {
 
     if (!appId || !appSecret) {
       return NextResponse.json(
-        { error: 'Variables META_APP_ID o META_APP_SECRET no configuradas en las variables de entorno del servidor.' },
+        { error: 'Variables META_APP_ID o META_APP_SECRET no configuradas en el servidor.' },
         { status: 500 }
       )
     }
 
-    // 1. Petición Server-to-Server a la Graph API de Meta para intercambiar code por access_token
-    const tokenUrl = `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${encodeURIComponent(appId)}&client_secret=${encodeURIComponent(appSecret)}&code=${encodeURIComponent(code)}`
+    // 2. Intercambio de OAuth code por access_token (Graph API v22.0)
+    const tokenUrl = `https://graph.facebook.com/v22.0/oauth/access_token?client_id=${encodeURIComponent(appId)}&client_secret=${encodeURIComponent(appSecret)}&code=${encodeURIComponent(code)}`
     
     const tokenRes = await fetch(tokenUrl, { method: 'GET', cache: 'no-store' })
     const tokenData = await tokenRes.json().catch(() => ({}))
 
     if (!tokenRes.ok || tokenData.error || !tokenData.access_token) {
-      console.error('[Meta Callback] Error de intercambio de token:', tokenData)
+      console.error('[Meta Callback] Error al intercambiar token:', tokenData)
       return NextResponse.json(
         { error: tokenData.error?.message || 'Error al validar el código de autorización con la Graph API de Meta.' },
         { status: 400 }
@@ -49,16 +70,28 @@ export async function POST(req: NextRequest) {
 
     const accessToken = tokenData.access_token
 
+    // 3. Inspeccionar token con debug_token para validar alcance y autenticidad
+    try {
+      const debugUrl = `https://graph.facebook.com/v22.0/debug_token?input_token=${encodeURIComponent(accessToken)}&access_token=${encodeURIComponent(`${appId}|${appSecret}`)}`
+      const debugRes = await fetch(debugUrl, { cache: 'no-store' })
+      if (debugRes.ok) {
+        const debugData = await debugRes.json().catch(() => ({}))
+        console.log('[Meta Callback] Debug Token scopes:', debugData?.data?.scopes, 'isValid:', debugData?.data?.is_valid)
+      }
+    } catch (debugErr) {
+      console.warn('[Meta Callback] No se pudo depurar el token:', debugErr)
+    }
+
     let resolvedWabaId = incomingWabaId || null
     let resolvedPhoneId = incomingPhoneId || null
     let displayPhoneNumber: string | null = null
     let verifiedName: string | null = null
 
-    // 2. Si no se recibieron directamente desde el evento de Embedded Signup, consultar WABA y teléfonos
+    // 4. Si no se recibieron directamente desde el evento de Embedded Signup, consultar WABA y teléfonos
     if (!resolvedWabaId || !resolvedPhoneId) {
       try {
         const businessesRes = await fetch(
-          `https://graph.facebook.com/v21.0/me/businesses?fields=id,name,whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name}}&access_token=${encodeURIComponent(accessToken)}`,
+          `https://graph.facebook.com/v22.0/me/businesses?fields=id,name,whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name}}&access_token=${encodeURIComponent(accessToken)}`,
           { cache: 'no-store' }
         )
         const businessesData = await businessesRes.json().catch(() => ({}))
@@ -78,15 +111,15 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (inspectErr) {
-        console.warn('[Meta Callback] Advertencia al inspeccionar negocios:', inspectErr)
+        console.warn('[Meta Callback] Advertencia al inspeccionar negocios en Graph API:', inspectErr)
       }
     }
 
-    // 3. Si tenemos phoneNumberId, obtener detalles en vivo del número
+    // 5. Si tenemos phoneNumberId, obtener detalles en vivo del número
     if (resolvedPhoneId) {
       try {
         const phoneRes = await fetch(
-          `https://graph.facebook.com/v21.0/${resolvedPhoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating&access_token=${encodeURIComponent(accessToken)}`,
+          `https://graph.facebook.com/v22.0/${resolvedPhoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating&access_token=${encodeURIComponent(accessToken)}`,
           { cache: 'no-store' }
         )
         if (phoneRes.ok) {
@@ -99,7 +132,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Guardar / actualizar en la base de datos (WhatsAppIntegration)
+    // 6. Suscribir automáticamente la aplicación a la WABA para recibir Webhooks oficiales
+    if (resolvedWabaId) {
+      const subResult = await MetaCloudProvider.subscribeAppToWaba({
+        wabaId: resolvedWabaId,
+        accessToken
+      })
+      if (!subResult.success) {
+        console.warn('[Meta Callback] Advertencia: la suscripción a WABA devolvió:', subResult.error)
+      } else {
+        console.log('[Meta Callback] WABA suscrita exitosamente a Webhooks de BarberOS:', resolvedWabaId)
+      }
+    }
+
+    // 7. Cifrado simétrico AES-256-GCM en reposo del token
+    const encryptedAccessToken = safeEncryptToken(accessToken)
+
+    // 8. Guardar / actualizar en la base de datos (WhatsAppIntegration)
     const updated = await prisma.whatsAppIntegration.upsert({
       where: { businessId: session.businessId },
       create: {
@@ -107,7 +156,7 @@ export async function POST(req: NextRequest) {
         isEnabled: true,
         provider: 'META',
         connectionStatus: 'CONNECTED',
-        metaAccessToken: accessToken,
+        metaAccessToken: encryptedAccessToken,
         metaPhoneNumberId: resolvedPhoneId,
         metaWabaId: resolvedWabaId,
         metaAppId: appId,
@@ -119,7 +168,7 @@ export async function POST(req: NextRequest) {
         isEnabled: true,
         provider: 'META',
         connectionStatus: 'CONNECTED',
-        metaAccessToken: accessToken,
+        metaAccessToken: encryptedAccessToken,
         metaPhoneNumberId: resolvedPhoneId || undefined,
         metaWabaId: resolvedWabaId || undefined,
         metaAppId: appId,
@@ -128,6 +177,10 @@ export async function POST(req: NextRequest) {
         lastSyncedAt: new Date()
       }
     })
+
+    const maskedToken = accessToken
+      ? `${accessToken.slice(0, 6)}••••••••${accessToken.slice(-4)}`
+      : null
 
     return NextResponse.json({
       success: true,
@@ -138,7 +191,8 @@ export async function POST(req: NextRequest) {
       verifiedName: verifiedName || 'WhatsApp Business',
       wabaId: resolvedWabaId,
       phoneNumberId: resolvedPhoneId,
-      message: '¡Conexión oficial de WhatsApp Business (Meta) activada exitosamente!'
+      metaAccessTokenMasked: maskedToken,
+      message: '¡Conexión oficial de WhatsApp Business (Meta) activada exitosamente con Coexistencia!'
     })
   } catch (error: unknown) {
     console.error('[Meta Callback] Error no controlado:', error)
@@ -148,4 +202,3 @@ export async function POST(req: NextRequest) {
     )
   }
 }
-

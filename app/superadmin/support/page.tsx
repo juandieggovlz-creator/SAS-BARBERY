@@ -14,7 +14,9 @@ import {
   RefreshCw,
   CheckCircle2,
   X,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert,
+  Sparkles
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -40,12 +42,25 @@ interface TicketItem {
   businessName: string
   businessSlug: string
   userEmail: string
+  userName?: string
   messagesCount: number
   messages: MessageItem[]
 }
 
+function formatTicketCode(code: string): string {
+  if (!code) return '#SUP-000000'
+  if (code.startsWith('SUP-')) return `#${code}`
+  return `#SUP-${code.slice(-6).toUpperCase()}`
+}
+
 export default function SuperAdminSupportPage() {
   const [tickets, setTickets] = useState<TicketItem[]>([])
+  const [counts, setCounts] = useState<{ open: number; inProgress: number; resolved: number; total: number }>({
+    open: 0,
+    inProgress: 0,
+    resolved: 0,
+    total: 0
+  })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
@@ -68,6 +83,9 @@ export default function SuperAdminSupportPage() {
       if (res.ok) {
         const json = await res.json()
         setTickets(json.tickets || [])
+        if (json.counts) {
+          setCounts(json.counts)
+        }
         if (selectedTicket) {
           const updatedSelected = (json.tickets || []).find((t: TicketItem) => t.id === selectedTicket.id)
           if (updatedSelected) setSelectedTicket(updatedSelected)
@@ -76,7 +94,7 @@ export default function SuperAdminSupportPage() {
         toast.error('Error al cargar tickets de soporte')
       }
     } catch {
-      toast.error('Error de conexión')
+      toast.error('Error de conexión al cargar tickets')
     } finally {
       setLoading(false)
     }
@@ -102,14 +120,15 @@ export default function SuperAdminSupportPage() {
       })
 
       if (res.ok) {
-        toast.success('Respuesta enviada al negocio')
+        toast.success('Respuesta enviada y notificada por correo al negocio ✉️')
         setReplyMessage('')
         fetchTickets()
       } else {
-        toast.error('No se pudo enviar la respuesta')
+        const err = await res.json()
+        toast.error(err.error || 'No se pudo enviar la respuesta')
       }
     } catch {
-      toast.error('Error de conexión')
+      toast.error('Error de conexión al enviar respuesta')
     } finally {
       setSending(false)
     }
@@ -123,11 +142,14 @@ export default function SuperAdminSupportPage() {
         body: JSON.stringify({ id: ticketId, status: nextStatus })
       })
       if (res.ok) {
-        toast.success(`Ticket marcado como ${nextStatus}`)
+        toast.success(`Ticket actualizado a estado ${formatStatus(nextStatus)}`)
         fetchTickets()
+      } else {
+        const err = await res.json()
+        toast.error(err.error || 'Error al cambiar estado')
       }
     } catch {
-      toast.error('Error al cambiar estado')
+      toast.error('Error de conexión al actualizar estado')
     }
   }
 
@@ -142,35 +164,72 @@ export default function SuperAdminSupportPage() {
   }
 
   return (
-    <div className="space-y-6 pb-12" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="space-y-6 pb-12 w-full max-w-7xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-black uppercase tracking-widest text-amber-700">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
               <LifeBuoy className="w-3 h-3" />
-              Mesa de Ayuda
+              Mesa de Ayuda Master
+            </span>
+            <span className="text-[10px] font-bold text-zinc-400">
+              Gestión Multinegocio
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-950" style={{ letterSpacing: '-0.03em' }}>
-            Módulo de Soporte ({tickets.length})
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-950 dark:text-white">
+            Módulo de Soporte ({counts.total})
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            Atención y seguimiento de tickets reportados por los dueños de barberías.
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-2xl">
+            Atención centralizada y seguimiento en tiempo real de requerimientos técnicos de barberías.
           </p>
         </div>
 
         <button
           onClick={fetchTickets}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-all cursor-pointer shadow-xs w-fit"
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-xs w-fit"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>Actualizar</span>
         </button>
       </div>
 
+      {/* ── MACRO COUNTERS ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between">
+          <div>
+            <div className="text-2xl font-black text-amber-600 dark:text-amber-400">{counts.open}</div>
+            <div className="text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mt-0.5">Tickets Abiertos</div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
+            <Clock className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-between">
+          <div>
+            <div className="text-2xl font-black text-blue-600 dark:text-blue-400">{counts.inProgress}</div>
+            <div className="text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mt-0.5">En Proceso</div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+            <MessageSquare className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-between">
+          <div>
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{counts.resolved}</div>
+            <div className="text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mt-0.5">Resueltos / Cerrados</div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
       {/* ── FILTERS & SEARCH ── */}
-      <div className="p-4 bg-white border border-zinc-200 rounded-2xl shadow-xs flex flex-col md:flex-row items-center gap-3">
+      <div className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs flex flex-col md:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
           <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -178,7 +237,7 @@ export default function SuperAdminSupportPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por código, asunto, usuario o negocio..."
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-950 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-amber-500 transition-all"
           />
         </div>
 
@@ -186,7 +245,7 @@ export default function SuperAdminSupportPage() {
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-800 outline-none cursor-pointer"
+            className="px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold text-zinc-800 dark:text-zinc-200 outline-none cursor-pointer focus:border-amber-500"
           >
             <option value="ALL">Todos los Estados</option>
             <option value="OPEN">Abierto</option>
@@ -198,7 +257,7 @@ export default function SuperAdminSupportPage() {
           <select
             value={priorityFilter}
             onChange={e => setPriorityFilter(e.target.value)}
-            className="px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-800 outline-none cursor-pointer"
+            className="px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold text-zinc-800 dark:text-zinc-200 outline-none cursor-pointer focus:border-amber-500"
           >
             <option value="ALL">Todas las Prioridades</option>
             <option value="LOW">Baja</option>
@@ -209,63 +268,64 @@ export default function SuperAdminSupportPage() {
         </div>
       </div>
 
-      {/* ── TICKETS TABLE ── */}
+      {/* ── TICKETS TABLE & CONVERSATION DRAWER ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className={selectedTicket ? 'lg:col-span-6' : 'lg:col-span-12'}>
-          <div className="bg-white border border-zinc-200 rounded-2xl shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-xs overflow-hidden">
             {loading ? (
               <div className="p-12 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-zinc-950" />
+                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
                 <span className="text-xs font-semibold text-zinc-400">Cargando tickets de soporte...</span>
               </div>
             ) : tickets.length === 0 ? (
               <div className="p-12 text-center text-zinc-400 space-y-2">
-                <LifeBuoy className="w-10 h-10 mx-auto opacity-30" />
-                <p className="text-sm font-bold text-zinc-700">No hay tickets registrados</p>
+                <LifeBuoy className="w-10 h-10 mx-auto opacity-30 text-amber-500" />
+                <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">No hay tickets registrados</p>
                 <p className="text-xs">Los tickets creados por barberías se mostrarán aquí.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-zinc-100 bg-zinc-50/50 text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                      <th className="py-4 px-5">Negocio</th>
-                      <th className="py-4 px-4">Usuario</th>
-                      <th className="py-4 px-4">Fecha</th>
-                      <th className="py-4 px-4">Prioridad</th>
-                      <th className="py-4 px-4">Estado</th>
-                      <th className="py-4 px-4 text-right">Ver</th>
+                    <tr className="border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-black uppercase tracking-wider text-zinc-400 bg-zinc-50/50 dark:bg-zinc-950/30">
+                      <th className="py-3 px-5">Negocio & Asunto</th>
+                      <th className="py-3 px-4">Usuario</th>
+                      <th className="py-3 px-4">Fecha</th>
+                      <th className="py-3 px-4">Prioridad</th>
+                      <th className="py-3 px-4">Estado</th>
+                      <th className="py-3 px-4 text-right">Acción</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-100 text-xs">
+                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60 text-xs">
                     {tickets.map(t => {
                       const isSelected = selectedTicket?.id === t.id
+
                       return (
                         <tr
                           key={t.id}
                           onClick={() => setSelectedTicket(t)}
-                          className={`hover:bg-zinc-50/80 transition-colors cursor-pointer ${
-                            isSelected ? 'bg-amber-50/50' : ''
+                          className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors ${
+                            isSelected ? 'bg-amber-500/10' : ''
                           }`}
                         >
                           {/* Negocio */}
-                          <td className="py-4 px-5 font-bold text-zinc-950">
+                          <td className="py-4 px-5 font-bold text-zinc-950 dark:text-zinc-100">
                             <div className="flex items-center gap-2">
-                              <Building2 className="w-3.5 h-3.5 text-zinc-400" />
-                              <span className="truncate max-w-[150px]">{t.businessName}</span>
+                              <Building2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                              <span className="truncate max-w-[170px]">{t.businessName}</span>
                             </div>
-                            <div className="text-[10px] text-zinc-400 font-mono mt-0.5 truncate max-w-[150px]">
-                              {t.subject}
+                            <div className="text-[10px] text-zinc-400 font-mono mt-0.5 truncate max-w-[170px]">
+                              {formatTicketCode(t.ticketCode)} · {t.subject}
                             </div>
                           </td>
 
                           {/* Usuario */}
-                          <td className="py-4 px-4 text-zinc-600 font-mono text-[11px]">
+                          <td className="py-4 px-4 text-zinc-600 dark:text-zinc-300 font-mono text-[11px]">
                             {t.userEmail}
                           </td>
 
                           {/* Fecha */}
-                          <td className="py-4 px-4 text-[11px] text-zinc-500 font-mono whitespace-nowrap">
+                          <td className="py-4 px-4 text-[11px] text-zinc-500 dark:text-zinc-400 font-mono whitespace-nowrap">
                             {new Date(t.createdAt).toLocaleDateString('es-CO', {
                               day: '2-digit',
                               month: 'short'
@@ -276,10 +336,12 @@ export default function SuperAdminSupportPage() {
                           <td className="py-4 px-4">
                             <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
                               t.priority === 'URGENT'
-                                ? 'bg-rose-100 text-rose-800'
+                                ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                                 : t.priority === 'HIGH'
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-zinc-100 text-zinc-700'
+                                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                                : t.priority === 'MEDIUM'
+                                ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                             }`}>
                               {t.priority}
                             </span>
@@ -289,12 +351,12 @@ export default function SuperAdminSupportPage() {
                           <td className="py-4 px-4">
                             <span className={`inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
                               t.status === 'OPEN'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
                                 : t.status === 'IN_PROGRESS'
-                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
                                 : t.status === 'RESOLVED'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                : 'bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20'
                             }`}>
                               {formatStatus(t.status)}
                             </span>
@@ -315,34 +377,40 @@ export default function SuperAdminSupportPage() {
 
         {/* Selected Ticket Drawer / Conversation */}
         {selectedTicket && (
-          <div className="lg:col-span-6 bg-white border border-zinc-200 rounded-2xl shadow-xs p-6 flex flex-col justify-between min-h-[500px]">
+          <div className="lg:col-span-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs p-6 flex flex-col justify-between min-h-[550px]">
             <div>
-              <div className="flex items-start justify-between border-b border-zinc-100 pb-3 mb-4">
+              <div className="flex items-start justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3 mb-4">
                 <div>
-                  <div className="text-[10px] font-mono text-zinc-400 font-bold mb-0.5">
-                    Ticket #{selectedTicket.ticketCode} • {selectedTicket.businessName}
+                  <div className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold mb-0.5">
+                    Ticket {formatTicketCode(selectedTicket.ticketCode)} • {selectedTicket.businessName}
                   </div>
-                  <h3 className="text-base font-bold text-zinc-950">
+                  <h3 className="text-base font-bold text-zinc-950 dark:text-white">
                     {selectedTicket.subject}
                   </h3>
+                  <div className="text-[11px] text-zinc-400 mt-0.5">
+                    Cliente: <span className="font-mono text-zinc-700 dark:text-zinc-300">{selectedTicket.userEmail}</span>
+                  </div>
                 </div>
-                <button onClick={() => setSelectedTicket(null)} className="p-1 text-zinc-400 hover:text-zinc-600 cursor-pointer">
+                <button
+                  onClick={() => setSelectedTicket(null)}
+                  className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Status Switcher Buttons */}
-              <div className="p-2.5 bg-zinc-50 rounded-xl flex items-center justify-between gap-2 mb-4 text-xs">
-                <span className="font-semibold text-zinc-500 text-[11px]">Estado:</span>
-                <div className="flex gap-1">
+              <div className="p-2.5 bg-zinc-50 dark:bg-zinc-950/60 rounded-xl flex items-center justify-between gap-2 mb-4 text-xs border border-zinc-200/50 dark:border-zinc-800">
+                <span className="font-semibold text-zinc-500 text-[11px]">Estado del Ticket:</span>
+                <div className="flex gap-1 flex-wrap">
                   {['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].map(st => (
                     <button
                       key={st}
                       onClick={() => handleStatusChange(selectedTicket.id, st)}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer ${
                         selectedTicket.status === st
-                          ? 'bg-zinc-950 text-white'
-                          : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100'
+                          ? 'bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 shadow-xs'
+                          : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
                       }`}
                     >
                       {formatStatus(st)}
@@ -352,23 +420,28 @@ export default function SuperAdminSupportPage() {
               </div>
 
               {/* Description */}
-              <div className="p-3.5 bg-zinc-50 border border-zinc-100 rounded-xl text-xs text-zinc-700 mb-4">
-                <div className="text-[10px] font-black uppercase text-zinc-400 mb-1">Descripción:</div>
+              <div className="p-3.5 bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-100 dark:border-zinc-800 rounded-xl text-xs text-zinc-700 dark:text-zinc-300 mb-4 leading-relaxed">
+                <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">Descripción reportada por la barbería:</div>
                 {selectedTicket.description}
               </div>
 
               {/* Message thread */}
-              <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
                 {selectedTicket.messages.map(msg => (
                   <div
                     key={msg.id}
                     className={`p-3 rounded-xl text-xs max-w-[85%] ${
                       msg.senderRole === 'SUPER_ADMIN'
-                        ? 'ml-auto bg-zinc-950 text-white'
-                        : 'bg-zinc-100 text-zinc-900 border border-zinc-200'
+                        ? 'ml-auto bg-zinc-950 dark:bg-zinc-800 text-white border border-zinc-800 dark:border-zinc-700'
+                        : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700'
                     }`}
                   >
-                    <div className="text-[9px] opacity-70 mb-1 font-bold">{msg.senderName}</div>
+                    <div className="text-[9px] opacity-70 mb-1 font-bold flex items-center justify-between gap-2">
+                      <span>{msg.senderName} ({msg.senderRole})</span>
+                      <span className="font-mono text-[9px] opacity-60">
+                        {new Date(msg.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
                     <p className="whitespace-pre-wrap">{msg.message}</p>
                   </div>
                 ))}
@@ -376,21 +449,21 @@ export default function SuperAdminSupportPage() {
             </div>
 
             {/* Reply composer */}
-            <form onSubmit={handleSendReply} className="mt-4 pt-3 border-t border-zinc-100 flex gap-2">
+            <form onSubmit={handleSendReply} className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex gap-2">
               <input
                 type="text"
                 value={replyMessage}
                 onChange={e => setReplyMessage(e.target.value)}
-                placeholder="Escribe una respuesta para el negocio..."
-                className="flex-1 px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium outline-none focus:border-zinc-950"
+                placeholder="Escribe una respuesta para el propietario (se enviará por correo también)..."
+                className="flex-1 px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 outline-none focus:border-amber-500 placeholder:text-zinc-400"
               />
               <button
                 type="submit"
                 disabled={sending || !replyMessage.trim()}
-                className="px-4 py-2.5 bg-zinc-950 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-zinc-800 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2.5 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                <span>Enviar</span>
+                <span>Responder</span>
               </button>
             </form>
           </div>

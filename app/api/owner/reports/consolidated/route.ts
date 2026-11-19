@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   try {
     const session = await getSession('OWNER')
-    if (!session || (session.role !== 'OWNER' && session.role !== 'BRANCH_ADMIN' && session.role !== 'SUPER_ADMIN')) {
+    const allowedRoles = ['OWNER', 'BRANCH_ADMIN', 'SUPER_ADMIN', 'ROOT_PLATFORM_OWNER']
+    if (!session || !allowedRoles.includes(session.role)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -20,10 +21,20 @@ export async function GET(request: Request) {
     const fromParam = searchParams.get('from')
     const toParam = searchParams.get('to')
 
-    // Rango de fechas
+    // Rango de fechas ajustado a hora de Colombia (America/Bogota, UTC-5)
     const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+    const [yStr, mStr] = formatter.format(now).split('-')
+    const y = Number(yStr)
+    const m = Number(mStr) - 1
+
+    const startOfMonth = new Date(Date.UTC(y, m, 1, 5, 0, 0, 0))
+    const endOfMonth = new Date(Date.UTC(y, m + 1, 1, 4, 59, 59, 999))
 
     const from = fromParam ? new Date(fromParam) : startOfMonth
     const to = toParam ? new Date(toParam) : endOfMonth
@@ -87,20 +98,22 @@ export async function GET(request: Request) {
 
     const branchIds = branches.map(b => b.id)
 
-    // ── Pagos completados en el rango (ingresos reales) ───────────────────────
+    // ── Pagos en el rango (ingresos reales consolidados) ───────────────────────
     const payments = await prisma.payment.findMany({
       where: {
         businessId: { in: branchIds },
-        status: 'COMPLETED',
+        status: { in: ['PAID', 'COMPLETED', 'PARTIAL', 'REFUNDED'] },
         OR: [
-          { appointment: { date: { gte: from, lte: to } } },
-          { appointmentId: null, createdAt: { gte: from, lte: to } }
+          { paidAt: { gte: from, lte: to } },
+          { paidAt: null, createdAt: { gte: from, lte: to } },
+          { appointment: { date: { gte: from, lte: to } } }
         ]
       },
       select: {
         businessId: true,
         amount: true,
         method: true,
+        status: true,
         appointment: {
           select: {
             barber: {
@@ -121,7 +134,8 @@ export async function GET(request: Request) {
       },
       select: {
         businessId: true,
-        amount: true
+        amount: true,
+        category: true
       }
     })
 
@@ -133,16 +147,26 @@ export async function GET(request: Request) {
       },
       select: {
         businessId: true,
-        status: true
+        status: true,
+        client: {
+          select: {
+            id: true,
+            phone: true,
+            email: true
+          }
+        }
       }
     })
 
-    // ── Clientes únicos por sede ─────────────────────────────────────────────
-    const clientCounts = await prisma.client.groupBy({
-      by: ['businessId'],
-      where: { businessId: { in: branchIds } },
-      _count: { id: true }
-    })
+    // ── Clientes únicos deduplicados para todo el negocio (FASE 3) ───────────
+    const uniqueClientsCompany = new Set<string>()
+    for (const a of appointments) {
+      if (a.client) {
+        const key = a.client.phone?.trim() || a.client.email?.trim() || a.client.id
+        uniqueClientsCompany.add(key)
+      }
+    }
+    const totalClients = uniqueClientsCompany.size
 
     // ── Totales consolidados ─────────────────────────────────────────────────
     let totalRevenue = 0
@@ -150,38 +174,58 @@ export async function GET(request: Request) {
 
     for (const p of payments) {
       const amt = Number(p.amount)
-      totalRevenue += amt
-      const commRate = p.appointment?.barber?.commission ?? 0
-      totalCommissions += amt * (commRate / 100)
+      if (p.status === 'REFUNDED') {
+        totalRevenue -= Math.abs(amt)
+      } else {
+        totalRevenue += amt
+        const commRate = typeof p.appointment?.barber?.commission === 'number' ? p.appointment.barber.commission : 40
+        totalCommissions += amt * (commRate / 100)
+      }
     }
 
     const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0)
-    const netProfit = totalRevenue - totalExpenses - totalCommissions
+    const nonCommExpenses = expenses
+      .filter(e => e.category !== 'COMMISSIONS')
+      .reduce((s, e) => s + Number(e.amount), 0)
+
+    const netProfit = totalRevenue - nonCommExpenses - totalCommissions
     const totalAppointments = appointments.length
     const completedAppointments = appointments.filter(a => a.status === 'COMPLETED').length
     const cancelledAppointments = appointments.filter(a => a.status === 'CANCELLED').length
-    const totalClients = clientCounts.reduce((s, c) => s + c._count.id, 0)
 
     // ── Stats por sede ───────────────────────────────────────────────────────
     const branchStats = branches.map(branch => {
       const bPayments = payments.filter(p => p.businessId === branch.id)
       const bExpenses = expenses.filter(e => e.businessId === branch.id)
       const bAppointments = appointments.filter(a => a.businessId === branch.id)
-      const bClients = clientCounts.find(c => c.businessId === branch.id)?._count.id || 0
 
       let revenue = 0
       let commissionTotal = 0
       for (const p of bPayments) {
         const amt = Number(p.amount)
-        revenue += amt
-        const rate = p.appointment?.barber?.commission ?? 0
-        commissionTotal += amt * (rate / 100)
+        if (p.status === 'REFUNDED') {
+          revenue -= Math.abs(amt)
+        } else {
+          revenue += amt
+          const rate = typeof p.appointment?.barber?.commission === 'number' ? p.appointment.barber.commission : 40
+          commissionTotal += amt * (rate / 100)
+        }
       }
 
       const expenseTotal = bExpenses.reduce((s, e) => s + Number(e.amount), 0)
-      const profit = revenue - expenseTotal - commissionTotal
+      const bNonCommExp = bExpenses
+        .filter(e => e.category !== 'COMMISSIONS')
+        .reduce((s, e) => s + Number(e.amount), 0)
+
+      const profit = revenue - bNonCommExp - commissionTotal
       const completed = bAppointments.filter(a => a.status === 'COMPLETED').length
       const cancelled = bAppointments.filter(a => a.status === 'CANCELLED').length
+
+      const bClientKeys = new Set(
+        bAppointments
+          .filter(a => a.client)
+          .map(a => a.client?.phone?.trim() || a.client?.email?.trim() || a.client?.id)
+      )
 
       return {
         branchId: branch.id,
@@ -198,7 +242,7 @@ export async function GET(request: Request) {
         cancelledAppointments: cancelled,
         completionRate: bAppointments.length > 0 ? Math.round((completed / bAppointments.length) * 100) : 0,
         revenueShare: totalRevenue > 0 ? Math.round((revenue / totalRevenue) * 100) : 0,
-        clients: bClients
+        clients: bClientKeys.size
       }
     })
 
@@ -210,7 +254,7 @@ export async function GET(request: Request) {
         totalExpenses,
         totalCommissions,
         netProfit,
-        grossMargin: totalRevenue > 0 ? Math.round(((totalRevenue - totalExpenses) / totalRevenue) * 100) : 0,
+        grossMargin: totalRevenue - totalExpenses,
         totalAppointments,
         completedAppointments,
         cancelledAppointments,

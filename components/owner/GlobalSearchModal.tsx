@@ -24,6 +24,17 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
   const [results, setResults] = useState<SearchResultItem[]>([])
 
   useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -127,29 +138,30 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#18181b] rounded-3xl w-full max-w-xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 sm:pt-20 p-3 sm:p-4 pb-safe bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-[#18181b] rounded-2xl sm:rounded-3xl w-full max-w-xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Input Header */}
-        <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center gap-3">
-          <Search size={20} className="text-zinc-400 shrink-0 ml-2" />
+        <div className="p-3 sm:p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center gap-2 sm:gap-3">
+          <Search size={18} className="text-zinc-400 shrink-0 ml-1 sm:ml-2" />
           <input
             type="text"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por cliente, barbero, servicio o código de cita..."
-            className="w-full text-base font-bold text-zinc-900 dark:text-white outline-none placeholder:text-zinc-400 bg-transparent"
+            placeholder="Buscar por cliente, barbero, servicio o código..."
+            className="w-full text-sm sm:text-base font-bold text-zinc-900 dark:text-white outline-none placeholder:text-zinc-400 bg-transparent"
           />
           <button
             onClick={onClose}
-            className="p-2 text-zinc-400 hover:text-zinc-900 rounded-xl hover:bg-zinc-100 transition-colors"
+            className="p-1.5 sm:p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            aria-label="Cerrar búsqueda"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Results Body */}
-        <div className="max-h-96 overflow-y-auto p-4">
+        <div className="max-h-[60vh] sm:max-h-96 overflow-y-auto p-3 sm:p-4">
           {loading ? (
             <div className="py-8 text-center text-xs font-bold text-zinc-400 uppercase tracking-wider">Buscando en BarberOS...</div>
           ) : results.length > 0 ? (

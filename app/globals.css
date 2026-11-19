@@ -443,6 +443,14 @@ html {
   text-rendering: optimizeLegibility;
 }
 
+html.dark {
+  background-color: #06070a;
+}
+
+html:not(.dark) {
+  background-color: #ffffff;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -1178,15 +1186,23 @@ html.dark .wizard-step-pending {
    ════════════════════════════════════════════════════════════════════ */
 
 /* Force dark surfaces on components that don't have dark: variants */
-html.dark .bg-white:not([class*="dark:bg-"]):not(.keep-white):not(.toggle-knob):not([data-keep-light]) {
+html.dark .bg-white:not([class*="dark:bg-"]):not(.keep-white):not(.toggle-knob):not([data-keep-light]),
+html.dark .bg-white\/95:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]),
+html.dark .bg-white\/90:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]) {
   background-color: var(--surface-1) !important;
 }
 
-html.dark .bg-zinc-50:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]) {
+html.dark .bg-zinc-50:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]),
+html.dark .bg-zinc-50\/70:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]),
+html.dark .bg-zinc-50\/80:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]),
+html.dark .bg-zinc-50\/90:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]) {
   background-color: var(--surface-2) !important;
 }
 
-html.dark .bg-zinc-100:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]) {
+html.dark .bg-zinc-100:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]),
+html.dark .bg-zinc-100\/70:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]),
+html.dark .bg-zinc-100\/80:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]),
+html.dark .bg-zinc-200\/70:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-light]) {
   background-color: var(--surface-3) !important;
 }
 
@@ -1194,16 +1210,17 @@ html.dark .bg-zinc-100:not([class*="dark:bg-"]):not(.keep-white):not([data-keep-
 html.dark .border-zinc-100,
 html.dark .border-zinc-200,
 html.dark .border-zinc-200\/60,
+html.dark .border-zinc-200\/70,
 html.dark .border-zinc-200\/80,
 html.dark .border-zinc-200\/90,
 html.dark .border-zinc-300:not([class*="dark:border-"]) {
   border-color: var(--border-default) !important;
 }
 
-/* Text — Preserve hierarchy, don't just invert */
-html.dark .text-zinc-950,
-html.dark .text-zinc-900,
-html.dark .text-black:not([class*="dark:text-"]) {
+/* Text — Preserve hierarchy, don't just invert, and never clobber accent buttons */
+html.dark .text-zinc-950:not(.panel-btn-accent):not(.panel-pill-active):not(.bg-amber-400):not(.bg-amber-500):not([class*="dark:bg-amber-"]),
+html.dark .text-zinc-900:not(.panel-btn-accent):not(.panel-pill-active):not(.bg-amber-400):not(.bg-amber-500):not([class*="dark:bg-amber-"]),
+html.dark .text-black:not([class*="dark:text-"]):not(.panel-btn-accent):not(.panel-pill-active) {
   color: var(--text-primary) !important;
 }
 
@@ -1263,11 +1280,43 @@ html.dark a.bg-white:hover {
 
 /* Inputs */
 html.dark input:not([type="checkbox"]):not([type="radio"]):not([data-keep-light]),
-html.dark select:not([data-keep-light]),
+html.dark select:not([data-keep-light]):not([data-status-badge]),
 html.dark textarea:not([data-keep-light]) {
   background-color: var(--surface-1) !important;
   border-color: var(--border-default) !important;
   color: var(--text-primary) !important;
+}
+
+/* ─── Global Native Select & Option High Contrast (Light & Dark) ─── */
+select {
+  color-scheme: light;
+}
+
+select option {
+  background-color: #ffffff !important;
+  color: #09090b !important;
+}
+
+html.dark select {
+  color-scheme: dark;
+}
+
+html.dark select option {
+  background-color: #18181b !important;
+  color: #f4f4f5 !important;
+}
+
+select option:checked {
+  background-color: var(--accent, #f59e0b) !important;
+  color: #ffffff !important;
+}
+
+select option:disabled {
+  color: #a1a1aa !important;
+}
+
+html.dark select option:disabled {
+  color: #71717a !important;
 }
 
 html.dark input::placeholder,
@@ -1280,6 +1329,24 @@ html.dark select:focus,
 html.dark textarea:focus {
   border-color: var(--accent) !important;
   box-shadow: 0 0 0 3px var(--accent-light) !important;
+}
+
+/* Date & Time Picker native webkit indicators */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px;
+  margin: 0;
+  opacity: 0.95;
+  filter: contrast(1.2);
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
 /* Labels */
@@ -1388,6 +1455,20 @@ html.dark [role="dialog"] {
   box-shadow: var(--shadow-xl) !important;
 }
 
+html.dark [role="menuitem"],
+html.dark [role="option"] {
+  color: var(--text-primary) !important;
+}
+
+html.dark [role="menuitem"]:hover,
+html.dark [role="menuitem"][data-highlighted],
+html.dark [role="option"]:hover,
+html.dark [role="option"][aria-selected="true"],
+html.dark [role="option"][data-highlighted] {
+  background-color: var(--surface-2) !important;
+  color: #ffffff !important;
+}
+
 /* Toggle Knobs — Always white for visibility */
 .toggle-knob,
 [data-toggle-knob],
@@ -1455,4 +1536,152 @@ html.dark [role="dialog"] {
   .no-print { display: none !important; }
   body { background: white !important; color: black !important; }
   .animate-float, .animate-pulse-glow { animation: none !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   MOBILE & RESPONSIVE BASELINE SYSTEM
+   Safe-area insets, touch-target ergonomics, and anti-overflow guards
+   ════════════════════════════════════════════════════════════════════ */
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS Dynamic Island & Home Bar Safe Insets */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Touch Action Utility */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Hide scrollbar on mobile horizontal tabs/filters while keeping scrollability */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ZERO-FLASH THEME SWITCHING & PREMIUM MOTION SYSTEM
+   (apple-design + emil-design-eng + animate + animation-performance)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Disable CSS transitions for 2 frames while switching themes so colors snap cleanly */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition-duration: 0ms !important;
+  transition-delay: 0ms !important;
+}
+
+/* Default fallback for semantic panel accent classes before #accent-override mounts */
+.panel-btn-accent {
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.panel-btn-accent:hover {
+  background-color: var(--accent-hover, var(--accent-dark));
+  color: var(--accent-contrast);
+}
+.panel-btn-accent:active {
+  transform: scale(0.98);
+}
+
+.panel-pill-active {
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+  box-shadow: 0 2px 10px var(--accent-op30, rgba(245, 158, 11, 0.28));
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.panel-card-selected {
+  border-color: var(--accent) !important;
+  background-color: var(--accent-op15, rgba(245, 158, 11, 0.14)) !important;
+  box-shadow: 0 0 0 1px var(--accent) !important;
+}
+
+/* Subtle section entrance choreography (composite-only: opacity + translate3d) */
+@keyframes panelPageEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes panelModalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
+
+.panel-page-enter {
+  animation: panelPageEnter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.panel-modal-enter {
+  animation: panelModalEnter 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center center;
+}
+
+/* Tactile micro-interactions inside panel */
+[data-panel="owner"] button:not(:disabled) {
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 150ms ease,
+              border-color 150ms ease,
+              color 150ms ease,
+              box-shadow 150ms ease;
+}
+
+[data-panel="owner"] button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* Respect user reduced-motion preference globally */
+@media (prefers-reduced-motion: reduce) {
+  .panel-page-enter,
+  .panel-modal-enter,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in {
+    animation: none !important;
+    transform: none !important;
+  }
+  [data-panel="owner"] button:not(:disabled):active {
+    transform: none !important;
+  }
 }

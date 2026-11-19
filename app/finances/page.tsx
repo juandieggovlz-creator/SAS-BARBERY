@@ -1,7 +1,9 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import DepositSettings from '@/components/owner/DepositSettings'
 import {
   Wallet, TrendingUp, TrendingDown, Clock, AlertTriangle,
   Plus, Trash2, CheckCircle2, X, ChevronDown,
@@ -22,6 +24,7 @@ interface BarberPerf {
 interface PendingAppt {
   id: string; paymentId?: string; paymentCode?: string; reservationCode?: string; date: string; status: string; paymentStatus?: string
   clientName: string; serviceName: string; servicePrice: number; barberName: string
+  totalServicePrice?: number; depositPaidAmount?: number
 }
 
 interface Payment {
@@ -50,7 +53,7 @@ interface FinanceData {
 }
 
 type DatePreset = 'TODAY' | 'YESTERDAY' | 'EXACT_DAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'LAST_MONTH' | 'THIS_YEAR' | 'CUSTOM'
-type Tab = 'control' | 'pending' | 'movements' | 'expenses' | 'commissions' | 'closure'
+type Tab = 'control' | 'pending' | 'movements' | 'deposits' | 'expenses' | 'commissions' | 'closure'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -249,7 +252,7 @@ interface CashCloseRecord {
   observations?: string | null
 }
 
-function CashCloseHistory() {
+function CashCloseHistory({ refreshTrigger }: { refreshTrigger?: number }) {
   const [closures, setClosures] = useState<CashCloseRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<CashCloseRecord | null>(null)
@@ -260,7 +263,7 @@ function CashCloseHistory() {
       .then(d => { if (d.closures) setClosures(d.closures) })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+  }, [refreshTrigger])
 
   if (loading) {
     return (
@@ -364,8 +367,34 @@ function CashCloseHistory() {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export default function FinancesPage() {
-  const [tab, setTab] = useState<Tab>('control')
+function FinancesContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const initialTab = (searchParams?.get('tab') as Tab) || 'control'
+  const [tab, setTabState] = useState<Tab>(
+    ['control', 'pending', 'movements', 'deposits', 'expenses', 'commissions', 'closure'].includes(initialTab)
+      ? initialTab
+      : 'control'
+  )
+
+  useEffect(() => {
+    const qTab = searchParams?.get('tab') as Tab
+    if (
+      qTab &&
+      ['control', 'pending', 'movements', 'deposits', 'expenses', 'commissions', 'closure'].includes(qTab) &&
+      qTab !== tab
+    ) {
+      setTabState(qTab)
+    }
+  }, [searchParams, tab])
+
+  const setTab = (newTab: Tab) => {
+    setTabState(newTab)
+    const params = new URLSearchParams(searchParams?.toString() || '')
+    params.set('tab', newTab)
+    router.replace(`/finances?${params.toString()}`, { scroll: false })
+  }
+
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<FinanceData | null>(null)
 
@@ -408,6 +437,7 @@ export default function FinancesPage() {
   // Pending payment modal
   const [payingAppt, setPayingAppt] = useState<PendingAppt | null>(null)
   const [payMethod, setPayMethod] = useState<'CASH' | 'TRANSFER' | 'CARD' | 'OTHER'>('CASH')
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
 
   // Cierre de caja
   const [cashCounted, setCashCounted] = useState('')
@@ -415,6 +445,7 @@ export default function FinancesPage() {
   const [diffReason, setDiffReason] = useState('')
   const [showClosureConfirm, setShowClosureConfirm] = useState(false)
   const [savingClosure, setSavingClosure] = useState(false)
+  const [closureRefreshKey, setClosureRefreshKey] = useState(0)
 
   // Commissions modal & live simulator state
   const [editingBarber, setEditingBarber] = useState<BarberPerf | null>(null)
@@ -482,19 +513,26 @@ export default function FinancesPage() {
   }
 
   const handleMarkPaid = async () => {
-    if (!payingAppt) return
-    const res = await fetch('/api/finances/pending', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appointmentId: payingAppt.id, paymentMethod: payMethod })
-    })
-    if (res.ok) {
-      toast.success(`Pago registrado — ${METHOD_LABELS[payMethod]}`)
-      setPayingAppt(null)
-      fetchData()
-    } else {
-      const err = await res.json()
-      toast.error(err.error || 'Error al registrar pago')
+    if (!payingAppt || isProcessingPayment) return
+    setIsProcessingPayment(true)
+    try {
+      const res = await fetch('/api/finances/pending', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentId: payingAppt.id, paymentMethod: payMethod })
+      })
+      if (res.ok) {
+        toast.success(`Pago registrado — ${METHOD_LABELS[payMethod]}`)
+        setPayingAppt(null)
+        fetchData()
+      } else {
+        const err = await res.json()
+        toast.error(err.error || 'Error al registrar pago')
+      }
+    } catch {
+      toast.error('Error de red al registrar pago')
+    } finally {
+      setIsProcessingPayment(false)
     }
   }
 
@@ -555,6 +593,7 @@ export default function FinancesPage() {
         setCashCounted('')
         setClosureObs('')
         setDiffReason('')
+        setClosureRefreshKey(k => k + 1)
       } else {
         const err = await res.json()
         toast.error(err.error || 'Error al guardar el cierre')
@@ -631,6 +670,7 @@ export default function FinancesPage() {
     { id: 'control',     label: 'Centro de Control', icon: <BarChart3 className="w-3.5 h-3.5" /> },
     { id: 'pending',     label: `Pendientes ${data?.pendingAppointments.length ? `(${data.pendingAppointments.length})` : ''}`, icon: <Clock className="w-3.5 h-3.5" /> },
     { id: 'movements',   label: 'Movimientos',  icon: <Receipt className="w-3.5 h-3.5" /> },
+    { id: 'deposits',    label: 'Anticipos',    icon: <DollarSign className="w-3.5 h-3.5" /> },
     { id: 'expenses',    label: 'Gastos',        icon: <TrendingDown className="w-3.5 h-3.5" /> },
     { id: 'commissions', label: 'Comisiones',    icon: <Users className="w-3.5 h-3.5" /> },
     { id: 'closure',     label: 'Cierre de Caja', icon: <Wallet className="w-3.5 h-3.5" /> },
@@ -1039,13 +1079,19 @@ export default function FinancesPage() {
                         {p.paymentCode || '—'}
                       </td>
                       <td className="px-5 py-4 text-xs font-mono font-medium text-zinc-500">
-                        {p.appointment?.reservationCode || '—'}
+                        {p.status === 'REFUNDED' ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 px-2 py-0.5 rounded-md">
+                            {p.notes?.match(/REF-\d{4}-[A-Z0-9]+/)?.[0] || 'DEVOLUCIÓN'}
+                          </span>
+                        ) : (
+                          p.appointment?.reservationCode || '—'
+                        )}
                       </td>
                       <td className="px-5 py-4 text-xs text-zinc-500 font-medium">
                         {new Date(p.createdAt).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}
                       </td>
-                      <td className="px-5 py-4 text-sm font-bold text-zinc-950">{p.appointment?.client?.name || 'General'}</td>
-                      <td className="px-5 py-4 text-xs text-zinc-600 font-medium">{p.appointment?.service?.name || '—'}</td>
+                      <td className="px-5 py-4 text-sm font-bold text-zinc-950">{p.appointment?.client?.name || (p.status === 'REFUNDED' ? (p.notes?.replace(/^.*cliente\s+/i, '') || 'Devolución') : 'General')}</td>
+                      <td className="px-5 py-4 text-xs text-zinc-600 font-medium">{p.appointment?.service?.name || (p.status === 'REFUNDED' ? 'Devolución de anticipo' : '—')}</td>
                       <td className="px-5 py-4 text-xs text-zinc-600 font-medium">{p.appointment?.barber?.name || '—'}</td>
                       <td className="px-5 py-4">
                         <span className="bg-zinc-100 text-zinc-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-zinc-200/50">
@@ -1057,19 +1103,30 @@ export default function FinancesPage() {
                           (p.status === 'PAID' || p.status === 'COMPLETED') 
                             ? 'bg-emerald-100 text-emerald-800' 
                             : p.status === 'REFUNDED' 
-                            ? 'bg-red-100 text-red-800' 
+                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300' 
                             : 'bg-amber-100 text-amber-800'
                         }`}>
-                          {(p.status === 'PAID' || p.status === 'COMPLETED') ? 'Pagado' : p.status === 'REFUNDED' ? 'Reembolsado' : 'Pendiente'}
+                          {(p.status === 'PAID' || p.status === 'COMPLETED') ? 'Pagado' : p.status === 'REFUNDED' ? 'Devuelto' : 'Pendiente'}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-sm font-black text-emerald-600">{formatCOP(p.amount)}</td>
+                      <td className={`px-5 py-4 text-sm font-black ${p.status === 'REFUNDED' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        {p.status === 'REFUNDED' ? `-${formatCOP(p.amount)}` : formatCOP(p.amount)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════
+          TAB — ANTICIPOS Y SEÑAS DE RESERVA
+      ════════════════════════════════════════ */}
+      {tab === 'deposits' && (
+        <div className="space-y-4 animate-fadeIn">
+          <DepositSettings />
         </div>
       )}
 
@@ -1774,7 +1831,7 @@ export default function FinancesPage() {
               </div>
 
               {/* Historial de Cierres */}
-              <CashCloseHistory />
+              <CashCloseHistory refreshTrigger={closureRefreshKey} />
             </div>
           </div>
         </div>
@@ -1856,19 +1913,38 @@ export default function FinancesPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="bg-zinc-50 rounded-xl p-4 mb-5 space-y-1">
+            <div className="bg-zinc-50 dark:bg-zinc-900 rounded-xl p-4 mb-5 space-y-1.5 border border-zinc-100 dark:border-zinc-800">
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-500">Servicio</span>
-                <span className="font-bold text-zinc-950">{payingAppt.serviceName}</span>
+                <span className="font-bold text-zinc-950 dark:text-white">{payingAppt.serviceName}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-500">Barbero</span>
-                <span className="font-bold text-zinc-950">{payingAppt.barberName}</span>
+                <span className="font-bold text-zinc-950 dark:text-white">{payingAppt.barberName}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">Valor</span>
-                <span className="font-black text-emerald-600">{formatCOP(payingAppt.servicePrice)}</span>
-              </div>
+              {(payingAppt.depositPaidAmount || 0) > 0 ? (
+                <>
+                  <div className="flex justify-between text-xs pt-1 border-t border-zinc-200 dark:border-zinc-800">
+                    <span className="text-zinc-500">Total Servicio</span>
+                    <span className="font-bold text-zinc-700 dark:text-zinc-300">
+                      {formatCOP(payingAppt.totalServicePrice || (payingAppt.servicePrice + (payingAppt.depositPaidAmount || 0)))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-amber-600 font-medium">Anticipo Previo Verificado</span>
+                    <span className="font-black text-amber-600">-{formatCOP(payingAppt.depositPaidAmount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm pt-1 border-t border-zinc-200 dark:border-zinc-800">
+                    <span className="font-black text-zinc-900 dark:text-white">Saldo a Cobrar Hoy</span>
+                    <span className="font-black text-emerald-600 dark:text-emerald-400 text-base">{formatCOP(payingAppt.servicePrice)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between text-sm pt-1 border-t border-zinc-200 dark:border-zinc-800">
+                  <span className="text-zinc-500">Valor a Cobrar</span>
+                  <span className="font-black text-emerald-600 dark:text-emerald-400 text-base">{formatCOP(payingAppt.servicePrice)}</span>
+                </div>
+              )}
             </div>
             <div className="mb-5">
               <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Método de pago</label>
@@ -1889,8 +1965,29 @@ export default function FinancesPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setPayingAppt(null)} className="flex-1 py-2.5 rounded-xl border-2 border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50 transition-colors">Cancelar</button>
-              <button onClick={handleMarkPaid} className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors">Confirmar Cobro</button>
+              <button
+                type="button"
+                disabled={isProcessingPayment}
+                onClick={() => setPayingAppt(null)}
+                className="flex-1 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isProcessingPayment}
+                onClick={handleMarkPaid}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isProcessingPayment ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Procesando...</span>
+                  </>
+                ) : (
+                  <span>Confirmar Cobro</span>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -1969,7 +2066,7 @@ export default function FinancesPage() {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowExpenseModal(false)} className="flex-1 py-3 rounded-xl border-2 border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50 transition-colors">Cancelar</button>
-                <button type="submit" disabled={savingExpense || !expenseForm.concept || !expenseForm.amount} className="flex-1 py-3 rounded-xl bg-black text-white text-sm font-bold hover:bg-zinc-800 disabled:opacity-40 transition-colors">
+                <button type="submit" disabled={savingExpense || !expenseForm.concept || !expenseForm.amount} className="flex-1 py-3 rounded-xl panel-btn-accent text-sm font-bold disabled:opacity-40 transition-all shadow-md active:scale-95 cursor-pointer">
                   {savingExpense ? 'Guardando...' : 'Registrar Gasto'}
                 </button>
               </div>
@@ -2114,5 +2211,20 @@ export default function FinancesPage() {
       </>
       )}
     </div>
+  )
+}
+
+export default function FinancesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center py-24 gap-3">
+          <div className="w-8 h-8 border-2 border-zinc-200 border-t-black rounded-full animate-spin" />
+          <span className="text-sm text-zinc-400 font-medium">Cargando Finanzas...</span>
+        </div>
+      }
+    >
+      <FinancesContent />
+    </Suspense>
   )
 }

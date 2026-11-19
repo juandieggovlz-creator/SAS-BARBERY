@@ -2,6 +2,12 @@ import { getPublicPageUrl } from '@/lib/url'
 import { prisma } from '../prisma'
 import { MetaCloudProvider } from './meta-provider'
 import { WhatsAppSendResult } from './types'
+import { resolveAppointmentFinancials } from '@/lib/booking/booking-metadata'
+import { safeDecryptToken } from '@/lib/crypto'
+import {
+  formatPaymentMethodsSummary,
+  parseBusinessDepositConfig,
+} from '@/lib/booking/deposit-config'
 
 export const DEFAULT_CONFIRM_TEMPLATE = `👋 ¡Hola *{clientName}*!
 Tu reserva en *{businessName}* ha sido confirmada con éxito 💈✂️
@@ -190,9 +196,14 @@ export class WhatsAppService {
         return { success: false, error: 'Faltan credenciales de Meta Cloud API (Phone Number ID o Access Token)' }
       }
 
+      const decryptedAccessToken = safeDecryptToken(integration.metaAccessToken)
+      if (!decryptedAccessToken) {
+        return { success: false, error: 'No se pudo descifrar el Access Token de Meta' }
+      }
+
       const result = await MetaCloudProvider.sendTextMessage({
         phoneNumberId: integration.metaPhoneNumberId,
-        accessToken: integration.metaAccessToken,
+        accessToken: decryptedAccessToken,
         to: normalizedTo,
         text
       })
@@ -255,14 +266,27 @@ export class WhatsAppService {
         return { success: false, error: 'Integración Meta WhatsApp inactiva o no configurada' }
       }
 
-      // Deduplicación: no enviar confirmación duplicada si ya se envió exitosamente para esta cita
+      const financials = resolveAppointmentFinancials(appt)
+      const depositConfig = parseBusinessDepositConfig(appt.business)
+      const requiresDeposit = financials.depositRequired > 0
+      const isDepositApproved = financials.isDepositApproved
+
+      const confirmationTag =
+        requiresDeposit && !isDepositApproved
+          ? 'CONFIRMATION_HOLD'
+          : 'CONFIRMATION_APPROVED'
+
+      // Deduplicación por etapa (reserva temporal vs confirmación definitiva)
       const existingSentLog = await prisma.whatsAppMessageLog.findFirst({
         where: {
           appointmentId: appt.id,
           direction: 'OUTBOUND',
           status: 'SENT',
-          messageBody: { contains: 'confirmada' }
-        }
+          rawPayload: {
+            path: ['tag'],
+            equals: confirmationTag,
+          },
+        },
       })
 
       if (existingSentLog) {
@@ -276,30 +300,55 @@ export class WhatsAppService {
 
       const { formattedDate, formattedTime } = this.formatDateTime(new Date(appt.date))
       const reservationUrl = getPublicPageUrl(appt.business.slug)
-      const templateToUse = integration.confirmTemplate || DEFAULT_CONFIRM_TEMPLATE
+      const serviceDisplay = financials.serviceNamesJoined || appt.service.name
+      const totalPriceDisplay = `$${Number(financials.totalPrice).toLocaleString('es-CO')}`
 
-      const renderedBody = this.renderTemplate(templateToUse, {
-        clientName: appt.client.name,
-        cliente: appt.client.name,
-        businessName: appt.business.name,
-        barberia: appt.business.name,
-        barberName: appt.barber?.name || 'Cualquier barbero disponible',
-        barbero: appt.barber?.name || 'Cualquier barbero disponible',
-        serviceName: appt.service.name,
-        servicio: appt.service.name,
-        price: `$${Number(appt.service.price).toLocaleString('es-CO')}`,
-        precio: `$${Number(appt.service.price).toLocaleString('es-CO')}`,
-        date: formattedDate,
-        fecha: formattedDate,
-        time: formattedTime,
-        hora: formattedTime,
-        dateTime: `${formattedDate} a las ${formattedTime}`,
-        fecha_hora: `${formattedDate} a las ${formattedTime}`,
-        reservationCode: appt.reservationCode,
-        codigo: appt.reservationCode,
-        bookingLink: reservationUrl,
-        enlace_agenda: reservationUrl
-      })
+      let renderedBody = ''
+      if (requiresDeposit && !isDepositApproved) {
+        const methodsText = formatPaymentMethodsSummary(depositConfig)
+        renderedBody = `👋 ¡Hola *${appt.client.name}*!
+Hemos creado tu *reserva temporal* en *${appt.business.name}* 💈✂️
+
+📅 *Fecha:* ${formattedDate}
+⏰ *Hora:* ${formattedTime}
+💈 *Barbero:* ${appt.barber?.name || 'Asignado'}
+💇‍♂️ *Servicio:* ${serviceDisplay}
+💰 *Total:* ${totalPriceDisplay}
+💳 *Anticipo requerido:* $${Number(financials.depositRequired).toLocaleString('es-CO')}
+💵 *Saldo restante en barbería:* $${Number(financials.remainingBalance).toLocaleString('es-CO')}
+🔖 *Código de reserva:* ${appt.reservationCode}
+
+${methodsText ? `📌 *Medios de pago autorizados:*\n${methodsText}\n\n` : ''}⏳ *Importante:* Tu horario está protegido por *${depositConfig.paymentMethods.holdMinutes || 30} minutos*. Envía tu comprobante por este chat o adjúntalo en:
+${reservationUrl}`
+      } else {
+        const templateToUse = integration.confirmTemplate || DEFAULT_CONFIRM_TEMPLATE
+        renderedBody = this.renderTemplate(templateToUse, {
+          clientName: appt.client.name,
+          cliente: appt.client.name,
+          businessName: appt.business.name,
+          barberia: appt.business.name,
+          barberName: appt.barber?.name || 'Cualquier barbero disponible',
+          barbero: appt.barber?.name || 'Cualquier barbero disponible',
+          serviceName: serviceDisplay,
+          servicio: serviceDisplay,
+          price: totalPriceDisplay,
+          precio: totalPriceDisplay,
+          date: formattedDate,
+          fecha: formattedDate,
+          time: formattedTime,
+          hora: formattedTime,
+          dateTime: `${formattedDate} a las ${formattedTime}`,
+          fecha_hora: `${formattedDate} a las ${formattedTime}`,
+          reservationCode: appt.reservationCode,
+          codigo: appt.reservationCode,
+          bookingLink: reservationUrl,
+          enlace_agenda: reservationUrl,
+        })
+
+        if (requiresDeposit && isDepositApproved) {
+          renderedBody += `\n\n✅ *Anticipo verificado:* $${Number(financials.depositPaidAmount).toLocaleString('es-CO')}\n💵 *Saldo pendiente en barbería:* $${Number(financials.remainingBalance).toLocaleString('es-CO')}`
+        }
+      }
 
       // 1. Envío al cliente
       const clientResult = await this.sendDirectMessage({
@@ -307,7 +356,7 @@ export class WhatsAppService {
         to: clientPhone,
         text: renderedBody,
         appointmentId: appt.id,
-        tag: 'CONFIRMATION'
+        tag: confirmationTag,
       })
 
       // 2. Notificación interna opcional al teléfono del negocio

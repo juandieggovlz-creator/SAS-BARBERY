@@ -15,8 +15,11 @@ interface Barber {
   phone?: string | null
   createdAt: string
   user?: {
+    id?: string
     email: string
     inviteToken: string | null
+    inviteExpires?: string | null
+    isActive?: boolean
     password: string | null
   }
 }
@@ -85,8 +88,11 @@ export default function BarbersPage() {
       if (res.ok) {
         setName(''); setEmail(''); setAvatar(''); setSpecialty(''); setShowForm(false)
         fetchBarbers()
-        toast.success('Barbero registrado. Pulsa "Activar Dashboard" para habilitar su acceso y generar su link.')
-      } else { toast.error(data.error || 'Error al registrar') }
+        if (data.inviteLink) {
+          setLastInviteLink(data.inviteLink)
+        }
+        toast.success('¡Barbero registrado! Invitación enviada por correo y enlace disponible.')
+      } else { toast.error(data.error || 'Error al registrar barbero') }
     } catch { toast.error('Error de red') }
     finally { setLoading(false) }
   }
@@ -239,12 +245,39 @@ export default function BarbersPage() {
 
   const confirmDelete = async () => {
     if (!barberToDelete) return
-    const promise = fetch(`/api/barbers/${barberToDelete.id}`, { method: 'DELETE' })
-    toast.promise(promise, {
-      loading: 'Eliminando barbero...',
-      success: () => { fetchBarbers(); setBarberToDelete(null); return 'Barbero eliminado' },
-      error: () => { setBarberToDelete(null); return 'Error al eliminar' }
+    const promise = async () => {
+      const res = await fetch(`/api/barbers/${barberToDelete.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al procesar la solicitud')
+      fetchBarbers()
+      setBarberToDelete(null)
+      return data.message || 'Barbero procesado correctamente'
+    }
+    toast.promise(promise(), {
+      loading: 'Procesando barbero...',
+      success: (msg) => String(msg),
+      error: (e: Error) => e.message
     })
+  }
+
+  const handleRevokeInvite = async (id: string) => {
+    if (!confirm('¿Seguro que deseas revocar esta invitación? El enlace quedará sin efecto de inmediato.')) return
+    try {
+      const res = await fetch('/api/barbers/invite', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message || 'Invitación revocada con éxito')
+        fetchBarbers()
+      } else {
+        toast.error(data.error || 'Error al revocar la invitación')
+      }
+    } catch {
+      toast.error('Error de red al revocar la invitación')
+    }
   }
 
   const toggleStatus = async (id: string, current: string) => {
@@ -255,13 +288,17 @@ export default function BarbersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       })
-      if (res.ok) { toast.success(newStatus === 'ACTIVE' ? 'Barbero activado' : 'Barbero desactivado'); fetchBarbers() }
-      else toast.error('Error al cambiar estado')
+      if (res.ok) { 
+        toast.success(newStatus === 'ACTIVE' ? 'Barbero activado' : 'Barbero desactivado y acceso suspendido')
+        fetchBarbers() 
+      } else {
+        toast.error('Error al cambiar estado')
+      }
     } catch { toast.error('Error de red') }
   }
 
   const handleResetAccess = async (id: string) => {
-    if (!confirm('¿Generar nuevo enlace de acceso? El anterior quedará inválido.')) return
+    if (!confirm('¿Generar y enviar un nuevo enlace de invitación por correo? El anterior quedará inválido.')) return
     const promise = async () => {
       const res = await fetch(`/api/barbers/invite`, {
         method: 'PUT',
@@ -275,8 +312,8 @@ export default function BarbersPage() {
       return data
     }
     toast.promise(promise(), {
-      loading: 'Generando enlace...',
-      success: 'Nuevo enlace generado',
+      loading: 'Generando y despachando invitación...',
+      success: 'Nuevo enlace generado y enviado por correo',
       error: (e: Error) => e.message
     })
   }
@@ -398,7 +435,7 @@ export default function BarbersPage() {
         ) : (
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-black dark:bg-zinc-800 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-zinc-800 dark:hover:bg-zinc-700 transition-all active:scale-95 shadow-lg cursor-pointer"
+            className="flex items-center gap-2 panel-btn-accent px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-lg cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
             Registrar Barbero
@@ -549,112 +586,119 @@ export default function BarbersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                      barber.user?.password
-                        ? 'bg-blue-100 text-blue-700'
-                        : barber.status === 'ACTIVE'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {barber.user?.password 
-                        ? '✓ Configurado' 
-                        : barber.status === 'ACTIVE' 
-                        ? '⚡ Dashboard Activo' 
-                        : '⏳ Sin Activar'}
-                    </span>
+                    {(() => {
+                      const hasPw = Boolean(barber.user?.password)
+                      const token = barber.user?.inviteToken
+                      const expires = barber.user?.inviteExpires ? new Date(barber.user.inviteExpires) : null
+                      const isExpired = expires ? new Date() > expires : false
+
+                      if (hasPw) {
+                        return (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            ✓ Cuenta Activa
+                          </span>
+                        )
+                      }
+                      if (token) {
+                        if (isExpired) {
+                          return (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-rose-100 text-rose-700">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                              ⚠️ Invitación Vencida
+                            </span>
+                          )
+                        }
+                        return (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-800">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                            ✉️ Pendiente (48h)
+                          </span>
+                        )
+                      }
+                      return (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-zinc-100 text-zinc-400">
+                          ⏳ Sin Invitación
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      {/* Botón Activar Dashboard si está PENDING */}
-                      {barber.status === 'PENDING' && (
-                        <button
-                          onClick={() => handleActivateDashboard(barber.id)}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-amber-500/20 active:scale-95"
-                          title="Activar cuenta del barbero y generar enlace de acceso al dashboard"
-                        >
-                          <Zap className="w-3.5 h-3.5" />
-                          <span>Activar Dashboard</span>
-                        </button>
-                      )}
-
-                      {/* Botón Entrar si está ACTIVE */}
-                      {barber.status === 'ACTIVE' && (
-                        <button
-                          onClick={() => handleEnterAsBarber(barber.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-black text-white text-xs font-bold transition-all shadow-sm active:scale-95"
-                          title="Entrar directamente al panel de este barbero como supervisor"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>Entrar</span>
-                        </button>
-                      )}
-
-                      {/* Botón Reactivar si está INACTIVE */}
+                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                      {/* Si está INACTIVE: Botón Reactivar */}
                       {barber.status === 'INACTIVE' && (
                         <button
-                          onClick={() => handleActivateDashboard(barber.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm active:scale-95"
-                          title="Reactivar dashboard del barbero"
+                          onClick={() => toggleStatus(barber.id, barber.status)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+                          title="Reactivar acceso del barbero"
                         >
                           <Zap className="w-3.5 h-3.5" />
                           <span>Reactivar</span>
                         </button>
                       )}
 
-                      {/* Botón de Copiar Link de Acceso */}
+                      {/* Si está ACTIVE: Botón Entrar */}
+                      {barber.status === 'ACTIVE' && (
+                        <button
+                          onClick={() => handleEnterAsBarber(barber.id)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-black text-white text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+                          title="Entrar al panel de este barbero como supervisor"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Entrar</span>
+                        </button>
+                      )}
+
+                      {/* Botón de Copiar Link de Invitación */}
+                      {barber.user?.inviteToken && (
+                        <button
+                          onClick={() => {
+                            const link = getBarberInviteUrl(barber.user!.inviteToken!)
+                            setLastInviteLink(link)
+                            copyLink(link)
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold transition-all border border-zinc-200 active:scale-95 cursor-pointer"
+                          title="Copiar enlace de invitación seguro (48 horas)"
+                        >
+                          <LinkIcon className="w-3.5 h-3.5 text-zinc-600" />
+                          <span>Copiar Link</span>
+                        </button>
+                      )}
+
+                      {/* Reenviar Invitación por Correo */}
                       <button
-                        onClick={async () => {
-                          let token = barber.user?.inviteToken
-                          if (!token) {
-                            try {
-                              const res = await fetch(`/api/barbers/${barber.id}/activate`, { method: 'POST' })
-                              const data = await res.json()
-                              if (data.inviteLink) {
-                                setLastInviteLink(data.inviteLink)
-                                copyLink(data.inviteLink)
-                                fetchBarbers()
-                                return
-                              }
-                            } catch {
-                              // fallback
-                            }
-                          }
-                          const link = getBarberInviteUrl(token || barber.id)
-                          setLastInviteLink(link)
-                          copyLink(link)
-                        }}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold transition-all border border-zinc-200 active:scale-95"
-                        title="Copiar enlace de acceso directo al dashboard de este barbero"
+                        onClick={() => handleResetAccess(barber.id)}
+                        className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 transition-all cursor-pointer"
+                        title={barber.user?.inviteToken ? "Reenviar correo de invitación" : "Generar y enviar nueva invitación"}
                       >
-                        <LinkIcon className="w-3.5 h-3.5 text-zinc-600" />
-                        <span>Link</span>
+                        <RefreshCw className="w-3.5 h-3.5" />
                       </button>
+
+                      {/* Revocar Invitación si hay token pendiente */}
+                      {barber.user?.inviteToken && !barber.user?.password && (
+                        <button
+                          onClick={() => handleRevokeInvite(barber.id)}
+                          className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 transition-all cursor-pointer"
+                          title="Revocar invitación pendiente"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
 
                       {/* Botón Editar */}
                       <button
                         onClick={() => openEditModal(barber)}
-                        className="p-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-950 transition-all"
+                        className="p-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-950 transition-all cursor-pointer"
                         title="Editar información y foto"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
 
-                      {/* Regenerar Acceso (Solo si está activo) */}
-                      {barber.status === 'ACTIVE' && (
-                        <button
-                          onClick={() => handleResetAccess(barber.id)}
-                          className="p-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900 transition-all"
-                          title="Generar nuevo enlace de invitación/acceso"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-
-                      {/* Toggle Estado (Pausar si está activo) */}
+                      {/* Pausar si está activo */}
                       {barber.status === 'ACTIVE' && (
                         <button
                           onClick={() => toggleStatus(barber.id, barber.status)}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border border-zinc-200 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+                          className="px-2 py-1.5 rounded-lg text-xs font-bold transition-all border border-zinc-200 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 cursor-pointer"
                           title="Pausar barbero temporalmente"
                         >
                           Pausar
@@ -664,8 +708,8 @@ export default function BarbersPage() {
                       {/* Eliminar */}
                       <button
                         onClick={() => setBarberToDelete(barber)}
-                        className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-all"
-                        title="Eliminar"
+                        className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-all cursor-pointer"
+                        title="Eliminar o desactivar barbero"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -695,21 +739,21 @@ export default function BarbersPage() {
           <div className="bg-white dark:bg-[#121215] rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-100 dark:border-zinc-800">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
-                  <UserPlus className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 panel-btn-accent rounded-xl flex items-center justify-center">
+                  <UserPlus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-zinc-950">Registrar Barbero</h3>
+                  <h3 className="font-black text-zinc-950 dark:text-white">Registrar Barbero</h3>
                   <p className="text-xs text-zinc-400">Se enviará un enlace de invitación</p>
                 </div>
               </div>
-              <button onClick={() => setShowForm(false)} className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors">
+              <button onClick={() => setShowForm(false)} className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Nombre Completo *</label>
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5">Nombre Completo *</label>
                 <input
                   autoFocus
                   required
@@ -717,33 +761,33 @@ export default function BarbersPage() {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="Ej. Carlos Ruiz"
-                  className="w-full px-4 py-3 border-2 border-zinc-200 rounded-xl text-sm font-semibold text-zinc-950 outline-none focus:border-zinc-900 bg-white transition-colors placeholder:text-zinc-300"
+                  className="w-full px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-semibold text-zinc-950 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-amber-400 bg-white dark:bg-[#18181b] transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Correo Electrónico *</label>
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5">Correo Electrónico *</label>
                 <input
                   required
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="barbero@email.com"
-                  className="w-full px-4 py-3 border-2 border-zinc-200 rounded-xl text-sm font-semibold text-zinc-950 outline-none focus:border-zinc-900 bg-white transition-colors placeholder:text-zinc-300"
+                  className="w-full px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-semibold text-zinc-950 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-amber-400 bg-white dark:bg-[#18181b] transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Especialidad (opcional)</label>
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5">Especialidad (opcional)</label>
                 <input
                   type="text"
                   value={specialty}
                   onChange={e => setSpecialty(e.target.value)}
                   placeholder="Ej. Master Fade & Barba"
-                  className="w-full px-4 py-3 border-2 border-zinc-200 rounded-xl text-sm font-semibold text-zinc-950 outline-none focus:border-zinc-900 bg-white transition-colors placeholder:text-zinc-300"
+                  className="w-full px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-semibold text-zinc-950 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-amber-400 bg-white dark:bg-[#18181b] transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Foto de Perfil (opcional)</label>
-                <div className="flex items-center gap-3 p-3 bg-zinc-50 border-2 border-zinc-200 rounded-xl">
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Foto de Perfil (opcional)</label>
+                <div className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl">
                   <div className="w-12 h-12 rounded-xl bg-zinc-950 text-white relative overflow-hidden flex items-center justify-center shrink-0 border border-zinc-200 shadow-2xs">
                     {avatar ? (
                       <img src={avatar} alt={name || 'Barbero'} className="w-full h-full object-cover" />
@@ -804,8 +848,8 @@ export default function BarbersPage() {
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl border-2 border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50 transition-colors">Cancelar</button>
-                <button type="submit" disabled={!name || !email || loading} className="flex-1 py-3 rounded-xl bg-black text-white text-sm font-bold hover:bg-zinc-800 disabled:opacity-40 transition-colors">
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">Cancelar</button>
+                <button type="submit" disabled={!name || !email || loading} className="flex-1 py-3 rounded-xl panel-btn-accent text-sm font-bold disabled:opacity-40 transition-all shadow-sm cursor-pointer">
                   {loading ? 'Generando...' : 'Generar Invitación'}
                 </button>
               </div>
@@ -820,43 +864,43 @@ export default function BarbersPage() {
           <div className="bg-white dark:bg-[#121215] rounded-2xl p-6 w-full max-w-md shadow-2xl border border-zinc-100 dark:border-zinc-800">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
-                  <Pencil className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 panel-btn-accent rounded-xl flex items-center justify-center">
+                  <Pencil className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-zinc-950">Editar Barbero</h3>
+                  <h3 className="font-black text-zinc-950 dark:text-white">Editar Barbero</h3>
                   <p className="text-xs text-zinc-400">Modifica nombre, especialidad o foto de perfil</p>
                 </div>
               </div>
-              <button onClick={() => setEditingBarber(null)} className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700 transition-colors">
+              <button onClick={() => setEditingBarber(null)} className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Nombre Completo *</label>
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5">Nombre Completo *</label>
                 <input
                   required
                   type="text"
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
                   placeholder="Ej. Carlos Ruiz"
-                  className="w-full px-4 py-3 border-2 border-zinc-200 rounded-xl text-sm font-semibold text-zinc-950 outline-none focus:border-zinc-900 bg-white transition-colors placeholder:text-zinc-300"
+                  className="w-full px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-semibold text-zinc-950 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-amber-400 bg-white dark:bg-[#18181b] transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1.5">Especialidad</label>
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5">Especialidad</label>
                 <input
                   type="text"
                   value={editSpecialty}
                   onChange={e => setEditSpecialty(e.target.value)}
                   placeholder="Ej. Master Fade & Barba"
-                  className="w-full px-4 py-3 border-2 border-zinc-200 rounded-xl text-sm font-semibold text-zinc-950 outline-none focus:border-zinc-900 bg-white transition-colors placeholder:text-zinc-300"
+                  className="w-full px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-semibold text-zinc-950 dark:text-white outline-none focus:border-zinc-900 dark:focus:border-amber-400 bg-white dark:bg-[#18181b] transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Foto de Perfil</label>
-                <div className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 rounded-xl">
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Foto de Perfil</label>
+                <div className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl">
                   <div className="w-14 h-14 rounded-xl bg-zinc-950 text-white relative overflow-hidden flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-700 shadow-sm">
                     {editAvatar ? (
                       <img src={editAvatar} alt={editName || 'Barbero'} className="w-full h-full object-cover" />
@@ -918,8 +962,8 @@ export default function BarbersPage() {
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setEditingBarber(null)} className="flex-1 py-3 rounded-xl border-2 border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50 transition-colors">Cancelar</button>
-                <button type="submit" disabled={!editName || loading} className="flex-1 py-3 rounded-xl bg-black text-white text-sm font-bold hover:bg-zinc-800 disabled:opacity-40 transition-colors">
+                <button type="button" onClick={() => setEditingBarber(null)} className="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">Cancelar</button>
+                <button type="submit" disabled={!editName || loading} className="flex-1 py-3 rounded-xl panel-btn-accent text-sm font-bold disabled:opacity-40 transition-all shadow-sm cursor-pointer">
                   {loading ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
               </div>
@@ -933,19 +977,19 @@ export default function BarbersPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-[#121215] rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-zinc-100 dark:border-zinc-800">
             <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
-                <Trash2 className="w-5 h-5 text-red-600" />
+              <div className="w-12 h-12 bg-red-100 dark:bg-red-950/60 rounded-xl flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="font-black text-zinc-950 mb-1">¿Eliminar barbero?</h3>
-                <p className="text-sm text-zinc-500">
-                  Se eliminará a <strong className="text-zinc-700">{barberToDelete.name}</strong> y su acceso. Esta acción es irreversible.
+                <h3 className="font-black text-zinc-950 dark:text-white mb-1">¿Eliminar barbero?</h3>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Se eliminará a <strong className="text-zinc-700 dark:text-zinc-200">{barberToDelete.name}</strong> y su acceso. Esta acción es irreversible.
                 </p>
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setBarberToDelete(null)} className="flex-1 py-2.5 rounded-xl border-2 border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50 transition-colors">Cancelar</button>
-              <button onClick={confirmDelete} className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors">Sí, eliminar</button>
+              <button onClick={() => setBarberToDelete(null)} className="flex-1 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">Cancelar</button>
+              <button onClick={confirmDelete} className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors cursor-pointer shadow-sm">Sí, eliminar</button>
             </div>
           </div>
         </div>

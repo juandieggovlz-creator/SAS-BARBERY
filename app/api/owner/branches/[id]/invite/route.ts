@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { getCanonicalAppUrl } from '@/lib/url'
+import { sendBranchAdminInviteEmail } from '@/lib/email'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -176,6 +177,16 @@ export async function POST(request: Request, context: RouteContext) {
     }).catch(err => console.warn('AuditLog error:', err))
 
     const inviteUrl = `${getCanonicalAppUrl()}/invite/${token}`
+
+    // Disparo asíncrono no bloqueante de invitación por correo
+    sendBranchAdminInviteEmail({
+      to: cleanEmail,
+      branchName: branch.name,
+      companyName: branch.company.name,
+      inviteLink: inviteUrl
+    }).catch(err => {
+      console.warn('Aviso: Envío de correo a administrador de sede diferido o simulado:', err)
+    })
 
     return NextResponse.json({
       success: true,

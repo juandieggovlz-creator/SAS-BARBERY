@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { recordAuditLog } from '@/lib/audit'
+import { getEffectiveSubscription, canAddBranch } from '@/lib/commercial-permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -100,10 +101,19 @@ export async function GET() {
       }
     } catch {}
 
-    const isMultiBranchAllowed = Boolean(company.plan?.allowsMultiBranch) || hasBranchException
-    const maxBranches = hasBranchException
-      ? Math.max(company.maxBranches || 1, exData?.maxBranches || 5)
-      : (company.plan?.allowsMultiBranch ? (company.maxBranches || 5) : 1)
+    const mainBranch = branches.find(b => b.isMainBranch) || branches[0]
+    const effectiveSub = mainBranch ? await getEffectiveSubscription(mainBranch.id).catch(() => null) : null
+
+    const isMultiBranchAllowed = effectiveSub
+      ? effectiveSub.permissions.canUseMultiBranch
+      : (Boolean(company.plan?.allowsMultiBranch) || hasBranchException)
+
+    const maxBranches = effectiveSub
+      ? effectiveSub.limits.maxBranches
+      : (hasBranchException
+          ? Math.max(company.maxBranches || 1, exData?.maxBranches || 5)
+          : (company.plan?.allowsMultiBranch ? (company.maxBranches || 2) : 1))
+
     const canCreateMore = isMultiBranchAllowed && branches.length < maxBranches
 
     return NextResponse.json({
@@ -188,31 +198,20 @@ export async function POST(request: Request) {
       }
     } catch {}
 
-    // 1. Validar que el plan admita multisedes (con excepción)
-    if (!company.plan?.allowsMultiBranch && !hasBranchException && session.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({
-        error: 'Tu plan actual no permite agregar sedes adicionales. Se requiere el Plan Premium VIP.',
-        upgradeRequired: true
-      }, { status: 403 })
-    }
-
-    // 2. Validar límite de sedes contratadas (respetando excepción)
-    const currentBranchesCount = await prisma.business.count({
-      where: { companyId: company.id }
-    })
-
-    const effectiveMaxBranches = hasBranchException
-      ? Math.max(company.maxBranches || 1, exData?.maxBranches || 5)
-      : (company.maxBranches || 1)
-
-    if (currentBranchesCount >= effectiveMaxBranches && session.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({
-        error: `Has alcanzado el límite de ${effectiveMaxBranches} sedes contratadas. Puedes habilitar cupos adicionales por $${Number(company.additionalBranchPrice).toLocaleString('es-CO')} COP/mes desde tu suscripción.`,
-        limitReached: true,
-        currentCount: currentBranchesCount,
-        maxAllowed: effectiveMaxBranches,
-        additionalBranchPrice: Number(company.additionalBranchPrice)
-      }, { status: 403 })
+    // 1. Validar permisos y límites reales mediante motor comercial central
+    const targetBizId = session.businessId || (await prisma.business.findFirst({ where: { companyId: company.id }, select: { id: true } }))?.id
+    if (targetBizId) {
+      const branchCheck = await canAddBranch(targetBizId)
+      if (!branchCheck.allowed) {
+        return NextResponse.json({
+          error: branchCheck.reason || 'Tu plan actual no permite agregar más sedes.',
+          upgradeRequired: branchCheck.maxAllowed <= 1,
+          limitReached: branchCheck.currentCount >= branchCheck.maxAllowed,
+          currentCount: branchCheck.currentCount,
+          maxAllowed: branchCheck.maxAllowed,
+          additionalBranchPrice: Number(company.additionalBranchPrice)
+        }, { status: 403 })
+      }
     }
 
     // 3. Procesar datos del formulario

@@ -1,5 +1,5 @@
 import { getCanonicalAppUrl } from '@/lib/url'
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -16,6 +16,16 @@ const geistMono = Geist_Mono({
 });
 
 const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://barberos.app';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
+  ],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(appBaseUrl),
@@ -36,23 +46,39 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "sonner";
-import { ThemeProvider } from "@/lib/theme";
+import { cookies } from "next/headers";
+import { ThemeProvider, themeInitScript, Theme } from "@/lib/theme";
+import { accentInitScript } from "@/lib/accent-colors";
 import CookieConsentBanner from "@/components/ui/CookieConsentBanner";
+import OfflineDetector from "@/components/errors/OfflineDetector";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const savedTheme = cookieStore.get('barberos-theme')?.value;
+  // Regla del sistema: 'dark' es el tema predeterminado para cualquier visitante nuevo.
+  const initialTheme: Theme = savedTheme === 'light' ? 'light' : 'dark';
+  const isDark = initialTheme === 'dark';
+
   return (
     <html
       lang="es"
       suppressHydrationWarning
-      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} h-full antialiased ${isDark ? 'dark' : ''}`}
+      data-theme={initialTheme}
+      style={{ colorScheme: initialTheme }}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: accentInitScript }} />
+      </head>
       <body suppressHydrationWarning className="min-h-full flex flex-col bg-[#f8fafc] dark:bg-[#09090b]">
-        <ThemeProvider>
+        <ThemeProvider initialTheme={initialTheme}>
           {children}
+          <OfflineDetector />
           <CookieConsentBanner />
           <Toaster position="top-right" richColors closeButton duration={4000} visibleToasts={3} />
         </ThemeProvider>

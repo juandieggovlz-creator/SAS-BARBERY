@@ -10,7 +10,11 @@ import {
   RefreshCw,
   X,
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Mail,
+  Copy,
+  Check,
+  ExternalLink
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -46,6 +50,16 @@ export default function BarberSupportPage() {
 
   const [replyMessage, setReplyMessage] = useState('')
   const [sending, setSending] = useState(false)
+  const [copiedEmail, setCopiedEmail] = useState(false)
+
+  const handleCopyEmail = () => {
+    navigator.clipboard.writeText('barberos.contacto@gmail.com')
+    setCopiedEmail(true)
+    toast.success('Correo copiado al portapapeles', {
+      description: 'barberos.contacto@gmail.com'
+    })
+    setTimeout(() => setCopiedEmail(false), 2000)
+  }
 
   const fetchTickets = async () => {
     setLoading(true)
@@ -168,11 +182,56 @@ export default function BarberSupportPage() {
 
           <button
             onClick={() => setModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-black hover:bg-zinc-800 text-white rounded-2xl text-xs font-black uppercase tracking-wider shadow-md cursor-pointer"
+            className="panel-btn-accent flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md cursor-pointer transition-all active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Nuevo Ticket</span>
           </button>
+        </div>
+      </div>
+
+      {/* ── Official Contact Pill ── */}
+      <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+            <Mail className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <span className="font-black text-zinc-900 uppercase tracking-tight text-[11px] block">
+              Correo Oficial de Soporte
+            </span>
+            <span className="text-zinc-600 text-xs">
+              Para consultas de cuenta o soporte técnico prioritario:{' '}
+            </span>
+            <button
+              onClick={handleCopyEmail}
+              className="text-amber-600 font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"
+              title="Clic para copiar correo"
+            >
+              barberos.contacto@gmail.com
+              {copiedEmail ? <Check className="w-3 h-3 text-emerald-500 inline" /> : <Copy className="w-3 h-3 inline opacity-70" />}
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleCopyEmail}
+            className="px-3 py-1.5 bg-white border border-zinc-200 text-zinc-700 rounded-xl font-bold text-[11px] hover:bg-zinc-50 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+            title="Copiar correo oficial"
+          >
+            {copiedEmail ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copiedEmail ? 'Copiado' : 'Copiar Correo'}</span>
+          </button>
+          <a
+            href="https://mail.google.com/mail/?view=cm&fs=1&to=barberos.contacto@gmail.com&su=Soporte%20Barbero%20BarberOS"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="panel-btn-accent px-3 py-1.5 rounded-xl font-bold text-[11px] transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
+            title="Abrir redacción en Gmail Web"
+          >
+            <span>Abrir en Gmail</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
         </div>
       </div>
 
@@ -191,7 +250,7 @@ export default function BarberSupportPage() {
               <p className="text-xs text-zinc-500">¿Tienes dudas o necesitas ayuda? Crea un ticket y te responderemos de inmediato.</p>
               <button
                 onClick={() => setModalOpen(true)}
-                className="mt-2 px-5 py-2.5 bg-black text-white rounded-2xl text-xs font-black uppercase tracking-wider"
+                className="panel-btn-accent mt-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-xs"
               >
                 Crear Ticket
               </button>
@@ -295,7 +354,7 @@ export default function BarberSupportPage() {
               <button
                 type="submit"
                 disabled={sending || !replyMessage.trim()}
-                className="px-5 py-2.5 bg-black text-white rounded-2xl text-xs font-black uppercase hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                className="panel-btn-accent px-5 py-2.5 rounded-2xl text-xs font-black uppercase disabled:opacity-50 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-xs"
               >
                 {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                 <span>Enviar</span>
@@ -371,7 +430,7 @@ export default function BarberSupportPage() {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-6 py-2.5 bg-black text-white rounded-xl text-xs font-black uppercase hover:opacity-90"
+                  className="panel-btn-accent px-6 py-2.5 rounded-xl text-xs font-black uppercase disabled:opacity-50 transition-all active:scale-95 cursor-pointer shadow-xs"
                 >
                   {creating ? 'Enviando...' : 'Enviar Ticket'}
                 </button>

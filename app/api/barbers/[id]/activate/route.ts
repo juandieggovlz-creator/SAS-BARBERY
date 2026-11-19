@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'crypto'
 import { getSession } from '@/lib/auth'
+import { getBarberInviteUrl } from '@/lib/url'
 
 export async function POST(
   request: Request,
@@ -28,18 +29,19 @@ export async function POST(
     let inviteToken = barber.user?.inviteToken
     let inviteExpires = barber.user?.inviteExpires
 
-    // Ensure a valid inviteToken exists with long-lived expiry (1 year)
+    // Ensure a valid inviteToken exists with 48h expiry
     const isTokenExpired = !inviteExpires || new Date() > inviteExpires
     if (!inviteToken || isTokenExpired) {
       inviteToken = randomUUID()
-      inviteExpires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+      inviteExpires = new Date(Date.now() + 48 * 60 * 60 * 1000)
 
       if (barber.user) {
         await prisma.user.update({
           where: { id: barber.user.id },
           data: {
             inviteToken,
-            inviteExpires
+            inviteExpires,
+            isActive: true
           }
         })
       } else {
@@ -50,10 +52,16 @@ export async function POST(
             barberId: barber.id,
             businessId: session.businessId,
             inviteToken,
-            inviteExpires
+            inviteExpires,
+            isActive: true
           }
         })
       }
+    } else if (barber.user && !barber.user.isActive) {
+      await prisma.user.update({
+        where: { id: barber.user.id },
+        data: { isActive: true }
+      })
     }
 
     // Set barber status to ACTIVE
@@ -65,15 +73,15 @@ export async function POST(
           select: {
             email: true,
             inviteToken: true,
+            inviteExpires: true,
+            isActive: true,
             password: true
           }
         }
       }
     })
 
-    const origin = new URL(request.url).origin
-    // Each barber gets their own dedicated dashboard access link
-    const inviteLink = `${origin}/barber/access/${inviteToken}`
+    const inviteLink = getBarberInviteUrl(inviteToken)
 
     return NextResponse.json({
       success: true,

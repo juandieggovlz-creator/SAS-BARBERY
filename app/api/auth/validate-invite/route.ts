@@ -46,30 +46,48 @@ export async function GET(request: Request) {
     }
 
     // 2. Si no es de sede, verificar si es una invitación de Barbero tradicional (User.inviteToken)
-    let user: { id: string; email: string; inviteExpires?: Date | string | null } | null = null
-    try {
-      user = await prisma.user.findUnique({
-        where: { inviteToken: token }
-      })
-    } catch (error) {
-      console.warn("Fallback to RAW SQL for token validation:", error)
-      const users = await prisma.$queryRaw<{ id: string; email: string; inviteExpires: Date | null }[]>`SELECT id, email, "inviteToken", "inviteExpires" FROM "User" WHERE "inviteToken" = ${token}`
-      user = users.length > 0 ? users[0] : null
-    }
+    const user = await prisma.user.findUnique({
+      where: { inviteToken: token },
+      include: {
+        barber: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            avatar: true,
+            specialty: true
+          }
+        },
+        business: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    })
 
     if (!user) {
       return NextResponse.json({ error: 'Este enlace de invitación no es válido o ya fue utilizado.' }, { status: 404 })
     }
 
+    if (user.barber && user.barber.status === 'INACTIVE') {
+      return NextResponse.json({ error: 'Esta cuenta de barbero ha sido desactivada por el propietario.' }, { status: 403 })
+    }
+
     const expires = user.inviteExpires ? new Date(user.inviteExpires) : null
     if (expires && new Date() > expires) {
-      return NextResponse.json({ error: 'Este enlace de invitación ha expirado.' }, { status: 400 })
+      return NextResponse.json({ error: 'Este enlace de invitación ha expirado. Solicita un nuevo enlace al propietario.' }, { status: 400 })
     }
 
     return NextResponse.json({
       valid: true,
       type: 'BARBER',
-      email: user.email
+      email: user.email,
+      barberName: user.barber?.name || user.name || 'Barbero',
+      businessName: user.business?.name || 'BarberOS',
+      hasPassword: Boolean(user.password),
+      expiresAt: user.inviteExpires
     })
   } catch (err: unknown) {
     console.error('Error in validate-invite route:', err)

@@ -71,12 +71,12 @@ export const LEGAL_CONFIG: LegalConfig = {
     city: process.env.OPERATOR_CITY || 'Sincelejo',
     department: process.env.OPERATOR_DEPARTMENT || 'Sucre',
     country: 'Colombia',
-    officialEmail: process.env.LEGAL_EMAIL || 'legal@barberos.app',
-    supportEmail: process.env.SUPPORT_EMAIL || 'soporte@barberos.app',
-    habeasDataEmail: process.env.HABEAS_DATA_EMAIL || 'legal@barberos.app',
+    officialEmail: process.env.LEGAL_EMAIL || 'barberos.contacto@gmail.com',
+    supportEmail: process.env.SUPPORT_EMAIL || 'barberos.contacto@gmail.com',
+    habeasDataEmail: process.env.HABEAS_DATA_EMAIL || 'barberos.contacto@gmail.com',
     supportWhatsApp: '+57 324 206 3393',
     physicalAddressNotice:
-      'Canal de notificaciones judiciales y administrativas prioritario vía correo electrónico oficial: legal@barberos.app',
+      'Canal de notificaciones judiciales y administrativas prioritario vía correo electrónico oficial: barberos.contacto@gmail.com',
   },
   versions: {
     termsVersion: '2.0-CO',

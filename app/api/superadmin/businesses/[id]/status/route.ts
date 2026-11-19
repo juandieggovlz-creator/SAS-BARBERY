@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { recordAuditLog } from '@/lib/audit'
+import { sendSentinelNotification } from '@/lib/telegram-sentinel'
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -44,6 +45,15 @@ export async function PATCH(
         reason: reason || 'Acción administrativa desde panel Super Admin'
       }
     })
+
+    // Notificar a BarberOS Sentinel
+    sendSentinelNotification({
+      type: 'BUSINESS_STATUS_CHANGED',
+      priority: status === 'SUSPENDED' ? 'ALTA' : 'INFORMATIVA',
+      title: status === 'SUSPENDED' ? '⚠️ Barbería Suspendida' : '✅ Barbería Activada',
+      message: `<b>Barbería:</b> ${business.name}\n<b>Estado anterior:</b> ${business.status}\n<b>Nuevo estado:</b> ${status}\n<b>Motivo:</b> ${reason || 'Acción desde Super Admin'}`,
+      actionUrl: `https://sas-barbery.vercel.app/superadmin/businesses/${id}`
+    }).catch(err => console.error('[Sentinel Status Dispatch Error]:', err))
 
     return NextResponse.json({
       success: true,

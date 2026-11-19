@@ -3,6 +3,18 @@ import { prisma } from '../prisma'
 import { WhatsAppAvailabilityHelper } from './availability-helper'
 import { WhatsAppService } from './whatsapp-service'
 import { randomBytes } from 'crypto'
+import {
+  BookingEngineError,
+  createCentralizedBooking,
+  normalizeCustomerPhone,
+  rescheduleCentralizedBooking,
+} from '@/lib/booking/booking-engine'
+import {
+  calculateDepositAmount,
+  formatPaymentMethodsSummary,
+  parseBusinessDepositConfig,
+} from '@/lib/booking/deposit-config'
+import { resolveAppointmentFinancials } from '@/lib/booking/booking-metadata'
 
 export interface IncomingMessageContext {
   from: string // Teléfono del cliente
@@ -40,11 +52,28 @@ export class WhatsAppConversationEngine {
             phone: true,
             address: true,
             companyId: true,
+            depositEnabled: true,
+            depositType: true,
+            depositPercentage: true,
+            depositFixedAmount: true,
+            depositInstructions: true,
             company: {
               include: {
                 branches: {
                   where: { status: 'ACTIVE' },
-                  select: { id: true, name: true, slug: true, phone: true, address: true, isMainBranch: true }
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    phone: true,
+                    address: true,
+                    isMainBranch: true,
+                    depositEnabled: true,
+                    depositType: true,
+                    depositPercentage: true,
+                    depositFixedAmount: true,
+                    depositInstructions: true,
+                  }
                 }
               }
             }
@@ -106,8 +135,9 @@ export class WhatsAppConversationEngine {
     }
 
     // Metadata y contexto de sede seleccionada
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const currentMeta = (conv.metadata as Record<string, any>) || {}
-    let selectedBranchId: string | null = currentMeta.selectedBranchId || (!hasMultipleBranches ? servedBranches[0]?.id : null)
+    let selectedBranchId: string | null = (currentMeta.selectedBranchId as string) || (!hasMultipleBranches ? servedBranches[0]?.id : null)
     let selectedBranch = servedBranches.find(b => b.id === selectedBranchId) || (servedBranches.length === 1 ? servedBranches[0] : null)
     const targetBusinessId = selectedBranchId || businessId
     const targetBranch = selectedBranch || integration.business
@@ -561,6 +591,19 @@ export class WhatsAppConversationEngine {
 
         const service = await prisma.service.findUnique({ where: { id: conv.selectedServiceId! } })
         const barber = chosenSlot.barberId ? await prisma.barber.findUnique({ where: { id: chosenSlot.barberId } }) : null
+        const servicePriceNum = Number(service?.price || 0)
+        const depositCfg = parseBusinessDepositConfig(targetBranch)
+        const { depositRequired, remainingBalance } = calculateDepositAmount(servicePriceNum, depositCfg)
+        const methodsSummary = depositCfg.depositEnabled && depositRequired > 0
+          ? formatPaymentMethodsSummary(depositCfg)
+          : ''
+
+        let depositBlock = ''
+        if (depositCfg.depositEnabled && depositRequired > 0) {
+          depositBlock = `\n💳 *Anticipo requerido:* $${depositRequired.toLocaleString('es-CO')}\n💵 *Saldo en barbería:* $${remainingBalance.toLocaleString('es-CO')}${
+            methodsSummary ? `\n\n📌 *Datos de pago para anticipo:*\n${methodsSummary}` : ''
+          }`
+        }
 
         const summary = `📋 *Resumen de tu Reserva:*
 ───────────────────
@@ -569,7 +612,7 @@ export class WhatsAppConversationEngine {
 ✂️ *Barbero:* ${barber?.name || 'Asignado automáticamente'}
 📅 *Fecha:* ${conv.selectedDate}
 ⏰ *Hora:* ${chosenSlot.displayTime}
-💰 *Total:* $${Number(service?.price || 0).toLocaleString('es-CO')}
+💰 *Total:* $${servicePriceNum.toLocaleString('es-CO')}${depositBlock}
 ───────────────────
 ¿Deseas confirmar tu cita?
 *1.* ✅ Sí, confirmar mi cita
@@ -614,179 +657,90 @@ export class WhatsAppConversationEngine {
         }
 
         if (rawText === '1') {
-          // ── Verificación atómica de disponibilidad antes de confirmar ──
           const [year, month, day] = conv.selectedDate!.split('-').map(Number)
           const [hour, min] = conv.selectedTime!.split(':').map(Number)
           const appointmentDate = new Date(year, month - 1, day, hour, min, 0)
 
-          // 1. Servicio activo en la base de datos para la sede objetivo
-          const service = await prisma.service.findUnique({ where: { id: conv.selectedServiceId! } })
-          if (!service || !service.isActive || service.businessId !== targetBusinessId) {
-            return await this.returnToMainMenu(
-              businessId,
-              cleanFrom,
-              conv.id,
-              targetBranch.name,
-              integration.bookingEnabled,
-              '⚠️ El servicio seleccionado ya no se encuentra disponible. Por favor elige otro servicio.',
-              targetBranch.name,
-              hasMultipleBranches
-            )
-          }
-
-          // 2. Barbero activo en la base de datos para la sede objetivo
-          const barber = await prisma.barber.findUnique({ where: { id: conv.selectedBarberId! } })
-          if (!barber || barber.status !== 'ACTIVE' || barber.businessId !== targetBusinessId) {
-            return await this.returnToMainMenu(
-              businessId,
-              cleanFrom,
-              conv.id,
-              targetBranch.name,
-              integration.bookingEnabled,
-              '⚠️ El barbero seleccionado ya no se encuentra activo. Por favor elige otro barbero.',
-              targetBranch.name,
-              hasMultipleBranches
-            )
-          }
-
-          // 3. Horario laboral del barbero (BarberSchedule)
-          const dayOfWeek = appointmentDate.getDay()
-          const schedule = await prisma.barberSchedule.findFirst({
-            where: { barberId: barber.id, dayOfWeek }
-          })
-          if (!schedule || !schedule.isWorking) {
-            const reply = `⚠️ *Horario no disponible:* ${barber.name} no labora en este día. Por favor responde *1* para elegir otra fecha u otro barbero.`
-            await prisma.whatsAppConversation.update({
-              where: { id: conv.id },
-              data: { state: 'MAIN_MENU' }
-            })
-            await this.sendReply(businessId, cleanFrom, reply)
-            return { handled: true, replyText: reply }
-          }
-
-          const pad = (n: number) => n.toString().padStart(2, '0')
-          const reqTimeStr = `${pad(appointmentDate.getHours())}:${pad(appointmentDate.getMinutes())}`
-          const apptEnd = new Date(appointmentDate.getTime() + service.duration * 60 * 1000)
-          const reqEndTimeStr = `${pad(apptEnd.getHours())}:${pad(apptEnd.getMinutes())}`
-
-          if (reqTimeStr < schedule.startTime || reqEndTimeStr > schedule.endTime) {
-            const reply = `⚠️ *Horario fuera de turno:* El horario laboral de ${barber.name} es de ${schedule.startTime} a ${schedule.endTime}. Por favor responde *1* para elegir otro horario.`
-            await prisma.whatsAppConversation.update({
-              where: { id: conv.id },
-              data: { state: 'MAIN_MENU' }
-            })
-            await this.sendReply(businessId, cleanFrom, reply)
-            return { handled: true, replyText: reply }
-          }
-
-          // 4. Pausas y bloqueos del barbero (BarberBlock)
-          const startOfDay = new Date(year, month - 1, day, 0, 0, 0)
-          const endOfDay = new Date(year, month - 1, day, 23, 59, 59)
-          const blocks = await prisma.barberBlock.findMany({
-            where: {
-              barberId: barber.id,
-              date: { gte: startOfDay, lte: endOfDay }
-            }
-          })
-          const hasBlockOverlap = blocks.some(b => reqTimeStr < b.endTime && reqEndTimeStr > b.startTime)
-          if (hasBlockOverlap) {
-            const reply = `⚠️ *Horario bloqueado:* El barbero tiene una pausa programada en ese horario. Por favor responde *1* para elegir otro turno.`
-            await prisma.whatsAppConversation.update({
-              where: { id: conv.id },
-              data: { state: 'MAIN_MENU' }
-            })
-            await this.sendReply(businessId, cleanFrom, reply)
-            return { handled: true, replyText: reply }
-          }
-
-          // 5. Citas activas existentes (Evitar colisión / doble reserva)
-          const existingAppts = await prisma.appointment.findMany({
-            where: {
-              barberId: barber.id,
-              status: { in: ['PENDING', 'CONFIRMED'] },
-              date: { gte: startOfDay, lte: endOfDay },
-              ...(conv.selectedAppointmentId ? { NOT: { id: conv.selectedAppointmentId } } : {})
-            },
-            include: { service: true }
-          })
-
-          const hasConflict = existingAppts.some(appt => {
-            const existingStart = new Date(appt.date)
-            const existingEnd = new Date(existingStart.getTime() + (appt.service?.duration || 30) * 60 * 1000)
-            return appointmentDate < existingEnd && apptEnd > existingStart
-          })
-
-          if (hasConflict) {
-            const reply = `⚠️ *Lo sentimos:* Ese turno acaba de ser ocupado. Por favor responde *1* para elegir un horario alternativo.`
-            await prisma.whatsAppConversation.update({
-              where: { id: conv.id },
-              data: { state: 'MAIN_MENU' }
-            })
-            await this.sendReply(businessId, cleanFrom, reply)
-            return { handled: true, replyText: reply }
-          }
-
-          // Si es reprogramación, cancelar o marcar la cita previa
-          if (conv.selectedAppointmentId) {
-            await prisma.appointment.update({
-              where: { id: conv.selectedAppointmentId },
-              data: { status: 'CANCELLED' }
-            }).catch(e => console.error('Error cancelando cita previa en reprogramación:', e))
-          }
-
-          // Buscar o crear cliente por teléfono dentro de la sede objetivo
-          let client = await prisma.client.findFirst({
-            where: {
-              businessId: targetBusinessId,
-              phone: cleanFrom
-            }
-          })
-
-          if (!client) {
-            client = await prisma.client.create({
-              data: {
+          try {
+            if (conv.selectedAppointmentId) {
+              // Reprogramación en el mismo registro preservando historial y anticipo
+              const rescheduled = await rescheduleCentralizedBooking({
+                appointmentId: conv.selectedAppointmentId,
                 businessId: targetBusinessId,
-                name: ctx.senderName || 'Cliente WhatsApp',
-                phone: cleanFrom
-              }
-            })
-          }
+                newDate: appointmentDate,
+                newBarberId: conv.selectedBarberId,
+                newServiceId: conv.selectedServiceId,
+              })
 
-          // Crear la cita en BarberOS directamente en la BD
-          const reservationCode = generateReservationCode()
-          const newAppointment = await prisma.appointment.create({
-            data: {
+              await prisma.whatsAppConversation.update({
+                where: { id: conv.id },
+                data: {
+                  state: 'IDLE',
+                  selectedServiceId: null,
+                  selectedBarberId: null,
+                  selectedDate: null,
+                  selectedTime: null,
+                  selectedAppointmentId: null,
+                  metadata: {
+                    selectedBranchId: targetBusinessId,
+                    branchName: targetBranch.name,
+                  },
+                },
+              })
+
+              await WhatsAppService.sendAppointmentRescheduled(
+                rescheduled.id,
+                appointmentDate
+              )
+
+              return { handled: true, replyText: 'Cita reprogramada' }
+            }
+
+            // Nueva reserva usando el motor centralizado (con control transaccional y anticipos)
+            const { appointment: newAppointment } = await createCentralizedBooking({
               businessId: targetBusinessId,
-              clientId: client.id,
-              barberId: barber.id,
-              serviceId: service.id,
+              serviceId: conv.selectedServiceId!,
+              barberId: conv.selectedBarberId,
               date: appointmentDate,
-              status: 'PENDING',
-              reservationCode
-            }
-          })
+              clientName: ctx.senderName || 'Cliente WhatsApp',
+              clientPhone: cleanFrom,
+              source: 'WHATSAPP',
+            })
 
-          // Resetear conversación conservando la sede seleccionada
-          await prisma.whatsAppConversation.update({
-            where: { id: conv.id },
-            data: {
-              state: 'IDLE',
-              selectedServiceId: null,
-              selectedBarberId: null,
-              selectedDate: null,
-              selectedTime: null,
-              selectedAppointmentId: null,
-              metadata: {
-                selectedBranchId: targetBusinessId,
-                branchName: targetBranch.name
-              }
-            }
-          })
+            // Resetear conversación conservando la sede seleccionada
+            await prisma.whatsAppConversation.update({
+              where: { id: conv.id },
+              data: {
+                state: 'IDLE',
+                selectedServiceId: null,
+                selectedBarberId: null,
+                selectedDate: null,
+                selectedTime: null,
+                selectedAppointmentId: null,
+                metadata: {
+                  selectedBranchId: targetBusinessId,
+                  branchName: targetBranch.name,
+                },
+              },
+            })
 
-          // Enviar confirmación formal por WhatsApp
-          await WhatsAppService.sendAppointmentConfirmation(newAppointment.id)
+            // Enviar confirmación formal por WhatsApp (incluye instrucciones de anticipo si aplica)
+            await WhatsAppService.sendAppointmentConfirmation(newAppointment.id)
 
-          return { handled: true, replyText: 'Cita confirmada' }
+            return { handled: true, replyText: 'Cita confirmada' }
+          } catch (err: unknown) {
+            const errMsg =
+              err instanceof BookingEngineError
+                ? err.message
+                : 'Ese turno acaba de ser ocupado o no se encuentra disponible.'
+            const reply = `⚠️ *No se pudo completar la reserva:* ${errMsg}\n\nPor favor responde *1* para elegir otro horario.`
+            await prisma.whatsAppConversation.update({
+              where: { id: conv.id },
+              data: { state: 'MAIN_MENU' },
+            })
+            await this.sendReply(businessId, cleanFrom, reply)
+            return { handled: true, replyText: reply }
+          }
         }
 
         const reply = `Por favor responde con *1* para confirmar tu cita, *2* para cambiar de horario o *0* para cancelar.`
@@ -931,6 +885,7 @@ export class WhatsAppConversationEngine {
       where: { id: convId },
       select: { metadata: true }
     })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const existingMeta = (convRecord?.metadata as Record<string, any>) || {}
 
     await prisma.whatsAppConversation.update({
@@ -960,16 +915,26 @@ export class WhatsAppConversationEngine {
     branchIds: string[] = [businessId]
   ) {
     const now = new Date()
+    const { cleanPhone, last10Digits } = normalizeCustomerPhone(customerPhone)
     const appointments = await prisma.appointment.findMany({
       where: {
         businessId: { in: branchIds },
-        client: { phone: customerPhone },
+        client: {
+          OR: [
+            { phone: cleanPhone },
+            { phone: customerPhone },
+            ...(last10Digits.length === 10
+              ? [{ phone: { endsWith: last10Digits } }]
+              : []),
+          ],
+        },
         status: { in: ['PENDING', 'CONFIRMED'] },
         date: { gte: now }
       },
       include: {
         service: true,
         barber: true,
+        payment: true,
         business: { select: { id: true, name: true, slug: true, address: true } }
       },
       orderBy: { date: 'asc' }
@@ -987,8 +952,17 @@ export class WhatsAppConversationEngine {
       const num = (idx + 1).toString()
       apptMap[num] = appt.id
       const { formattedDate, formattedTime } = WhatsAppService.formatDateTime(new Date(appt.date))
+      const fin = resolveAppointmentFinancials(appt)
       const branchNotice = branchIds.length > 1 ? `\n   📍 Sede: *${appt.business.name}*` : ''
-      listText += `*${num}.* ${appt.service.name} con ${appt.barber.name}${branchNotice}\n   🗓️ ${formattedDate} — ⏰ ${formattedTime}\n   🔖 Código: ${appt.reservationCode}\n\n`
+      const depositNotice =
+        fin.depositRequired > 0
+          ? fin.isDepositApproved
+            ? `\n   ✅ Anticipo verificado · Saldo: $${fin.remainingBalance.toLocaleString('es-CO')}`
+            : fin.depositStatus === 'PROOF_SUBMITTED'
+            ? `\n   ⏳ Comprobante en verificación`
+            : `\n   💳 Anticipo pendiente: $${fin.depositRequired.toLocaleString('es-CO')}`
+          : ''
+      listText += `*${num}.* ${fin.serviceNamesJoined || appt.service.name} con ${appt.barber.name}${branchNotice}\n   🗓️ ${formattedDate} — ⏰ ${formattedTime}\n   🔖 Código: ${appt.reservationCode}${depositNotice}\n\n`
     })
     listText += `*0.* Volver al menú\n\n_Escribe el número de la cita que deseas gestionar:_`
 
@@ -996,6 +970,7 @@ export class WhatsAppConversationEngine {
       where: { id: convId },
       select: { metadata: true }
     })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const existingMeta = (convRecord?.metadata as Record<string, any>) || {}
 
     await prisma.whatsAppConversation.update({
@@ -1064,6 +1039,7 @@ _Si deseas reactivar el asistente automático en cualquier momento, solo escribe
       where: { id: convId },
       select: { metadata: true }
     })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const existingMeta = (convRecord?.metadata as Record<string, any>) || {}
 
     await prisma.whatsAppConversation.update({

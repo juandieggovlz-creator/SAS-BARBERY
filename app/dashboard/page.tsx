@@ -142,11 +142,11 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-amber-100 text-amber-800',
-  CONFIRMED: 'bg-blue-100 text-blue-800',
-  COMPLETED: 'bg-emerald-100 text-emerald-800',
-  CANCELLED: 'bg-red-100 text-red-800',
-  NO_SHOW: 'bg-zinc-100 text-zinc-600'
+  PENDING: 'bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-700/60',
+  CONFIRMED: 'bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-950/80 dark:text-blue-300 dark:border-blue-700/60',
+  COMPLETED: 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700/60',
+  CANCELLED: 'bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-700/60',
+  NO_SHOW: 'bg-zinc-200 text-zinc-700 border border-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700'
 }
 
 // ─── Donut Chart ──────────────────────────────────────────────────────────────
@@ -457,17 +457,17 @@ export default function OwnerDashboardPage() {
       {/* ── TOP BAR — Período + Refresh ─────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-zinc-950 uppercase tracking-tight">Inicio</h1>
-          <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">{todayLabel}</p>
+          <h1 className="text-xl sm:text-2xl font-black text-zinc-950 dark:text-white uppercase tracking-tight">Inicio</h1>
+          <p className="text-[11px] sm:text-xs text-zinc-400 font-bold uppercase tracking-wider">{todayLabel}</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-between sm:justify-end">
+          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-[#18181b] border border-zinc-200/80 dark:border-zinc-800 p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full">
             {PRESETS.map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setPreset(key)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
-                  preset === key ? 'bg-black text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-800'
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all shrink-0 cursor-pointer touch-manipulation ${
+                  preset === key ? 'bg-black dark:bg-amber-500 text-white dark:text-zinc-950 shadow-xs' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white'
                 }`}
               >
                 {label}
@@ -475,19 +475,19 @@ export default function OwnerDashboardPage() {
             ))}
           </div>
           {preset === 'custom' && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="bg-white border border-zinc-200 rounded-xl px-3 py-1.5 text-xs font-bold text-zinc-900 outline-none focus:border-black"
+                className="bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-bold text-zinc-900 dark:text-white outline-none focus:border-amber-500 flex-1 sm:flex-initial"
               />
               <span className="text-zinc-400 font-bold text-xs">→</span>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="bg-white border border-zinc-200 rounded-xl px-3 py-1.5 text-xs font-bold text-zinc-900 outline-none focus:border-black"
+                className="bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-bold text-zinc-900 dark:text-white outline-none focus:border-amber-500 flex-1 sm:flex-initial"
               />
             </div>
           )}
@@ -495,10 +495,10 @@ export default function OwnerDashboardPage() {
             onClick={fetchOverview}
             disabled={loading}
             id="refresh-dashboard"
-            className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-3.5 py-2 rounded-xl text-xs font-bold transition-all"
+            className="flex items-center gap-2 bg-zinc-100 dark:bg-[#18181b] hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-800 px-3 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 touch-manipulation"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            Actualizar
+            <span className="hidden sm:inline">Actualizar</span>
           </button>
         </div>
       </div>
@@ -704,18 +704,18 @@ export default function OwnerDashboardPage() {
             </div>
           ) : (
             <>
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 text-center">
-                <div className="text-2xl font-black text-amber-900">{formatCOP(pendingPayments?.total || 0)}</div>
-                <div className="text-xs font-bold text-amber-700 mt-1">{pendingPayments?.count} cita{(pendingPayments?.count || 0) > 1 ? 's' : ''} sin cobrar</div>
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 mb-4 text-center">
+                <div className="text-xl sm:text-2xl font-black text-amber-900 dark:text-amber-300">{formatCOP(pendingPayments?.total || 0)}</div>
+                <div className="text-xs font-bold text-amber-700 dark:text-amber-400 mt-1">{pendingPayments?.count} cita{(pendingPayments?.count || 0) > 1 ? 's' : ''} sin cobrar</div>
               </div>
               <div className="space-y-2 flex-1 overflow-y-auto max-h-40">
                 {pendingPayments?.items.slice(0, 4).map(item => (
-                  <div key={item.id} className="flex items-center justify-between p-2.5 bg-zinc-50 rounded-xl border border-zinc-100">
+                  <div key={item.id} className="flex items-center justify-between p-2.5 bg-zinc-50 dark:bg-[#18181b] rounded-xl border border-zinc-100 dark:border-zinc-800">
                     <div>
-                      <div className="text-xs font-black text-zinc-900">{item.clientName}</div>
+                      <div className="text-xs font-black text-zinc-900 dark:text-white">{item.clientName}</div>
                       <div className="text-[10px] font-medium text-zinc-400">{item.serviceName}</div>
                     </div>
-                    <div className="text-xs font-black text-amber-800">{formatCOP(item.price)}</div>
+                    <div className="text-xs font-black text-amber-800 dark:text-amber-400">{formatCOP(item.price)}</div>
                   </div>
                 ))}
               </div>
@@ -736,29 +736,29 @@ export default function OwnerDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Operación del día (donut) */}
-        <div className="bg-white dark:bg-[#121215] rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-6">
+        <div className="bg-white dark:bg-[#121215] rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6">
           <div className="mb-5">
             <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Operación de hoy</h3>
-            <p className="text-base font-black text-zinc-950 mt-0.5">Estado de citas</p>
+            <p className="text-base font-black text-zinc-950 dark:text-white mt-0.5">Estado de citas</p>
           </div>
-          <div className="flex items-center gap-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-6 sm:gap-8">
             <DonutChart
               completed={data?.statusCounts.COMPLETED || 0}
               confirmed={data?.statusCounts.CONFIRMED || 0}
               pending={data?.statusCounts.PENDING || 0}
               cancelled={data?.statusCounts.CANCELLED || 0}
             />
-            <div className="space-y-3 flex-1">
+            <div className="space-y-3 w-full sm:flex-1">
               {[
-                { label: 'Completadas', value: data?.statusCounts.COMPLETED || 0, color: 'bg-emerald-500', text: 'text-emerald-700' },
-                { label: 'Confirmadas', value: data?.statusCounts.CONFIRMED || 0, color: 'bg-blue-500', text: 'text-blue-700' },
-                { label: 'Pendientes', value: data?.statusCounts.PENDING || 0, color: 'bg-amber-500', text: 'text-amber-700' },
-                { label: 'Canceladas', value: data?.statusCounts.CANCELLED || 0, color: 'bg-red-500', text: 'text-red-700' },
+                { label: 'Completadas', value: data?.statusCounts.COMPLETED || 0, color: 'bg-emerald-500', text: 'text-emerald-700 dark:text-emerald-400' },
+                { label: 'Confirmadas', value: data?.statusCounts.CONFIRMED || 0, color: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-400' },
+                { label: 'Pendientes', value: data?.statusCounts.PENDING || 0, color: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-400' },
+                { label: 'Canceladas', value: data?.statusCounts.CANCELLED || 0, color: 'bg-red-500', text: 'text-red-700 dark:text-red-400' },
               ].map(({ label, value, color, text }) => (
                 <div key={label} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className={`w-2.5 h-2.5 rounded-full ${color}`} />
-                    <span className="text-xs font-bold text-zinc-600">{label}</span>
+                    <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300">{label}</span>
                   </div>
                   <span className={`text-sm font-black ${text}`}>{value}</span>
                 </div>
@@ -768,46 +768,46 @@ export default function OwnerDashboardPage() {
         </div>
 
         {/* Clientes */}
-        <div className="bg-white dark:bg-[#121215] rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-6">
+        <div className="bg-white dark:bg-[#121215] rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-5 sm:p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Clientes</h3>
-              <p className="text-base font-black text-zinc-950 mt-0.5">Base de clientes</p>
+              <p className="text-base font-black text-zinc-950 dark:text-white mt-0.5">Base de clientes</p>
             </div>
-            <Link href="/clients" className="text-xs font-black text-zinc-500 hover:text-zinc-900 flex items-center gap-1 uppercase tracking-wider">
+            <Link href="/clients" className="text-xs font-black text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 uppercase tracking-wider">
               Ver todos <ChevronRight size={13} />
             </Link>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 bg-zinc-50 dark:bg-[#18181b] rounded-2xl border border-zinc-100 dark:border-zinc-800">
-              <div className="flex items-center gap-2 mb-2">
-                <Users size={14} className="text-zinc-500" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400">Total clientes</span>
+            <div className="p-3.5 sm:p-4 bg-zinc-50 dark:bg-[#18181b] rounded-2xl border border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
+                <Users size={14} className="text-zinc-500 shrink-0" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 truncate">Total clientes</span>
               </div>
-              <div className="text-3xl font-black text-zinc-950">{loading ? '—' : clientStats?.total ?? 0}</div>
+              <div className="text-2xl sm:text-3xl font-black text-zinc-950 dark:text-white">{loading ? '—' : clientStats?.total ?? 0}</div>
             </div>
-            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
-              <div className="flex items-center gap-2 mb-2">
-                <UserPlus size={14} className="text-blue-500" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-blue-500">Nuevos este mes</span>
+            <div className="p-3.5 sm:p-4 bg-blue-50 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-900/40">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
+                <UserPlus size={14} className="text-blue-500 shrink-0" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-blue-500 dark:text-blue-400 truncate">Nuevos mes</span>
               </div>
-              <div className="text-3xl font-black text-blue-700">{loading ? '—' : clientStats?.newThisMonth ?? 0}</div>
+              <div className="text-2xl sm:text-3xl font-black text-blue-700 dark:text-blue-300">{loading ? '—' : clientStats?.newThisMonth ?? 0}</div>
             </div>
-            <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100">
-              <div className="flex items-center gap-2 mb-2">
-                <Repeat2 size={14} className="text-purple-500" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-purple-500">Recurrentes</span>
+            <div className="p-3.5 sm:p-4 bg-purple-50 dark:bg-purple-950/30 rounded-2xl border border-purple-100 dark:border-purple-900/40">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
+                <Repeat2 size={14} className="text-purple-500 shrink-0" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-purple-500 dark:text-purple-400 truncate">Recurrentes</span>
               </div>
-              <div className="text-3xl font-black text-purple-700">{loading ? '—' : clientStats?.recurring ?? 0}</div>
+              <div className="text-2xl sm:text-3xl font-black text-purple-700 dark:text-purple-300">{loading ? '—' : clientStats?.recurring ?? 0}</div>
             </div>
-            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
-              <div className="flex items-center gap-2 mb-2">
-                <CalendarPlus size={14} className="text-amber-600" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-amber-600">Por regresar</span>
+            <div className="p-3.5 sm:p-4 bg-amber-50 dark:bg-amber-950/30 rounded-2xl border border-amber-100 dark:border-amber-900/40">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
+                <CalendarPlus size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 truncate">Por regresar</span>
               </div>
-              <div className="text-3xl font-black text-amber-700">{loading ? '—' : clientStats?.comingBack ?? 0}</div>
-              <div className="text-[9px] text-amber-500 font-medium mt-0.5">Últ. cita: 15-30 días</div>
+              <div className="text-2xl sm:text-3xl font-black text-amber-700 dark:text-amber-300">{loading ? '—' : clientStats?.comingBack ?? 0}</div>
+              <div className="text-[9px] text-amber-500 dark:text-amber-400 font-medium mt-0.5">Últ. 15-30 días</div>
             </div>
           </div>
         </div>
@@ -817,20 +817,21 @@ export default function OwnerDashboardPage() {
       {/* BLOQUE 5 — PRÓXIMAS CITAS                                               */}
       {/* ─────────────────────────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-[#121215] rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs overflow-hidden">
-        <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/60 dark:bg-[#18181b]">
+        <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/60 dark:bg-[#18181b]">
           <div>
             <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Próximas Citas</h3>
-            <p className="text-base font-black text-zinc-950 mt-0.5">¿Qué viene ahora?</p>
+            <p className="text-base font-black text-zinc-950 dark:text-white mt-0.5">¿Qué viene ahora?</p>
           </div>
           <Link
             href="/appointments"
-            className="text-xs font-black uppercase tracking-wider text-zinc-700 hover:text-zinc-900 flex items-center gap-1"
+            className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1"
           >
             Ver todas <ChevronRight size={13} />
           </Link>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Vista Escritorio (Tabla) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="text-[9px] text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/40 dark:bg-[#18181b]">
@@ -870,14 +871,16 @@ export default function OwnerDashboardPage() {
                     </td>
                     <td className="px-5 py-4">
                       <select
+                        data-status-badge="true"
                         value={appt.status}
                         onChange={(e) => updateAppointmentStatus(appt.id, e.target.value)}
-                        className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider border-none outline-none cursor-pointer transition-all ${STATUS_COLORS[appt.status]}`}
+                        className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider outline-none cursor-pointer transition-all border shadow-2xs ${STATUS_COLORS[appt.status]}`}
                       >
-                        <option value="PENDING">Pendiente</option>
-                        <option value="CONFIRMED">Confirmada</option>
-                        <option value="COMPLETED">Completada</option>
-                        <option value="CANCELLED">Cancelada</option>
+                        <option value="PENDING" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">Pendiente</option>
+                        <option value="CONFIRMED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">Confirmada</option>
+                        <option value="COMPLETED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">Completada</option>
+                        <option value="CANCELLED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">Cancelada</option>
+                        <option value="NO_SHOW" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">No asistió</option>
                       </select>
                     </td>
                   </tr>
@@ -891,6 +894,67 @@ export default function OwnerDashboardPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Vista Móvil (Cards para celulares y pantallas pequeñas) */}
+        <div className="md:hidden p-4 space-y-3">
+          {loading ? (
+            <div className="p-8 text-center text-zinc-400 text-xs font-bold uppercase">
+              Cargando agenda...
+            </div>
+          ) : data?.todayAppointments && data.todayAppointments.length > 0 ? (
+            data.todayAppointments.map((appt) => (
+              <div
+                key={appt.id}
+                className="p-4 rounded-2xl bg-zinc-50/70 dark:bg-[#18181b] border border-zinc-100 dark:border-zinc-800 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-base text-zinc-950 dark:text-white">
+                      {new Date(appt.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <span className="font-mono text-[9px] text-zinc-500 dark:text-zinc-400 bg-zinc-200/60 dark:bg-zinc-800 px-1.5 py-0.5 rounded uppercase">
+                      {appt.reservationCode?.slice(0, 8)}
+                    </span>
+                  </div>
+                  <span className="text-sm font-black text-zinc-950 dark:text-white">
+                    {formatCOP(appt.price || 0)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs">
+                  <div>
+                    <div className="font-black text-zinc-950 dark:text-white">{appt.client?.name || 'Cliente'}</div>
+                    <div className="text-zinc-500 dark:text-zinc-400 font-medium text-[11px]">{appt.service?.name}</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Barbero</span>
+                    <span className="text-zinc-700 dark:text-zinc-300 font-medium text-[11px]">{appt.barber?.name}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2.5 border-t border-zinc-200/60 dark:border-zinc-800/80 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Estado</span>
+                  <select
+                    data-status-badge="true"
+                    value={appt.status}
+                    onChange={(e) => updateAppointmentStatus(appt.id, e.target.value)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider outline-none cursor-pointer transition-all border shadow-2xs ${STATUS_COLORS[appt.status]}`}
+                  >
+                    <option value="PENDING" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">Pendiente</option>
+                    <option value="CONFIRMED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">Confirmada</option>
+                    <option value="COMPLETED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">Completada</option>
+                    <option value="CANCELLED" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">Cancelada</option>
+                    <option value="NO_SHOW" className="bg-white text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50 font-bold py-1">No asistió</option>
+                  </select>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center text-zinc-400 text-xs font-bold uppercase">
+              No hay citas para este periodo.
+            </div>
+          )}
         </div>
       </div>
 
@@ -1005,17 +1069,21 @@ export default function OwnerDashboardPage() {
           <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-4">Acciones rápidas</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
-              { href: '/appointments?new=1', icon: CalendarPlus, label: 'Nueva cita', color: 'bg-black text-white' },
-              { href: '/clients?new=1', icon: UserPlus, label: 'Nuevo cliente', color: 'bg-zinc-800 text-white' },
-              { href: '/services?new=1', icon: Scissors, label: 'Nuevo servicio', color: 'bg-zinc-700 text-white' },
-              { href: '/barbers?new=1', icon: Users, label: 'Nuevo barbero', color: 'bg-zinc-600 text-white' },
-              { href: '/finances?tab=expenses&new=1', icon: TrendingDown, label: 'Registrar gasto', color: 'bg-red-600 text-white' },
-              { href: '/finances?tab=payments&new=1', icon: CreditCard, label: 'Registrar pago', color: 'bg-emerald-600 text-white' },
-            ].map(({ href, icon: Icon, label, color }) => (
+              { href: '/appointments?new=1', icon: CalendarPlus, label: 'Nueva cita', isAccent: true },
+              { href: '/clients?new=1', icon: UserPlus, label: 'Nuevo cliente', isAccent: true },
+              { href: '/barbers?new=1', icon: Users, label: 'Nuevo barbero', isAccent: true },
+              { href: '/services?new=1', icon: Scissors, label: 'Nuevo servicio', isAccent: false, color: 'bg-zinc-800 dark:bg-zinc-800 text-white hover:bg-zinc-700' },
+              { href: '/finances?tab=expenses&new=1', icon: TrendingDown, label: 'Registrar gasto', isAccent: false, color: 'bg-rose-600 hover:bg-rose-700 text-white' },
+              { href: '/finances?tab=payments&new=1', icon: CreditCard, label: 'Registrar pago', isAccent: false, color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+            ].map(({ href, icon: Icon, label, color, isAccent }) => (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-2.5 px-4 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-100 shadow-sm hover:shadow-md ${color}`}
+                className={`flex items-center gap-2.5 px-4 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-100 shadow-sm hover:shadow-md cursor-pointer ${
+                  isAccent
+                    ? 'panel-btn-accent'
+                    : color
+                }`}
               >
                 <Icon size={15} className="shrink-0" />
                 {label}

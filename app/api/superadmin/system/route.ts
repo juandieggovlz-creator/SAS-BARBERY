@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession, encrypt, decrypt } from '@/lib/auth'
+import { getEmailProviderStatus, OFFICIAL_CONTACT_EMAIL } from '@/lib/email'
 
 export async function GET() {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -114,13 +115,13 @@ export async function GET() {
 
   // 5. Check Email / Notification Settings (Honest status: only OPERATIONAL if credentials exist)
   try {
-    const smtpHost = process.env.SMTP_HOST || process.env.RESEND_API_KEY
-    if (smtpHost) {
+    const emailStatus = getEmailProviderStatus()
+    if (emailStatus.configured) {
       results.email.status = 'OPERATIONAL'
-      results.email.details = 'Proveedor de correo transaccional configurado y activo.'
+      results.email.details = `${emailStatus.details} (Remitente: ${emailStatus.fromEmail})`
     } else {
       results.email.status = 'STANDBY'
-      results.email.details = 'Sin proveedor SMTP / Resend configurado. El sistema prioriza notificaciones por WhatsApp.'
+      results.email.details = `Sin proveedor SMTP / Resend configurado. Correo de contacto oficial: ${OFFICIAL_CONTACT_EMAIL}. Notificaciones transaccionales operan en modo simulado.`
     }
   } catch (err: any) {
     results.email.status = 'DEGRADED'

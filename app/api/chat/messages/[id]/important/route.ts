@@ -6,7 +6,7 @@ function parseMessage(raw: {
   id: string
   senderId: string
   senderName: string
-  senderRole: 'OWNER' | 'BRANCH_ADMIN' | 'BARBER' | 'SUPER_ADMIN'
+  senderRole: string
   content: string
   isImportant: boolean
   createdAt: Date

@@ -13,9 +13,7 @@ import {
   ArrowRight,
   Sparkles,
   Calendar,
-  TrendingUp,
   Users,
-  CheckCircle2,
   DollarSign
 } from 'lucide-react'
 import Link from 'next/link'
@@ -61,11 +59,39 @@ export default function LoginPage() {
   }
 
   useEffect(() => {
-    // Check if redirected with an error parameter
+    // Check if redirected with an error or explicit logout parameter
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       const err = params.get('error')
-      if (err === 'barber_not_active') {
+      const isLogout = params.get('logout') === 'true' || params.get('logout') === '1'
+
+      if (isLogout) {
+        fetch('/api/auth/logout', { method: 'POST' }).catch(() => { })
+      } else if (!err) {
+        // If already logged in and not logging out or encountering error, redirect to active session dashboard
+        fetch('/api/auth/me')
+          .then(r => r.json())
+          .then(d => {
+            if (d?.authenticated && d?.user) {
+              const role = d.user.role
+              if (role === 'SUPER_ADMIN' || role === 'ROOT_PLATFORM_OWNER') {
+                window.location.href = '/superadmin/dashboard'
+              } else if (role === 'OWNER' || role === 'BRANCH_ADMIN') {
+                window.location.href = '/dashboard'
+              } else if (role === 'BARBER') {
+                window.location.href = '/barber/dashboard'
+              }
+            }
+          })
+          .catch(() => { })
+      }
+
+      if (err === 'session_expired' || params.get('expired') === 'true') {
+        setErrorMessage('Tu sesión ha finalizado. Por seguridad, necesitas iniciar sesión nuevamente para continuar.')
+        toast.info('Tu sesión ha finalizado por seguridad.')
+      } else if (err === 'superadmin_required') {
+        toast.error('Se requieren permisos de Super Administrador para acceder a esta área.')
+      } else if (err === 'barber_not_active') {
         toast.error('El dashboard de este barbero aún no ha sido activado por el administrador.')
       } else if (err === 'invalid_token') {
         toast.error('El enlace de acceso directo no es válido o fue modificado.')
@@ -79,13 +105,11 @@ export default function LoginPage() {
         toast.error('Ocurrió un error al autenticar con Google. Intenta de nuevo.')
       }
     }
-    // Purge any residual session cookie when landing on the login page
-    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
 
     // Ensure login page is isolated from any dynamic panel accent
     if (typeof document !== 'undefined') {
       const root = document.documentElement
-      const residualVars = ['--accent','--accent-dark','--accent-darker','--accent-light','--accent-lighter','--accent-op15','--accent-op30','--accent-op60','--accent-contrast','--accent-hover','--sidebar-active-bg','--sidebar-active-text']
+      const residualVars = ['--accent', '--accent-dark', '--accent-darker', '--accent-light', '--accent-lighter', '--accent-op15', '--accent-op30', '--accent-op60', '--accent-contrast', '--accent-hover', '--sidebar-active-bg', '--sidebar-active-text']
       residualVars.forEach(v => root.style.removeProperty(v))
     }
   }, [])
@@ -112,14 +136,31 @@ export default function LoginPage() {
       }
 
       if (res.ok) {
-        toast.success(`Acceso autorizado como ${data.user.role === 'OWNER' ? 'Propietario' : data.user.role}`)
+        // Si requiere segundo factor (MFA / 2FA)
+        if (data.mfaRequired) {
+          toast.info('Se requiere verificación de segundo factor (MFA)')
+          window.location.href = data.redirect || '/login/mfa'
+          return
+        }
 
-        if (data.user.role === 'SUPER_ADMIN') {
+        const userRole = data.user?.role
+        const roleLabel =
+          userRole === 'OWNER' ? 'Propietario' :
+          userRole === 'ROOT_PLATFORM_OWNER' ? 'Super Admin (Root)' :
+          userRole === 'SUPER_ADMIN' ? 'Super Admin' :
+          userRole === 'BRANCH_ADMIN' ? 'Administrador de Sede' :
+          userRole === 'BARBER' ? 'Barbero' : (userRole || 'Usuario')
+
+        toast.success(`Acceso autorizado como ${roleLabel}`)
+
+        if (userRole === 'SUPER_ADMIN' || userRole === 'ROOT_PLATFORM_OWNER') {
           window.location.href = '/superadmin/dashboard'
-        } else if (data.user.role === 'OWNER' || data.user.role === 'BRANCH_ADMIN') {
-          window.location.href = '/dashboard'
-        } else {
+        } else if (userRole === 'OWNER' || userRole === 'BRANCH_ADMIN') {
+          window.location.href = data.user?.needsOnboarding ? '/onboarding' : '/dashboard'
+        } else if (userRole === 'BARBER') {
           window.location.href = '/barber/dashboard'
+        } else {
+          window.location.href = '/dashboard'
         }
       } else {
         const errorText = data.error || 'Credenciales inválidas. Verifica tu correo y contraseña.'

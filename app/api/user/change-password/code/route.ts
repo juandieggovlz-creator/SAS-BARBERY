@@ -13,6 +13,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
+  if (session.superAdminId || session.originalOwnerId) {
+    return NextResponse.json(
+      { error: 'Por seguridad, no se permite solicitar cambios de contraseña durante una sesión de soporte administrativo.' },
+      { status: 403 }
+    )
+  }
+
   try {
     const ip = getClientIp(request)
 

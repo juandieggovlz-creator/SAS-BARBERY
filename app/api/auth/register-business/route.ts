@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs'
 import fs from 'fs'
 import { DEFAULT_SCHEDULE } from '@/lib/schedule'
 import { uploadImageFromString } from '@/lib/cloudinary'
+import { sendSentinelNotification } from '@/lib/telegram-sentinel'
 
 export async function POST(request: Request) {
   try {
@@ -193,7 +194,7 @@ export async function POST(request: Request) {
           accentColor: primaryColor === '#d4af37' ? '#d4af37' : (primaryColor || '#d4af37'),
           whatsapp: whatsapp?.trim() || phone?.trim() || null,
           businessHours: hoursJson,
-          bannerUrl: '/landing/pagina-web-real.png',
+          bannerUrl: '/imagenes/hero-cinematic-luxury.webp',
           coverTitle: `Bienvenido a ${businessName.trim()}`,
           coverSubtitle: 'Reserva tu cita con nuestros profesionales y disfruta de una experiencia de barbería diseñada para resaltar tu mejor estilo.',
         }
@@ -272,6 +273,15 @@ export async function POST(request: Request) {
 
     // Establish JWT session cookie
     await createSession(user.id, 'OWNER', null, business.id, null, null, false, company.id)
+
+    // Notificación en segundo plano a BarberOS Sentinel
+    sendSentinelNotification({
+      type: 'NEW_BUSINESS_REGISTERED',
+      priority: 'ALTA',
+      title: '🏪 Nueva Barbería Registrada',
+      message: `<b>Nombre:</b> ${business.name}\n<b>Slug:</b> <code>${business.slug}</code>\n<b>Propietario:</b> ${user.email}\n<b>Dirección:</b> ${business.address || 'No especificada'}`,
+      actionUrl: `https://sas-barbery.vercel.app/superadmin/businesses/${business.id}`
+    }).catch(err => console.error('[Sentinel New Business Dispatch Error]:', err))
 
     return NextResponse.json({
       success: true,

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const plans = await prisma.plan.findMany({
-      where: { isActive: true },
+      where: { isActive: true, isPublic: true },
       orderBy: { price: 'asc' },
       select: {
         id: true,

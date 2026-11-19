@@ -19,14 +19,10 @@ import {
   ArrowLeft,
   Phone,
   FileText,
-  Tag,
-  AlertTriangle,
-  ShoppingBag,
-  Wrench,
-  User,
-  Plus
+  User
 } from 'lucide-react'
 import { toast } from 'sonner'
+import AppointmentDetailModal, { AppointmentDetailData } from '@/components/appointments/AppointmentDetailModal'
 
 export interface ChatMember {
   id: string
@@ -158,6 +154,8 @@ export default function TeamChat({ view = 'owner' }: TeamChatProps) {
   const [availableAppointments, setAvailableAppointments] = useState<AttachedAppointment[]>([])
   const [loadingAppointments, setLoadingAppointments] = useState(false)
   const [appointmentSearch, setAppointmentSearch] = useState('')
+  const [inspectedAppointment, setInspectedAppointment] = useState<AppointmentDetailData | null>(null)
+  const [loadingInspectionId, setLoadingInspectionId] = useState<string | null>(null)
 
   // Attached Note state (Owner's communication notes)
   const [attachedNote, setAttachedNote] = useState<AttachedNote | null>(null)
@@ -388,6 +386,28 @@ export default function TeamChat({ view = 'owner' }: TeamChatProps) {
       toast.success(data.message.isImportant ? 'Aviso fijado en notas importantes' : 'Aviso desfijado')
     } catch {
       toast.error('Error al actualizar aviso')
+    }
+  }
+
+  // Inspect shared appointment details live
+  const handleInspectAppointment = async (apptId: string) => {
+    try {
+      setLoadingInspectionId(apptId)
+      const res = await fetch(`/api/appointments/${apptId}`)
+      if (!res.ok) {
+        if (res.status === 403) throw new Error('No tienes permiso para ver los detalles de esta cita')
+        if (res.status === 404) throw new Error('Esta cita ya no existe o fue removida')
+        throw new Error('Error al consultar cita')
+      }
+      const data = await res.json()
+      if (data.appointment) {
+        setInspectedAppointment(data.appointment)
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al consultar cita'
+      toast.error(msg)
+    } finally {
+      setLoadingInspectionId(null)
     }
   }
 
@@ -946,7 +966,8 @@ export default function TeamChat({ view = 'owner' }: TeamChatProps) {
                       {/* Attached Appointment / Agenda Client Card */}
                       {msg.appointment && (
                         <div
-                          className={`mb-3 p-3.5 rounded-xl border text-left transition-all ${
+                          onClick={() => msg.appointment?.id && handleInspectAppointment(msg.appointment.id)}
+                          className={`mb-3 p-3.5 rounded-xl border text-left transition-all cursor-pointer group/card hover:border-amber-400 dark:hover:border-amber-400/80 hover:shadow-md ${
                             isMe
                               ? 'bg-zinc-900 border-zinc-700 text-zinc-100'
                               : 'bg-white border-zinc-300 text-zinc-900 shadow-2xs'
@@ -959,19 +980,28 @@ export default function TeamChat({ view = 'owner' }: TeamChatProps) {
                                 Cita #{msg.appointment.reservationCode || msg.appointment.id.slice(0, 6)}
                               </span>
                             </div>
-                            <span
-                              className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
-                                msg.appointment.status === 'CONFIRMED'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : msg.appointment.status === 'COMPLETED'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : msg.appointment.status === 'CANCELLED'
-                                  ? 'bg-rose-100 text-rose-800'
-                                  : 'bg-amber-100 text-amber-800'
-                              }`}
-                            >
-                              {msg.appointment.status}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
+                                  msg.appointment.status === 'CONFIRMED'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : msg.appointment.status === 'COMPLETED'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : msg.appointment.status === 'CANCELLED'
+                                    ? 'bg-rose-100 text-rose-800'
+                                    : 'bg-amber-100 text-amber-800'
+                                }`}
+                              >
+                                {msg.appointment.status}
+                              </span>
+                              <span className="text-[10px] font-bold text-amber-500 group-hover/card:underline flex items-center gap-1">
+                                {loadingInspectionId === msg.appointment.id ? (
+                                  <Loader2 size={11} className="animate-spin inline" />
+                                ) : (
+                                  <span>Ver ↗</span>
+                                )}
+                              </span>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 text-[11px]">
@@ -1496,6 +1526,14 @@ export default function TeamChat({ view = 'owner' }: TeamChatProps) {
             </div>
           </div>
         </div>
+      )}
+      {/* ── APPOINTMENT LIVE DETAIL MODAL ── */}
+      {inspectedAppointment && (
+        <AppointmentDetailModal
+          isOpen={Boolean(inspectedAppointment)}
+          appointment={inspectedAppointment}
+          onClose={() => setInspectedAppointment(null)}
+        />
       )}
     </div>
   )

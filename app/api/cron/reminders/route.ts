@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { WhatsAppService } from '@/lib/whatsapp/whatsapp-service'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Cron job para despachar recordatorios automáticos de citas por WhatsApp (ej. 2 horas antes)
- * Puede llamarse periódicamente cada 15-30 minutos mediante Vercel Cron o trigger externo.
+ * Puede llamarse periódicamente cada 15-30 minutos mediante trigger externo o diariamente por Vercel.
  */
 export async function GET(request: Request) {
   try {
@@ -12,8 +14,6 @@ export async function GET(request: Request) {
     const cronSecret = process.env.CRON_SECRET
 
     // CRON_SECRET is required in ALL environments to prevent unauthenticated trigger of this endpoint.
-    // In production the absence of the secret is a misconfiguration; in other envs it still must be
-    // present so local testing is explicit.
     if (!cronSecret) {
       return NextResponse.json({ error: 'CRON_SECRET no está configurado en las variables de entorno' }, { status: 500 })
     }
@@ -22,10 +22,27 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const mode = searchParams.get('mode') // 'hourly' | 'daily' | null (auto)
+    const windowHoursParam = searchParams.get('windowHours')
+
     const now = new Date()
-    // Ventana de búsqueda: citas entre 1 hora y media y 2 horas y media en el futuro
-    const windowStart = new Date(now.getTime() + 90 * 60 * 1000)
-    const windowEnd = new Date(now.getTime() + 150 * 60 * 1000)
+    let windowStart = now
+    let windowEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000) // Predeterminado para Vercel Hobby (próximas 24 horas)
+
+    if (mode === 'hourly' || windowHoursParam) {
+      // Modo de alta frecuencia (para disparadores externos como cron-job.org / QStash cada 15-30 min)
+      const hours = Number(windowHoursParam) || 2
+      const windowMarginMs = 45 * 60 * 1000 // margen de 45 minutos
+      const targetTimeMs = now.getTime() + hours * 60 * 60 * 1000
+      windowStart = new Date(targetTimeMs - windowMarginMs)
+      windowEnd = new Date(targetTimeMs + windowMarginMs)
+    } else {
+      // Modo Vercel Hobby (ejecución diaria 1 vez cada 24h a las 12:00 UTC / 7:00 AM Colombia)
+      // Cubre las citas de la jornada en curso para que no se omitan citas
+      windowStart = new Date(now.getTime() - 15 * 60 * 1000)
+      windowEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    }
 
     // Citas que caen en este rango y pertenecen a negocios con WhatsApp activado
     const upcomingAppointments = await prisma.appointment.findMany({
@@ -85,3 +102,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Error procesando recordatorios' }, { status: 500 })
   }
 }
+
+export const POST = GET
+

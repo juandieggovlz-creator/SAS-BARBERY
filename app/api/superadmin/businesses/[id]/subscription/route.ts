@@ -1,25 +1,42 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession } from '@/lib/auth'
+import { getSession, isSuperAdminRole } from '@/lib/auth'
 import { recordAuditLog } from '@/lib/audit'
+import {
+  addCalendarMonths,
+  addDays,
+  formatColombiaDate,
+  parseColombiaExpirationDate
+} from '@/lib/billing-dates'
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || !isSuperAdminRole(session.role)) {
     return NextResponse.json({ error: 'Acceso no autorizado' }, { status: 403 })
   }
 
   try {
     const { id } = await params
     const body = await request.json()
-    const { action, days, planId, period, reason, notes } = body
+    const {
+      action,
+      days,
+      months,
+      planId,
+      period,
+      expirationDate,
+      preserveRemainingDays = true,
+      keepCurrentExpiration = true,
+      reason,
+      notes
+    } = body
 
     const business = await prisma.business.findUnique({
       where: { id },
-      include: { plan: true }
+      include: { plan: true, company: true }
     })
 
     if (!business) {
@@ -27,11 +44,26 @@ export async function POST(
     }
 
     const now = new Date()
+    const previousSubEnd = business.subscriptionEndsAt ? new Date(business.subscriptionEndsAt) : null
+    const previousTrialEnd = business.trialEndsAt ? new Date(business.trialEndsAt) : null
+
+    // Determinar fecha base para extensiones sin sobrescribir ni perder días vigentes
+    const resolveExtensionBaseDate = (): Date => {
+      if (preserveRemainingDays !== false) {
+        if (previousSubEnd && previousSubEnd.getTime() > now.getTime()) {
+          return previousSubEnd
+        }
+        if (business.status === 'TRIAL' && previousTrialEnd && previousTrialEnd.getTime() > now.getTime()) {
+          return previousTrialEnd
+        }
+      }
+      return now
+    }
 
     // 1. Activar prueba (7, 15, 30, 60 días, personalizado)
     if (action === 'ACTIVATE_TRIAL') {
-      const trialDays = Number(days) || 15
-      const newTrialEnds = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000)
+      const trialDays = Math.max(1, Number(days) || 15)
+      const newTrialEnds = addDays(now, trialDays)
 
       const updated = await prisma.business.update({
         where: { id },
@@ -41,15 +73,26 @@ export async function POST(
         }
       })
 
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: {
+            status: 'TRIAL',
+            trialEndsAt: newTrialEnds
+          }
+        })
+      }
+
       await recordAuditLog({
         userId: session.userId,
-        userRole: 'SUPER_ADMIN',
+        userRole: session.role,
         businessId: id,
         action: 'TRIAL_ACTIVATED',
         entity: 'Business',
         entityId: id,
         details: {
           days: trialDays,
+          previousTrialEndsAt: previousTrialEnd?.toISOString() || null,
           trialEndsAt: newTrialEnds.toISOString(),
           businessName: business.name
         }
@@ -57,81 +100,190 @@ export async function POST(
 
       return NextResponse.json({
         success: true,
-        message: `Prueba de ${trialDays} días activada para ${business.name}`,
+        message: `Prueba de ${trialDays} días activada para ${business.name} (hasta ${formatColombiaDate(newTrialEnds)})`,
         business: updated
       })
     }
 
-    // 2. Activar plan (Mensual, Trimestral, Semestral, Anual)
+    // 2. Activar plan comercial (Mensual, Trimestral, Semestral, Anual)
     if (action === 'ACTIVATE_PLAN') {
-      if (!planId) {
+      const targetPlanId = planId || business.planId
+      if (!targetPlanId) {
         return NextResponse.json({ error: 'Debes seleccionar un plan' }, { status: 400 })
       }
 
-      const plan = await prisma.plan.findUnique({ where: { id: planId } })
+      const plan = await prisma.plan.findUnique({ where: { id: targetPlanId } })
       if (!plan) {
         return NextResponse.json({ error: 'Plan seleccionado no existe' }, { status: 404 })
       }
 
+      const normPeriod = String(period || 'MONTHLY').toUpperCase()
       let durationMonths = 1
-      if (period === 'QUARTERLY') durationMonths = 3
-      if (period === 'BIANNUAL') durationMonths = 6
-      if (period === 'YEARLY') durationMonths = 12
+      if (normPeriod === 'QUARTERLY') durationMonths = 3
+      else if (normPeriod === 'BIANNUAL' || normPeriod === 'SEMIANNUAL') durationMonths = 6
+      else if (normPeriod === 'YEARLY' || normPeriod === 'ANNUAL') durationMonths = 12
 
-      const newSubscriptionEnds = new Date(now.getTime() + durationMonths * 30 * 24 * 60 * 60 * 1000)
+      const baseDate =
+        preserveRemainingDays !== false && previousSubEnd && previousSubEnd.getTime() > now.getTime()
+          ? previousSubEnd
+          : now
+      const newSubscriptionEnds = addCalendarMonths(baseDate, durationMonths)
 
       const updated = await prisma.business.update({
         where: { id },
         data: {
           status: 'ACTIVE',
           planId: plan.id,
-          subscriptionEndsAt: newSubscriptionEnds
+          subscriptionEndsAt: newSubscriptionEnds,
+          maxBarbers: plan.maxBarbers,
+          maxClients: plan.maxClients,
+          maxAppointments: plan.maxAppointments
         }
       })
 
-      // Registrar suscripción en historial SaaS
-      await prisma.saaSSubscription.create({
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: {
+            status: 'ACTIVE',
+            planId: plan.id,
+            subscriptionEndsAt: newSubscriptionEnds,
+            maxBranches: plan.includedBranches || 1
+          }
+        })
+      }
+
+      const subRecord = await prisma.saaSSubscription.create({
         data: {
           businessId: id,
           planId: plan.id,
-          amount: plan.price,
+          amount: Number(plan.price) * durationMonths,
           status: 'ACTIVE',
-          currentPeriodStart: now,
+          currentPeriodStart: baseDate,
           currentPeriodEnd: newSubscriptionEnds,
-          notes: notes || `Plan ${plan.name} (${period || 'MONTHLY'}) activado desde Super Admin`
+          paymentMethod: body.paymentMethod || 'MANUAL_ADMIN',
+          notes: notes || `Plan ${plan.name} (${normPeriod}) activado desde Super Admin`
         }
       })
 
       await recordAuditLog({
         userId: session.userId,
-        userRole: 'SUPER_ADMIN',
+        userRole: session.role,
         businessId: id,
         action: 'PLAN_ACTIVATED',
         entity: 'Business',
         entityId: id,
         details: {
+          previousPlanName: business.plan?.name || 'Sin plan',
           planName: plan.name,
-          period: period || 'MONTHLY',
+          planSlug: plan.slug,
+          period: normPeriod,
+          durationMonths,
+          previousSubscriptionEndsAt: previousSubEnd?.toISOString() || null,
           subscriptionEndsAt: newSubscriptionEnds.toISOString(),
+          subscriptionId: subRecord.id,
           businessName: business.name
         }
       })
 
       return NextResponse.json({
         success: true,
-        message: `Plan ${plan.name} activado hasta el ${newSubscriptionEnds.toLocaleDateString()}`,
+        message: `Plan ${plan.name} (${normPeriod}) activado hasta el ${formatColombiaDate(newSubscriptionEnds)}`,
         business: updated
       })
     }
 
-    // 3. Extender plan (+30, +60, +90 días)
-    if (action === 'EXTEND_PLAN') {
-      const extendDays = Number(days) || 30
-      const currentEnd = business.subscriptionEndsAt && new Date(business.subscriptionEndsAt) > now
-        ? new Date(business.subscriptionEndsAt)
-        : now
+    // 2.5. Cambiar de plan manualmente (aplicando nuevos límites y módulos de inmediato sin borrar datos)
+    if (action === 'CHANGE_PLAN') {
+      if (!planId) {
+        return NextResponse.json({ error: 'Debes especificar el nuevo plan (planId)' }, { status: 400 })
+      }
 
-      const newEnd = new Date(currentEnd.getTime() + extendDays * 24 * 60 * 60 * 1000)
+      const plan = await prisma.plan.findUnique({ where: { id: planId } })
+      if (!plan) {
+        return NextResponse.json({ error: 'El plan especificado no existe' }, { status: 404 })
+      }
+
+      const isSandboxPlan = plan.slug.toLowerCase() === 'sandbox'
+      const effectiveSubEnd = isSandboxPlan
+        ? null
+        : keepCurrentExpiration !== false && previousSubEnd && previousSubEnd.getTime() > now.getTime()
+        ? previousSubEnd
+        : addCalendarMonths(now, 1)
+
+      const updated = await prisma.business.update({
+        where: { id },
+        data: {
+          status: 'ACTIVE',
+          planId: plan.id,
+          subscriptionEndsAt: effectiveSubEnd,
+          ...(isSandboxPlan ? { trialEndsAt: null } : {}),
+          maxBarbers: plan.maxBarbers,
+          maxClients: plan.maxClients,
+          maxAppointments: plan.maxAppointments
+        }
+      })
+
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: {
+            status: 'ACTIVE',
+            planId: plan.id,
+            subscriptionEndsAt: effectiveSubEnd,
+            ...(isSandboxPlan ? { trialEndsAt: null } : {}),
+            maxBranches: plan.includedBranches || 1
+          }
+        })
+      }
+
+      if (!isSandboxPlan && effectiveSubEnd) {
+        await prisma.saaSSubscription.create({
+          data: {
+            businessId: id,
+            planId: plan.id,
+            amount: plan.price,
+            status: 'ACTIVE',
+            currentPeriodStart: now,
+            currentPeriodEnd: effectiveSubEnd,
+            paymentMethod: 'ADMIN_ASSIGNMENT',
+            notes: notes || `Cambio administrativo de plan (${business.plan?.name || 'Anterior'} -> ${plan.name})`
+          }
+        })
+      }
+
+      await recordAuditLog({
+        userId: session.userId,
+        userRole: session.role,
+        businessId: id,
+        action: 'PLAN_CHANGED',
+        entity: 'Business',
+        entityId: id,
+        details: {
+          previousPlanId: business.planId,
+          previousPlanName: business.plan?.name || 'Sin plan',
+          newPlanId: plan.id,
+          newPlanName: plan.name,
+          newPlanSlug: plan.slug,
+          newMaxBarbers: plan.maxBarbers,
+          newMaxBranches: plan.includedBranches || 1,
+          subscriptionEndsAt: effectiveSubEnd?.toISOString() || null,
+          businessName: business.name
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `Plan actualizado a ${plan.name}${effectiveSubEnd ? ` (vigente hasta ${formatColombiaDate(effectiveSubEnd)})` : ''}`,
+        business: updated
+      })
+    }
+
+    // 3. Extender plan por días (+7, +15, +30, +60, +90 días o personalizado)
+    if (action === 'EXTEND_PLAN' || action === 'EXTEND_DAYS') {
+      const extendDays = Math.max(1, Number(days) || 30)
+      const baseDate = resolveExtensionBaseDate()
+      const newEnd = addDays(baseDate, extendDays)
 
       const updated = await prisma.business.update({
         where: { id },
@@ -141,15 +293,42 @@ export async function POST(
         }
       })
 
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: {
+            status: 'ACTIVE',
+            subscriptionEndsAt: newEnd
+          }
+        })
+      }
+
+      if (business.planId) {
+        await prisma.saaSSubscription.create({
+          data: {
+            businessId: id,
+            planId: business.planId,
+            amount: 0,
+            status: 'ACTIVE',
+            currentPeriodStart: baseDate,
+            currentPeriodEnd: newEnd,
+            paymentMethod: 'EXTENSION_DAYS',
+            notes: notes || `Extensión manual +${extendDays} días desde Super Admin`
+          }
+        })
+      }
+
       await recordAuditLog({
         userId: session.userId,
-        userRole: 'SUPER_ADMIN',
+        userRole: session.role,
         businessId: id,
         action: 'PLAN_EXTENDED',
         entity: 'Business',
         entityId: id,
         details: {
           daysAdded: extendDays,
+          previousSubscriptionEndsAt: previousSubEnd?.toISOString() || null,
+          baseDateUsed: baseDate.toISOString(),
           newSubscriptionEndsAt: newEnd.toISOString(),
           businessName: business.name
         }
@@ -157,7 +336,135 @@ export async function POST(
 
       return NextResponse.json({
         success: true,
-        message: `Plan extendido +${extendDays} días (hasta ${newEnd.toLocaleDateString()})`,
+        message: `Suscripción extendida +${extendDays} días (nueva fecha: ${formatColombiaDate(newEnd)})`,
+        business: updated
+      })
+    }
+
+    // 3.5. Extender plan por meses calendario (+1, +3, +6, +12 meses)
+    if (action === 'EXTEND_MONTHS') {
+      const extendMonths = Math.max(1, Number(months) || 1)
+      const baseDate = resolveExtensionBaseDate()
+      const newEnd = addCalendarMonths(baseDate, extendMonths)
+
+      const updated = await prisma.business.update({
+        where: { id },
+        data: {
+          status: 'ACTIVE',
+          subscriptionEndsAt: newEnd
+        }
+      })
+
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: {
+            status: 'ACTIVE',
+            subscriptionEndsAt: newEnd
+          }
+        })
+      }
+
+      if (business.planId) {
+        await prisma.saaSSubscription.create({
+          data: {
+            businessId: id,
+            planId: business.planId,
+            amount: Number(business.plan?.price || 0) * extendMonths,
+            status: 'ACTIVE',
+            currentPeriodStart: baseDate,
+            currentPeriodEnd: newEnd,
+            paymentMethod: 'EXTENSION_MONTHS',
+            notes: notes || `Extensión manual +${extendMonths} mes(es) desde Super Admin`
+          }
+        })
+      }
+
+      await recordAuditLog({
+        userId: session.userId,
+        userRole: session.role,
+        businessId: id,
+        action: 'PLAN_EXTENDED_MONTHS',
+        entity: 'Business',
+        entityId: id,
+        details: {
+          monthsAdded: extendMonths,
+          previousSubscriptionEndsAt: previousSubEnd?.toISOString() || null,
+          baseDateUsed: baseDate.toISOString(),
+          newSubscriptionEndsAt: newEnd.toISOString(),
+          businessName: business.name
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `Suscripción extendida +${extendMonths} mes(es) (nueva fecha: ${formatColombiaDate(newEnd)})`,
+        business: updated
+      })
+    }
+
+    // 3.8. Establecer una fecha de vencimiento específica (Zona horaria Colombia America/Bogota)
+    if (action === 'SET_EXPIRATION_DATE') {
+      if (!expirationDate) {
+        return NextResponse.json({ error: 'Debes indicar la nueva fecha de vencimiento' }, { status: 400 })
+      }
+
+      const newEnd = parseColombiaExpirationDate(expirationDate)
+      const isFuture = newEnd.getTime() > now.getTime()
+      const nextStatus = isFuture ? 'ACTIVE' : business.status
+
+      const updated = await prisma.business.update({
+        where: { id },
+        data: {
+          status: nextStatus,
+          subscriptionEndsAt: newEnd
+        }
+      })
+
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: {
+            status: nextStatus,
+            subscriptionEndsAt: newEnd
+          }
+        })
+      }
+
+      if (business.planId && isFuture) {
+        await prisma.saaSSubscription.create({
+          data: {
+            businessId: id,
+            planId: business.planId,
+            amount: 0,
+            status: 'ACTIVE',
+            currentPeriodStart: now,
+            currentPeriodEnd: newEnd,
+            paymentMethod: 'MANUAL_DATE_SET',
+            notes: notes || `Fecha de vencimiento fijada manualmente al ${formatColombiaDate(newEnd)}`
+          }
+        })
+      }
+
+      await recordAuditLog({
+        userId: session.userId,
+        userRole: session.role,
+        businessId: id,
+        action: 'SUBSCRIPTION_EXPIRATION_SET',
+        entity: 'Business',
+        entityId: id,
+        details: {
+          previousSubscriptionEndsAt: previousSubEnd?.toISOString() || null,
+          newSubscriptionEndsAt: newEnd.toISOString(),
+          isFuture,
+          notes: notes || null,
+          businessName: business.name
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `Fecha de vencimiento establecida al ${formatColombiaDate(newEnd)}`,
         business: updated
       })
     }
@@ -170,9 +477,16 @@ export async function POST(
         data: { status: 'SUSPENDED' }
       })
 
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: { status: 'SUSPENDED' }
+        })
+      }
+
       await recordAuditLog({
         userId: session.userId,
-        userRole: 'SUPER_ADMIN',
+        userRole: session.role,
         businessId: id,
         action: 'BUSINESS_SUSPENDED',
         entity: 'Business',
@@ -191,36 +505,82 @@ export async function POST(
       })
     }
 
-    // 5. Reactivar acceso
+    // 5. Reactivar acceso (y si estaba vencida, asignar vigencia activa para salir de Sandbox/Suspensión)
     if (action === 'REACTIVATE') {
+      const isCurrentlyExpired =
+        (!previousSubEnd || previousSubEnd.getTime() <= now.getTime()) &&
+        (!previousTrialEnd || previousTrialEnd.getTime() <= now.getTime())
+
+      let effectiveSubEnd = previousSubEnd
+      if (days && Number(days) > 0) {
+        const base = previousSubEnd && previousSubEnd.getTime() > now.getTime() ? previousSubEnd : now
+        effectiveSubEnd = addDays(base, Number(days))
+      } else if (months && Number(months) > 0) {
+        const base = previousSubEnd && previousSubEnd.getTime() > now.getTime() ? previousSubEnd : now
+        effectiveSubEnd = addCalendarMonths(base, Number(months))
+      } else if (isCurrentlyExpired) {
+        effectiveSubEnd = addCalendarMonths(now, 1)
+      }
+
       const updated = await prisma.business.update({
         where: { id },
-        data: { status: 'ACTIVE' }
+        data: {
+          status: 'ACTIVE',
+          ...(effectiveSubEnd ? { subscriptionEndsAt: effectiveSubEnd } : {})
+        }
       })
+
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: {
+            status: 'ACTIVE',
+            ...(effectiveSubEnd ? { subscriptionEndsAt: effectiveSubEnd } : {})
+          }
+        })
+      }
+
+      if (business.planId && isCurrentlyExpired && effectiveSubEnd) {
+        await prisma.saaSSubscription.create({
+          data: {
+            businessId: id,
+            planId: business.planId,
+            amount: Number(business.plan?.price || 0),
+            status: 'ACTIVE',
+            currentPeriodStart: now,
+            currentPeriodEnd: effectiveSubEnd,
+            paymentMethod: 'REACTIVATION',
+            notes: notes || 'Reactivación administrativa de suscripción vencida'
+          }
+        })
+      }
 
       await recordAuditLog({
         userId: session.userId,
-        userRole: 'SUPER_ADMIN',
+        userRole: session.role,
         businessId: id,
         action: 'BUSINESS_REACTIVATED',
         entity: 'Business',
         entityId: id,
         details: {
           businessName: business.name,
+          wasExpired: isCurrentlyExpired,
+          previousSubscriptionEndsAt: previousSubEnd?.toISOString() || null,
+          newSubscriptionEndsAt: effectiveSubEnd?.toISOString() || null,
           notes: notes || 'Reactivación ejecutada desde Super Admin'
         }
       })
 
       return NextResponse.json({
         success: true,
-        message: `Barbería ${business.name} reactivada correctamente`,
+        message: `Barbería ${business.name} reactivada correctamente${effectiveSubEnd ? ` (vigente hasta ${formatColombiaDate(effectiveSubEnd)})` : ''}`,
         business: updated
       })
     }
 
     return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Subscription management error:', error)
-    return NextResponse.json({ error: 'Error al gestionar la suscripción' }, { status: 500 })
+    return NextResponse.json({ error: error?.message || 'Error al gestionar la suscripción' }, { status: 500 })
   }
 }

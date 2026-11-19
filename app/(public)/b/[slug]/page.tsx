@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, notFound } from 'next/navigation'
 import Link from 'next/link'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import {
   Scissors,
   MapPin,
@@ -43,7 +45,7 @@ import {
   ImmersiveGalleryShowcase,
 } from '@/components/public/ImmersiveCatalog'
 import { CinematicBookingWidget } from '@/components/public/CinematicBookingWidget'
-import { BANNER_PRESETS, DEFAULT_HERO_BANNER, resolveCoverBannerUrl } from '@/components/public/BannerPresets'
+import { BANNER_PRESETS, DEFAULT_HERO_BANNER, getCoverById, resolveCoverBannerUrl } from '@/components/public/BannerPresets'
 import {
   GalleryItem,
   GalleryServiceRef,
@@ -55,7 +57,7 @@ import {
   resolveGalleryTitle,
   sortGallery,
 } from '@/lib/gallery'
-import { DayScheduleItem, DEFAULT_SCHEDULE, parseSchedule, formatDayHours, formatTime12h } from '@/lib/schedule'
+import { DayScheduleItem, DEFAULT_SCHEDULE, parseSchedule, formatDayHours, formatTime12h, isBusinessOpenNow } from '@/lib/schedule'
 import { buildSocialUrl } from '@/lib/socials'
 import { parseLocation } from '@/lib/maps'
 
@@ -156,10 +158,43 @@ export default function PublicBusinessPage() {
   const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | 'cancelacion' | 'anticipos' | 'datos' | null>(null)
 
   const [navScrolled, setNavScrolled] = useState(false)
+  const [logoLoadError, setLogoLoadError] = useState(false)
   const [activeSection, setActiveSection] = useState<string>('')
+  const [clockTick, setClockTick] = useState(0)
   const reserveRef = useRef<HTMLDivElement>(null)
 
+  useEffect(() => {
+    setLogoLoadError(false)
+  }, [data?.logo])
+
+  // Sincronizar y recalcular todas las posiciones de ScrollTrigger tras montar o actualizar datos
+  useEffect(() => {
+    if (typeof window === 'undefined' || !data) return
+    gsap.registerPlugin(ScrollTrigger)
+
+    const refreshAll = () => {
+      ScrollTrigger.sort()
+      ScrollTrigger.refresh()
+    }
+
+    const rafId = window.requestAnimationFrame(refreshAll)
+    const t1 = window.setTimeout(refreshAll, 140)
+    const t2 = window.setTimeout(refreshAll, 500)
+
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+    }
+  }, [data?.id, data?.page?.bannerUrl, data?.services?.length, data?.barbers?.length])
+
   const todayIndex = getBusinessTodayIndex()
+
+  useEffect(() => {
+    setClockTick((v) => v + 1)
+    const id = window.setInterval(() => setClockTick((v) => v + 1), 60000)
+    return () => window.clearInterval(id)
+  }, [])
 
   useEffect(() => {
     if (!slug) return
@@ -275,15 +310,19 @@ export default function PublicBusinessPage() {
     return () => window.removeEventListener('message', handlePreviewMessage)
   }, [])
 
-  // Scroll listener — nav se vuelve sólido al salir del hero y detecta la sección activa
+  // Scroll listener optimizado con requestAnimationFrame — cero bloqueos en el hilo principal
   useEffect(() => {
     const sectionIds = ['servicios', 'equipo', 'galeria', 'horarios', 'ubicacion']
-    const onScroll = () => {
+    let ticking = false
+
+    const updateOnScroll = () => {
+      ticking = false
       const scrollY = window.scrollY
-      setNavScrolled(scrollY > 60)
+      const nextScrolled = scrollY > 60
+      setNavScrolled((prev) => (prev === nextScrolled ? prev : nextScrolled))
 
       if (scrollY < 320) {
-        setActiveSection('')
+        setActiveSection((prev) => (prev === '' ? prev : ''))
         return
       }
 
@@ -301,10 +340,17 @@ export default function PublicBusinessPage() {
           }
         }
       }
-      setActiveSection(current)
+      setActiveSection((prev) => (prev === current ? prev : current))
     }
 
-    onScroll()
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true
+        window.requestAnimationFrame(updateOnScroll)
+      }
+    }
+
+    updateOnScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
@@ -498,10 +544,12 @@ export default function PublicBusinessPage() {
       ? testimonialItems.reduce((acc, t) => acc + (Number(t.rating) || 5), 0) / testimonialItems.length
       : 0
 
-  // Horarios Semanales Estructurados & Estado de Hoy
+  // Horarios Semanales Estructurados & Estado Real de Hoy (zona horaria America/Bogota)
   const effectiveSchedule = parseSchedule(pageConfig.scheduleJson || pageConfig.businessHours)
   const todayScheduleItem = effectiveSchedule.find((s: DayScheduleItem) => s.dayIndex === todayIndex) || effectiveSchedule[0]
   const isTodayOpen = todayScheduleItem ? todayScheduleItem.isOpen : true
+  const isOpenNow = clockTick > 0 ? isBusinessOpenNow(todayScheduleItem, 'America/Bogota') : isTodayOpen
+  const activeCover = getCoverById(pageConfig.bannerUrl || DEFAULT_BANNER)
 
   // Next 12 days for date selector
   const nextDays = Array.from({ length: 12 }, (_, i) => {
@@ -529,14 +577,11 @@ export default function PublicBusinessPage() {
         '--accent-color': colors.accent
       } as React.CSSProperties}
     >
-      {/* 💈 BARBER POLE ENTRANCE LOADER */}
-      <BarberPoleLoader businessName={data.name} />
-
       {/* ════════════════════════════════════════════════════════
           1. HEADER / NAVBAR FLOTANTE (Adaptativo a Modo Claro y Oscuro con Contraste Garantizado)
       ════════════════════════════════════════════════════════ */}
       <header
-        className="fixed top-0 left-0 right-0 z-40 transition-all duration-300"
+        className="fixed top-0 left-0 right-0 z-40 transition-colors duration-200"
         style={{
           backgroundColor: navScrolled
             ? (isLightMode ? 'rgba(255, 255, 255, 0.96)' : `${colors.bg}f0`)
@@ -589,9 +634,9 @@ export default function PublicBusinessPage() {
             href="#"
             className="group flex items-center gap-2 sm:gap-3 min-w-0 focus:outline-none"
           >
-            {data.logo ? (
+            {data.logo && !logoLoadError ? (
               <div
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 shadow-sm transition-transform duration-200 bg-black"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 shadow-sm bg-black"
                 style={{
                   border: `1.5px solid ${colors.accent}55`,
                   boxShadow: `0 2px 10px ${colors.accent}20`,
@@ -602,6 +647,7 @@ export default function PublicBusinessPage() {
                   alt={data.name}
                   className="w-full h-full object-cover object-center"
                   loading="eager"
+                  onError={() => setLogoLoadError(true)}
                 />
               </div>
             ) : (
@@ -739,9 +785,11 @@ export default function PublicBusinessPage() {
         coverSubtitle={null}
         slogan={pageConfig.slogan}
         businessDescription={data.description}
-        bannerUrl={resolveCoverBannerUrl(pageConfig.bannerUrl || DEFAULT_BANNER)}
+        bannerUrl={activeCover.url}
+        heroVariant={activeCover.heroVariant}
         address={data.address}
         isTodayOpen={isTodayOpen}
+        isOpenNow={isOpenNow}
         todayHoursText={isTodayOpen && todayScheduleItem ? formatDayHours(todayScheduleItem).text : null}
         closedCustomMessage={todayScheduleItem?.customMessage}
         whatsappUrl={showWhatsapp && whatsappUrl ? whatsappUrl : null}
@@ -1454,12 +1502,20 @@ export default function PublicBusinessPage() {
         id="reservar"
         sectionRef={reserveRef}
         chapterNumber="06"
-        eyebrow="SISTEMA DE CITAS EN LÍNEA"
+        eyebrow={
+          data?.effectiveSubscription && data.effectiveSubscription.canUsePublicBooking === false
+            ? 'CONCIERGE & RECEPCIÓN DIRECTA'
+            : 'SISTEMA DE CITAS EN LÍNEA'
+        }
         title="Agenda Tu Cita"
-        subtitle="Elige tus servicios, selecciona tu fecha y asegura tu lugar en tiempo real."
+        subtitle={
+          data?.effectiveSubscription && data.effectiveSubscription.canUsePublicBooking === false
+            ? 'Personaliza tu experiencia eligiendo tus servicios y coordina tu horario en un clic con nuestra recepción.'
+            : 'Elige tus servicios, selecciona tu fecha y asegura tu lugar en tiempo real.'
+        }
         watermark="RESERVAS"
-        variant="clip-reveal"
-        headerAlign="center"
+        variant="editorial-frame"
+        headerAlign="left"
         themeId={pageConfig.theme}
         motionStyle={pageConfig.motionStyle}
         colorMode={colorMode}
@@ -1469,49 +1525,372 @@ export default function PublicBusinessPage() {
         className="scroll-mt-10"
       >
         {data?.effectiveSubscription && data.effectiveSubscription.canUsePublicBooking === false ? (
-          <div
-            className="max-w-2xl mx-auto p-8 sm:p-10 rounded-3xl border text-center space-y-6 my-6 shadow-2xl backdrop-blur-md"
-            style={{ backgroundColor: colors.surface, borderColor: colors.border }}
-          >
-            <div
-              className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center shadow-inner"
-              style={{ backgroundColor: `${colors.accent}20`, color: colors.accent }}
-            >
-              <Clock className="w-8 h-8" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-xl sm:text-2xl font-black tracking-tight" style={{ color: colors.textPrimary, fontFamily: fontConfig.headingFont }}>
-                Atención y Reservas Directas
-              </h3>
-              <p className="text-sm opacity-80 max-w-md mx-auto leading-relaxed" style={{ color: colors.textSecondary }}>
-                El agendamiento en línea por la web se encuentra temporalmente en pausa. Nuestro equipo te atiende con gusto de manera directa para coordinar tu turno:
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              {whatsappUrl && (
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all hover:scale-105"
-                  style={{ backgroundColor: '#25D366', color: '#FFFFFF' }}
+          (() => {
+            const serviceNames = selectedServices.map((s: any) => s.name).join(' + ')
+            const barberLabel = selectedBarber ? selectedBarber.name : 'Primer profesional disponible'
+            const conciergeMessage = [
+              `Hola *${data.name}*, deseo agendar una cita:`,
+              serviceNames ? `• *Servicios:* ${serviceNames}` : '• *Servicio:* Consulta de disponibilidad',
+              `• *Profesional:* ${barberLabel}`,
+              totalAccumulatedDuration > 0 ? `• *Duración estimada:* ${totalAccumulatedDuration} min` : null,
+              pageConfig.showPrices !== false && totalAccumulatedPrice > 0
+                ? `• *Valor estimado:* ${formatCOP(totalAccumulatedPrice)}`
+                : null,
+              '¿Qué horarios tienen disponibles?',
+            ]
+              .filter(Boolean)
+              .join('\n')
+
+            const dynamicWhatsappHref = whatsappUrl
+              ? `${whatsappUrl}${whatsappUrl.includes('?') ? '&' : '?'}text=${encodeURIComponent(conciergeMessage)}`
+              : ''
+
+            const todayHoursFormatted =
+              isTodayOpen && todayScheduleItem ? formatDayHours(todayScheduleItem).text : 'Cerrado hoy'
+
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                {/* ── COLUMNA IZQUIERDA (7 COLS): CONFIGURADOR RÁPIDO DE EXPERIENCIA ── */}
+                <div
+                  data-narrative-item
+                  className="lg:col-span-7 rounded-[28px] border overflow-hidden shadow-xl"
+                  style={{
+                    backgroundColor: colors.surfaceCard,
+                    borderColor: colors.border,
+                  }}
                 >
-                  <WhatsAppIcon />
-                  Agendar por WhatsApp
-                </a>
-              )}
-              {data.phone && (
-                <a
-                  href={`tel:${data.phone}`}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm border transition-all hover:scale-105"
-                  style={{ backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }}
+                  {/* Encabezado interno del selector */}
+                  <div
+                    className="px-6 sm:px-8 py-5 border-b flex flex-wrap items-center justify-between gap-3"
+                    style={{ borderColor: colors.border, backgroundColor: colors.surface }}
+                  >
+                    <div>
+                      <span
+                        className="font-mono text-[10px] font-black uppercase tracking-[0.22em] block"
+                        style={{ color: colors.accent }}
+                      >
+                        PASO 01 · PERSONALIZA TU SOLICITUD
+                      </span>
+                      <h3
+                        className="text-base sm:text-lg font-black tracking-tight mt-0.5"
+                        style={{ color: colors.textPrimary, fontFamily: fontConfig.headingFont }}
+                      >
+                        Selecciona servicios y profesional
+                      </h3>
+                    </div>
+
+                    {selectedServices.length > 0 && (
+                      <span
+                        className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full border"
+                        style={{
+                          borderColor: `${colors.accent}45`,
+                          backgroundColor: `${colors.accent}15`,
+                          color: colors.accent,
+                        }}
+                      >
+                        {selectedServices.length}{' '}
+                        {selectedServices.length === 1 ? 'servicio elegido' : 'servicios elegidos'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="p-6 sm:p-8 space-y-6">
+                    {/* Selector de Servicios Reales */}
+                    {Array.isArray(data.services) && data.services.length > 0 && (
+                      <div className="space-y-2.5">
+                        <label
+                          className="text-[11px] font-black uppercase tracking-[0.18em] block opacity-70"
+                          style={{ color: colors.textSecondary }}
+                        >
+                          Servicios disponibles
+                        </label>
+                        <div
+                          className="rounded-2xl border divide-y overflow-hidden"
+                          style={{ borderColor: colors.border, backgroundColor: colors.bg }}
+                        >
+                          {data.services.map((svc: any, idx: number) => {
+                            const isSelected = selectedServices.some((s: any) => s.id === svc.id)
+                            return (
+                              <div
+                                key={svc.id}
+                                onClick={() => toggleService(svc)}
+                                className="px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3 cursor-pointer transition-colors duration-150"
+                                style={{
+                                  borderColor: colors.border,
+                                  backgroundColor: isSelected ? `${colors.accent}14` : 'transparent',
+                                }}
+                              >
+                                <div className="flex items-center gap-3.5 min-w-0">
+                                  <span
+                                    className="w-7 h-7 rounded-lg border flex items-center justify-center text-[11px] font-mono font-black shrink-0 transition-colors duration-150"
+                                    style={
+                                      isSelected
+                                        ? {
+                                            backgroundColor: colors.accent,
+                                            borderColor: colors.accent,
+                                            color: accentBtnText,
+                                          }
+                                        : {
+                                            borderColor: colors.border,
+                                            color: colors.textSecondary,
+                                          }
+                                    }
+                                  >
+                                    {isSelected ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : String(idx + 1).padStart(2, '0')}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p
+                                      className="text-sm font-bold truncate"
+                                      style={{ color: isSelected ? colors.accent : colors.textPrimary }}
+                                    >
+                                      {svc.name}
+                                    </p>
+                                    <span
+                                      className="text-[11px] font-medium opacity-65 inline-flex items-center gap-1"
+                                      style={{ color: colors.textSecondary }}
+                                    >
+                                      <Clock className="w-3 h-3" style={{ color: colors.accent }} />
+                                      {svc.duration} min
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {pageConfig.showPrices !== false && (
+                                  <span
+                                    className="text-sm font-black shrink-0"
+                                    style={{ color: colors.textPrimary, fontFamily: fontConfig.headingFont }}
+                                  >
+                                    {formatCOP(Number(svc.price))}
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Selector de Barbero Preferido */}
+                    {Array.isArray(data.barbers) && data.barbers.length > 0 && (
+                      <div className="space-y-2.5">
+                        <label
+                          className="text-[11px] font-black uppercase tracking-[0.18em] block opacity-70"
+                          style={{ color: colors.textSecondary }}
+                        >
+                          Profesional de preferencia
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBarber(null)}
+                            className="px-3.5 py-2 rounded-xl border text-xs font-bold transition-colors duration-150 cursor-pointer"
+                            style={
+                              selectedBarber === null
+                                ? {
+                                    backgroundColor: colors.accent,
+                                    borderColor: colors.accent,
+                                    color: accentBtnText,
+                                  }
+                                : {
+                                    backgroundColor: colors.bg,
+                                    borderColor: colors.border,
+                                    color: colors.textPrimary,
+                                  }
+                            }
+                          >
+                            Cualquier disponible
+                          </button>
+
+                          {data.barbers.map((barber: any) => {
+                            const isSelected = selectedBarber?.id === barber.id
+                            return (
+                              <button
+                                key={barber.id}
+                                type="button"
+                                onClick={() => setSelectedBarber(barber)}
+                                className="px-3.5 py-2 rounded-xl border text-xs font-bold transition-colors duration-150 cursor-pointer inline-flex items-center gap-2"
+                                style={
+                                  isSelected
+                                    ? {
+                                        backgroundColor: colors.accent,
+                                        borderColor: colors.accent,
+                                        color: accentBtnText,
+                                      }
+                                    : {
+                                        backgroundColor: colors.bg,
+                                        borderColor: colors.border,
+                                        color: colors.textPrimary,
+                                      }
+                                }
+                              >
+                                <Scissors className="w-3 h-3 shrink-0" />
+                                <span>{barber.name}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── COLUMNA DERECHA (5 COLS): TICKET EDITORIAL DE RECEPCIÓN & ACCIÓN DIRECTA ── */}
+                <div
+                  data-narrative-item
+                  className="lg:col-span-5 rounded-[28px] border overflow-hidden shadow-2xl relative"
+                  style={{
+                    backgroundColor: colors.surfaceCard,
+                    borderColor: `${colors.accent}45`,
+                  }}
                 >
-                  <Phone className="w-4 h-4" />
-                  Llamar: {data.phone}
-                </a>
-              )}
-            </div>
-          </div>
+                  {/* Línea superior de acento */}
+                  <div
+                    className="h-1.5 w-full"
+                    style={{ backgroundColor: colors.accent }}
+                    aria-hidden="true"
+                  />
+
+                  <div className="p-6 sm:p-8 space-y-6">
+                    {/* Estado en vivo + Identidad */}
+                    <div className="flex items-center justify-between gap-3 pb-5 border-b" style={{ borderColor: colors.border }}>
+                      <div>
+                        <span
+                          className="font-mono text-[10px] font-black uppercase tracking-[0.22em] block"
+                          style={{ color: colors.accent }}
+                        >
+                          RESUMEN DE TU SOLICITUD
+                        </span>
+                        <h3
+                          className="text-xl font-black tracking-tight mt-0.5"
+                          style={{ color: colors.textPrimary, fontFamily: fontConfig.headingFont }}
+                        >
+                          {data.name}
+                        </h3>
+                      </div>
+
+                      <span
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0"
+                        style={{
+                          borderColor: isOpenNow ? 'rgba(52,211,153,0.35)' : colors.border,
+                          backgroundColor: isOpenNow ? 'rgba(16,185,129,0.12)' : colors.surface,
+                          color: isOpenNow ? '#34d399' : colors.textSecondary,
+                        }}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            isOpenNow ? 'bg-emerald-400' : 'bg-rose-500'
+                          }`}
+                        />
+                        {isOpenNow ? 'Abierto ahora' : 'Recepción'}
+                      </span>
+                    </div>
+
+                    {/* Desglose estructurado del ticket */}
+                    <div
+                      className="rounded-2xl border p-4 sm:p-5 space-y-3.5 text-xs"
+                      style={{ backgroundColor: colors.bg, borderColor: colors.border }}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <span className="font-bold uppercase tracking-wider opacity-60" style={{ color: colors.textSecondary }}>
+                          Servicios
+                        </span>
+                        <span className="font-black text-right" style={{ color: colors.textPrimary }}>
+                          {serviceNames || 'Por definir en recepción'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-4 border-t pt-3" style={{ borderColor: `${colors.border}80` }}>
+                        <span className="font-bold uppercase tracking-wider opacity-60" style={{ color: colors.textSecondary }}>
+                          Profesional
+                        </span>
+                        <span className="font-bold text-right" style={{ color: colors.textPrimary }}>
+                          {barberLabel}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-4 border-t pt-3" style={{ borderColor: `${colors.border}80` }}>
+                        <span className="font-bold uppercase tracking-wider opacity-60" style={{ color: colors.textSecondary }}>
+                          Horario hoy
+                        </span>
+                        <span className="font-semibold text-right" style={{ color: colors.textSecondary }}>
+                          {todayHoursFormatted}
+                        </span>
+                      </div>
+
+                      {totalAccumulatedDuration > 0 && (
+                        <div className="flex items-center justify-between gap-4 border-t pt-3" style={{ borderColor: `${colors.border}80` }}>
+                          <span className="font-bold uppercase tracking-wider opacity-60" style={{ color: colors.textSecondary }}>
+                            Tiempo / Total
+                          </span>
+                          <span
+                            className="font-black text-sm"
+                            style={{ color: colors.accent, fontFamily: fontConfig.headingFont }}
+                          >
+                            {totalAccumulatedDuration} min
+                            {pageConfig.showPrices !== false && totalAccumulatedPrice > 0
+                              ? ` · ${formatCOP(totalAccumulatedPrice)}`
+                              : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Botones de Acción Directa con estética de marca */}
+                    <div className="space-y-3 pt-1">
+                      {dynamicWhatsappHref && (
+                        <a
+                          href={dynamicWhatsappHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group w-full min-h-[52px] inline-flex items-center justify-between gap-3 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-[0.14em] shadow-xl transition-transform duration-150 hover:brightness-105 active:scale-[0.98]"
+                          style={{
+                            backgroundColor: colors.accent,
+                            color: accentBtnText,
+                          }}
+                        >
+                          <span className="inline-flex items-center gap-2.5">
+                            <WhatsAppIcon />
+                            <span>Solicitar Turno por WhatsApp</span>
+                          </span>
+                          <ArrowRight className="w-4 h-4 shrink-0 transition-transform duration-150 group-hover:translate-x-1" />
+                        </a>
+                      )}
+
+                      {data.phone && (
+                        <a
+                          href={`tel:${data.phone}`}
+                          className="w-full min-h-[48px] inline-flex items-center justify-between gap-3 px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-[0.12em] border transition-colors duration-150"
+                          style={{
+                            backgroundColor: colors.bg,
+                            borderColor: colors.border,
+                            color: colors.textPrimary,
+                          }}
+                        >
+                          <span className="inline-flex items-center gap-2.5">
+                            <Phone className="w-3.5 h-3.5" style={{ color: colors.accent }} />
+                            <span>Línea directa de recepción</span>
+                          </span>
+                          <span className="font-mono font-black" style={{ color: colors.accent }}>
+                            {data.phone}
+                          </span>
+                        </a>
+                      )}
+                    </div>
+
+                    {data.address && !data.address.startsWith('http') && (
+                      <p
+                        className="text-[11px] font-medium flex items-center gap-2 pt-1 opacity-75"
+                        style={{ color: colors.textSecondary }}
+                      >
+                        <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: colors.accent }} />
+                        <span className="truncate">{data.address}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })()
         ) : (
           <CinematicBookingWidget
             businessName={data.name}
@@ -1580,16 +1959,17 @@ export default function PublicBusinessPage() {
             {/* Columna 1: Marca & Identidad */}
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                {data.logo ? (
+                {data.logo && !logoLoadError ? (
                   <div
-                    className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-md bg-black"
+                    className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-md bg-zinc-950/95 p-0.5"
                     style={{ border: `1.5px solid ${colors.accent}50`, boxShadow: `0 2px 10px ${colors.accent}25` }}
                   >
                     <img
                       src={data.logo}
                       alt={data.name}
-                      className="w-full h-full object-cover object-center"
+                      className="w-full h-full object-contain object-center rounded-xl"
                       loading="lazy"
+                      onError={() => setLogoLoadError(true)}
                     />
                   </div>
                 ) : (

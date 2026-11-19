@@ -253,6 +253,7 @@ export default function WebpageEditor() {
 
   // ── Sincronización en tiempo real hacia el iframe (CERO ESPERA / CERO RECARGA) ──
   useEffect(() => {
+    if (loading) return
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage({
         type: 'PREVIEW_STATE_UPDATE',
@@ -267,10 +268,11 @@ export default function WebpageEditor() {
         previewColorMode,
       }, '*')
     }
-  }, [pageConfig, logoUrl, businessForm, previewColorMode])
+  }, [loading, pageConfig, logoUrl, businessForm, previewColorMode])
 
   useEffect(() => {
     const handleIframeReady = (e: MessageEvent) => {
+      if (loading) return
       if (e.data?.type === 'PREVIEW_IFRAME_READY' && iframeRef.current?.contentWindow) {
         iframeRef.current.contentWindow.postMessage({
           type: 'PREVIEW_STATE_UPDATE',
@@ -288,7 +290,7 @@ export default function WebpageEditor() {
     }
     window.addEventListener('message', handleIframeReady)
     return () => window.removeEventListener('message', handleIframeReady)
-  }, [pageConfig, logoUrl, businessForm, previewColorMode])
+  }, [loading, pageConfig, logoUrl, businessForm, previewColorMode])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -1586,177 +1588,80 @@ export default function WebpageEditor() {
           )}
 
           {/* ════════════════════════════════════════════════════════
-              3. PORTADA — SELECCIÓN DE IMAGEN PREDETERMINADA
+              3. PORTADA — EXPERIENCIA CINEMATOGRÁFICA OFICIAL ACTIVA
           ════════════════════════════════════════════════════════ */}
           {activeTab === 'cover' && (
             <div className="space-y-5">
               <div className="bg-white dark:bg-[#141418] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xs">
-                <div>
-                  <h3 className="text-sm font-black uppercase tracking-wider text-zinc-950 dark:text-white flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-500" /> Portada
-                  </h3>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium mt-1">
-                    Selecciona la imagen que aparecerá en la portada de tu página web.
-                  </p>
-                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
-                    El nombre comercial, el eslogan y la descripción se administran directamente desde la sección <strong className="text-zinc-700 dark:text-zinc-300">Identidad</strong>.
-                  </p>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-zinc-950 dark:text-white flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-500" /> Portada Cinematográfica
+                    </h3>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium mt-1">
+                      Tu página web utiliza el escenario cinematográfico interactivo controlado por scroll.
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                    <Check className="w-3 h-3" strokeWidth={3} />
+                    Diseño Activo
+                  </span>
                 </div>
 
-                {/* Si hay una portada personalizada histórica que no coincide con las oficiales, se conserva y muestra */}
+                {/* Tarjeta Única de la Portada Cinematográfica Oficial */}
                 {(() => {
-                  const hasCustomCover =
-                    pageConfig.bannerUrl &&
-                    !BARBEROS_OFFICIAL_COVERS.some(
-                      c => c.url === pageConfig.bannerUrl || c.id === pageConfig.bannerUrl
-                    )
-
-                  if (!hasCustomCover) return null
-
-                  const isCustomSelected =
-                    !BARBEROS_OFFICIAL_COVERS.some(
-                      c => c.url === pageConfig.bannerUrl || c.id === pageConfig.bannerUrl
-                    )
-
+                  const activeCover = BARBEROS_OFFICIAL_COVERS[0]
                   return (
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => set('bannerUrl', pageConfig.bannerUrl)}
-                      className={`group relative text-left rounded-2xl border-2 overflow-hidden transition-all duration-200 cursor-pointer flex flex-col focus:outline-none mb-3 ${
-                        isCustomSelected
-                          ? 'border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/30 dark:ring-amber-400/30 shadow-lg shadow-amber-500/10 bg-white dark:bg-[#141418]'
-                          : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-white dark:bg-[#141418]'
-                      }`}
-                    >
-                      <div className="relative aspect-video w-full overflow-hidden bg-zinc-900">
+                    <div className="rounded-2xl border-2 border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/20 dark:ring-amber-400/20 shadow-lg shadow-amber-500/10 bg-white dark:bg-[#141418] overflow-hidden flex flex-col">
+                      <div className="relative aspect-video w-full overflow-hidden bg-zinc-950">
                         <img
-                          src={pageConfig.bannerUrl}
-                          alt="Portada personalizada actual"
+                          src={activeCover.url}
+                          alt={activeCover.title}
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
-                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-md border border-white/20">
-                            Tu Portada Personalizada
+
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-black/75 text-white backdrop-blur-md border border-white/20">
+                            {activeCover.badge}
+                          </span>
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500 text-black shadow-xs">
+                            Oficial BarberOS
                           </span>
                         </div>
-                        {isCustomSelected && (
-                          <div className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-amber-500 text-black flex items-center justify-center shadow-md z-10">
-                            <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                          </div>
-                        )}
+
+                        <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-amber-500 text-black flex items-center justify-center shadow-md z-10">
+                          <Check className="w-4 h-4" strokeWidth={3} />
+                        </div>
+
+                        <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-[11px] text-zinc-200 font-medium z-10">
+                          <span className="truncate">{activeCover.lighting}</span>
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-amber-300 bg-black/65 px-2 py-0.5 rounded border border-white/10 shrink-0 ml-2">
+                            {activeCover.motionStyle}
+                          </span>
+                        </div>
                       </div>
-                      <div className="p-3.5 flex items-center justify-between gap-2">
-                        <div>
-                          <span className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
-                            Portada personalizada actual
+
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                            {activeCover.title}
                           </span>
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                            Referencia previa conservada. Si eliges una portada predeterminada de abajo, puedes volver a cambiarla cuando quieras.
-                          </p>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                            Interactivo con Scroll
+                          </span>
                         </div>
-                        {isCustomSelected && (
-                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 shrink-0">
-                            Activa
-                          </span>
-                        )}
+                        <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                          {activeCover.description}
+                        </p>
                       </div>
                     </div>
                   )
                 })()}
 
-                {/* Grilla de Portadas Prediseñadas Oficiales */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-                  {BARBEROS_OFFICIAL_COVERS.map((cover) => {
-                    const isSelected =
-                      pageConfig.bannerUrl === cover.url ||
-                      pageConfig.bannerUrl === cover.id ||
-                      (!pageConfig.bannerUrl && cover.id === DEFAULT_COVER_ID)
-
-                    return (
-                      <div
-                        key={cover.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          set('bannerUrl', cover.url)
-                          set('motionStyle', cover.motionStyle)
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            set('bannerUrl', cover.url)
-                            set('motionStyle', cover.motionStyle)
-                          }
-                        }}
-                        className={`group relative text-left rounded-2xl border-2 overflow-hidden transition-all duration-200 cursor-pointer flex flex-col focus:outline-none ${
-                          isSelected
-                            ? 'border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/30 dark:ring-amber-400/30 shadow-lg shadow-amber-500/10 bg-white dark:bg-[#141418]'
-                            : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-white dark:bg-[#141418] hover:bg-zinc-50/70 dark:hover:bg-[#181820]'
-                        }`}
-                      >
-                        {/* Miniatura 16:9 con Badge */}
-                        <div className="relative aspect-video w-full overflow-hidden bg-zinc-900">
-                          <img
-                            src={cover.url}
-                            alt={cover.title}
-                            className={`w-full h-full object-cover transition-transform duration-500 ${
-                              isSelected ? 'scale-105' : 'group-hover:scale-105 opacity-90 group-hover:opacity-100'
-                            }`}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
-
-                          {/* Badge de estilo / recomendación */}
-                          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
-                            <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/70 text-white backdrop-blur-md border border-white/20">
-                              {cover.badge}
-                            </span>
-                            {cover.recommended && (
-                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500 text-black shadow-xs">
-                                Sugerido
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Checkmark de Selección Activa */}
-                          {isSelected && (
-                            <div className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-amber-500 text-black flex items-center justify-center shadow-md z-10">
-                              <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                            </div>
-                          )}
-
-                          {/* Iluminación & Motion Badge sobre la imagen */}
-                          <div className="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between text-[10px] text-zinc-300 font-medium z-10">
-                            <span className="truncate">{cover.lighting}</span>
-                            <span className="text-[9px] font-mono uppercase tracking-wider text-amber-300 bg-black/60 px-1.5 py-0.5 rounded border border-white/10 shrink-0 ml-1">
-                              {cover.motionStyle}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Metadatos y Descripción */}
-                        <div className="p-3.5 flex-1 flex flex-col justify-between space-y-1.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className={`text-xs font-black uppercase tracking-wider ${
-                              isSelected ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-900 dark:text-zinc-100'
-                            }`}>
-                              {cover.title}
-                            </span>
-                            {isSelected && (
-                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                                Seleccionada
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] leading-relaxed line-clamp-2 text-zinc-600 dark:text-zinc-400">
-                            {cover.description}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed pt-1">
+                  El nombre comercial, logotipo, eslogan y descripción breve que aparecen superpuestos sobre el escenario se administran directamente desde la pestaña <strong className="text-zinc-800 dark:text-zinc-200">Identidad</strong>.
+                </p>
               </div>
             </div>
           )}

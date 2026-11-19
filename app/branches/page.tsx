@@ -353,13 +353,7 @@ export default function BranchesPage() {
                 }
                 setShowCreateModal(true)
               }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95"
-              style={{
-                backgroundColor: 'var(--accent, #F59E0B)',
-                color: 'var(--accent-contrast, #000)',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent-dark, #D97706)')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--accent, #F59E0B)')}
+              className="panel-btn-accent flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Nueva Sede</span>
@@ -796,7 +790,7 @@ export default function BranchesPage() {
                   <select
                     disabled={editingBranch.isMainBranch}
                     value={editFormData.status}
-                    onChange={e => setEditFormData({ ...editFormData, status: e.target.value as any })}
+                    onChange={e => setEditFormData({ ...editFormData, status: e.target.value as 'ACTIVE' | 'SUSPENDED' })}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-sm font-medium focus:outline-none focus:border-zinc-950 dark:focus:border-amber-400 disabled:opacity-50"
                   >
                     <option value="ACTIVE">Activa (En línea)</option>
@@ -871,7 +865,7 @@ export default function BranchesPage() {
 
             <div>
               <h3 className="text-lg font-black text-zinc-900 dark:text-white">
-                ¿Eliminar sede "{deletingBranch.name}"?
+                ¿Eliminar sede &ldquo;{deletingBranch.name}&rdquo;?
               </h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
                 Si esta sede contiene citas pasadas, cierres de caja o transacciones financieras, el sistema la <strong>archivará de forma segura</strong> para garantizar que tus balances contables no se alteren. Si no tiene datos históricos, se eliminará limpiamente.

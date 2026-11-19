@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { extractMotionConfigFromPage } from '@/lib/motion-presets'
+import { parseBusinessDepositConfig } from '@/lib/booking/deposit-config'
+import { getEffectiveSubscription } from '@/lib/commercial-permissions'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -79,9 +82,33 @@ export async function GET(
       })
     }
 
+    const depositConfig = parseBusinessDepositConfig(business)
+    const advancePaymentConfig = {
+      enabled: depositConfig.depositEnabled,
+      ...depositConfig.paymentMethods,
+    }
+
+    const effectiveSub = await getEffectiveSubscription(business.id)
+
     return NextResponse.json(
       {
         ...business,
+        effectiveSubscription: {
+          tier: effectiveSub.tier,
+          canUsePublicBooking: effectiveSub.permissions.canUsePublicBooking,
+          isSandbox: effectiveSub.isSandbox,
+          isSuspended: effectiveSub.isSuspended,
+          statusLabel: effectiveSub.statusLabel
+        },
+        depositInstructions: depositConfig.cleanInstructions,
+        advancePaymentConfig,
+        page: business.page
+          ? {
+              ...business.page,
+              advancePaymentConfig,
+              ...extractMotionConfigFromPage(business.page),
+            }
+          : null,
         siblingBranches
       },
       {

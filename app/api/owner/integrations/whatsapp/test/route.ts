@@ -3,11 +3,23 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { rateLimit } from '@/lib/rate-limit'
 import { WhatsAppService } from '@/lib/whatsapp/whatsapp-service'
+import { canUseWhatsApp } from '@/lib/commercial-permissions'
 
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session || !session.businessId || (session.role !== 'OWNER' && session.role !== 'SUPER_ADMIN')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
+  // Verificación comercial del plan
+  const allowedByPlan = await canUseWhatsApp(session.businessId)
+  if (!allowedByPlan && session.role !== 'SUPER_ADMIN') {
+    return NextResponse.json(
+      {
+        error: 'Tu plan comercial actual no incluye automatización de WhatsApp Business. Actualiza a Plan Profesional o Premium en Suscripción para enviar mensajes.'
+      },
+      { status: 403 }
+    )
   }
 
   // Rate limit: máx 5 mensajes de prueba cada 10 minutos por negocio para evitar spam

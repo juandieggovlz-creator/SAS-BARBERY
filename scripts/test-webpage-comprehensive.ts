@@ -168,18 +168,18 @@ async function runTestSuite() {
     assert(extractedDark.defaultColorMode === 'dark', '12. Modo de color predeterminado Oscuro guardado para nuevos visitantes')
 
     // 13. Portada prediseñada oficial seleccionada y guardada
-    const selectedCover = BARBEROS_OFFICIAL_COVERS[1] // Dark Luxury Studio
+    const selectedCover = BARBEROS_OFFICIAL_COVERS[0] // CINEMATIC LUXURY 3D
     const pageCover = await prisma.businessPage.update({
       where: { businessId: business.id },
       data: { bannerUrl: selectedCover.url }
     })
     assert(pageCover.bannerUrl === selectedCover.url, '13. Selección y guardado de portada oficial prediseñada')
 
-    // 14. Catálogo oficial de portadas tiene al menos 5 opciones curadas
+    // 14. Catálogo oficial de portadas tiene la portada cinematográfica oficial activa
     assert(
-      BARBEROS_OFFICIAL_COVERS.length >= 5 &&
+      BARBEROS_OFFICIAL_COVERS.length === 1 &&
       BARBEROS_OFFICIAL_COVERS.every(c => c.id && c.title && c.url && c.badge && c.lighting),
-      '14. Catálogo curado de portadas oficiales BarberOS con metadatos completos'
+      '14. Catálogo curado de portada oficial BarberOS (CINEMATIC LUXURY 3D) con metadatos completos'
     )
 
     // 15. Especificaciones técnicas de portada oficial

@@ -284,7 +284,7 @@ export default function SuperAdminSettingsPage() {
                   </label>
                   <input
                     type="email"
-                    value={settings.support_email || 'soporte@barberos.co'}
+                    value={settings.support_email || 'barberos.contacto@gmail.com'}
                     onChange={e => handleChange('support_email', e.target.value)}
                     className="w-full mt-1.5 px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-xs font-bold text-zinc-900 outline-none focus:border-zinc-950"
                   />
@@ -370,6 +370,25 @@ export default function SuperAdminSettingsPage() {
                   </p>
                 </div>
                 <span className="text-[10px] font-bold text-zinc-400 uppercase">Seguridad SaaS</span>
+              </div>
+
+              {/* ACCESO A CENTRO DE SEGURIDAD AVANZADA */}
+              <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h4 className="text-sm font-bold text-zinc-950 flex items-center gap-2">
+                    <KeyRound className="w-4 h-4 text-amber-500" />
+                    Seguridad de la Cuenta & Identidad Raíz (MFA, Passkeys, Sesiones)
+                  </h4>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Configura tu autenticador TOTP, registra llaves biométricas FIDO2, gestiona códigos de recuperación y revoca sesiones remotas.
+                  </p>
+                </div>
+                <a
+                  href="/superadmin/settings/security"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs whitespace-nowrap transition-all shadow-xs"
+                >
+                  <span>Abrir Centro de Seguridad</span>
+                </a>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

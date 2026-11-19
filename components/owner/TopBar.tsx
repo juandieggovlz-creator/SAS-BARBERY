@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, Menu } from 'lucide-react'
 
 import NotificationBell from '@/components/notifications/NotificationBell'
 import BranchSelector from '@/components/owner/BranchSelector'
 import ImpersonationBanner from '@/components/ImpersonationBanner'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 const routeTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'Centro de Operaciones', subtitle: 'Resumen ejecutivo y control del negocio' },
@@ -63,54 +64,67 @@ export default function TopBar({ onOpenSearch }: TopBarProps) {
     <>
       <ImpersonationBanner />
       <header
-        className="h-16 bg-white dark:bg-[#09090b] border-b border-zinc-100 dark:border-zinc-800/80 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-20"
+        className="h-16 bg-white dark:bg-[#09090b] border-b border-zinc-100 dark:border-zinc-800/80 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-20 shrink-0"
         style={{ fontFamily: "'Inter', sans-serif" }}
       >
-      {/* Title & Subtitle */}
-      <div className="min-w-0 flex-1">
-        <h1 className="text-base sm:text-lg font-black tracking-tight text-zinc-950 dark:text-white flex items-center gap-2 truncate" style={{ letterSpacing: '-0.02em' }}>
-          {currentRoute.title}
-        </h1>
-        <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 hidden sm:block truncate">
-          {currentRoute.subtitle}
-        </p>
-      </div>
+        {/* Left: Mobile Menu Toggle + Title & Subtitle */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-owner-sidebar'))}
+            className="md:hidden p-2 rounded-xl bg-zinc-50 dark:bg-[#121215] border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0 cursor-pointer touch-manipulation"
+            aria-label="Abrir menú de navegación"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
 
-      {/* Actions */}
-      <div className="flex items-center gap-2 sm:gap-2.5 ml-auto shrink-0">
-        {/* Branch Selector (only shown for multi-branch VIP accounts) */}
-        <BranchSelector visible={showBranchSelector} />
+          <div className="min-w-0 flex-1">
+            <h1
+              className="text-sm sm:text-base md:text-lg font-black tracking-tight text-zinc-950 dark:text-white flex items-center gap-2 truncate"
+              style={{ letterSpacing: '-0.02em' }}
+            >
+              {currentRoute.title}
+            </h1>
+            <p className="text-[10px] sm:text-[11px] font-medium text-zinc-400 dark:text-zinc-400 hidden sm:block truncate">
+              {currentRoute.subtitle}
+            </p>
+          </div>
+        </div>
 
-        {/* Global Search Button */}
-        <button
-          onClick={onOpenSearch}
-          className="flex items-center gap-2 bg-zinc-50 dark:bg-[#121215] hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-3 py-2 rounded-xl text-xs font-medium transition-all border border-zinc-200/80 dark:border-zinc-700/80"
-        >
-          <Search className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="hidden md:inline">Buscar...</span>
-          <kbd className="hidden sm:inline bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded-md text-[9px] font-mono border border-zinc-200 dark:border-zinc-700 text-zinc-400 shadow-2xs">
-            Ctrl K
-          </kbd>
-        </button>
+        {/* Right: Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 ml-auto shrink-0">
+          {/* Branch Selector (only shown for multi-branch VIP accounts) */}
+          <BranchSelector visible={showBranchSelector} />
 
-        {/* Interactive Notification Bell */}
-        <NotificationBell />
+          {/* Global Search Button */}
+          <button
+            onClick={onOpenSearch}
+            className="flex items-center gap-2 bg-zinc-50 dark:bg-[#121215] hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium transition-all border border-zinc-200/80 dark:border-zinc-700/80 cursor-pointer touch-manipulation"
+            aria-label="Buscar en BarberOS"
+          >
+            <Search className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+            <span className="hidden md:inline">Buscar...</span>
+            <kbd className="hidden lg:inline bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded-md text-[9px] font-mono border border-zinc-200 dark:border-zinc-700 text-zinc-400 shadow-2xs">
+              Ctrl K
+            </kbd>
+          </button>
 
-        {/* Action Button: New Appointment */}
-        <Link
-          href="/appointments"
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all shadow-sm active:scale-95 group cursor-pointer"
-          style={{
-            backgroundColor: 'var(--accent)',
-            color: 'var(--accent-contrast)',
-            boxShadow: '0 4px 14px var(--accent-op30)'
-          }}
-        >
-          <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 shrink-0" strokeWidth={3} style={{ color: 'var(--accent-contrast)' }} />
-          <span className="hidden sm:inline font-black" style={{ color: 'var(--accent-contrast)' }}>Nueva Cita</span>
-        </Link>
-      </div>
-    </header>
+          {/* Interactive Notification Bell */}
+          <NotificationBell />
+
+          {/* Quick Theme Switcher (Light / Dark) */}
+          <ThemeToggle variant="navbar" />
+
+          {/* Action Button: New Appointment */}
+          <Link
+            href="/appointments"
+            className="panel-btn-accent flex items-center gap-1.5 p-2 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black transition-all shadow-sm active:scale-95 group cursor-pointer touch-manipulation"
+            aria-label="Nueva Cita"
+          >
+            <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 shrink-0" strokeWidth={3} />
+            <span className="hidden sm:inline font-black">Nueva Cita</span>
+          </Link>
+        </div>
+      </header>
     </>
   )
 }

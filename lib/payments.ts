@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
 import { PaymentMethod, PaymentStatus } from '@prisma/client'
+import { resolveAppointmentFinancials } from '@/lib/booking/booking-metadata'
 
 export function generatePaymentCode(): string {
   const hex = randomBytes(3).toString('hex').toUpperCase()
@@ -35,10 +36,18 @@ export async function ensurePaymentForAppointment(
     throw new Error(`Appointment with ID ${appointmentId} not found`)
   }
 
-  const amount = appointment.service?.price ? Number(appointment.service.price) : 0
+  const financials = resolveAppointmentFinancials(appointment)
+  const amount = financials.totalPrice > 0
+    ? financials.totalPrice
+    : (appointment.service?.price ? Number(appointment.service.price) : 0)
+
   const method = options?.paymentMethod || appointment.paymentMethod || 'CASH'
-  const status = options?.status || 'PENDING'
-  const paidAt = (status === 'PAID' || status === 'COMPLETED') ? new Date() : null
+  const status =
+    financials.isDepositApproved && financials.depositPaidAmount > 0 && financials.remainingBalance > 0
+      ? 'PARTIAL'
+      : (options?.status || 'PENDING')
+  const paidAt = (status === 'PAID' || status === 'COMPLETED' || status === 'PARTIAL') ? new Date() : null
+  const amountToRecord = status === 'PARTIAL' ? financials.depositPaidAmount : amount
 
   let attempts = 0
   const maxAttempts = 3
@@ -51,7 +60,7 @@ export async function ensurePaymentForAppointment(
           businessId: appointment.businessId,
           appointmentId: appointment.id,
           paymentCode,
-          amount,
+          amount: amountToRecord,
           method,
           status,
           paidAt,

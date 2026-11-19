@@ -5,7 +5,7 @@ import { recordAuditLog } from '@/lib/audit'
 
 export async function GET() {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -35,7 +35,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -96,13 +96,28 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
   try {
     const body = await request.json()
-    const { id, name, price, billingPeriod, maxBarbers, maxClients, maxAppointments, features, isPopular, isActive } = body
+    const {
+      id,
+      name,
+      price,
+      billingPeriod,
+      maxBarbers,
+      maxClients,
+      maxAppointments,
+      allowsMultiBranch,
+      includedBranches,
+      defaultAdditionalBranchPrice,
+      features,
+      isPopular,
+      isActive,
+      isPublic
+    } = body
 
     if (!id) {
       return NextResponse.json({ error: 'ID de plan requerido' }, { status: 400 })
@@ -120,9 +135,13 @@ export async function PATCH(request: Request) {
     if (maxBarbers !== undefined) updateData.maxBarbers = Number(maxBarbers)
     if (maxClients !== undefined) updateData.maxClients = Number(maxClients)
     if (maxAppointments !== undefined) updateData.maxAppointments = Number(maxAppointments)
+    if (allowsMultiBranch !== undefined) updateData.allowsMultiBranch = Boolean(allowsMultiBranch)
+    if (includedBranches !== undefined) updateData.includedBranches = Number(includedBranches)
+    if (defaultAdditionalBranchPrice !== undefined) updateData.defaultAdditionalBranchPrice = Number(defaultAdditionalBranchPrice)
     if (features !== undefined) updateData.features = Array.isArray(features) ? features : []
     if (isPopular !== undefined) updateData.isPopular = Boolean(isPopular)
     if (isActive !== undefined) updateData.isActive = Boolean(isActive)
+    if (isPublic !== undefined) updateData.isPublic = Boolean(isPublic)
 
     const updated = await prisma.plan.update({
       where: { id },
@@ -146,7 +165,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 

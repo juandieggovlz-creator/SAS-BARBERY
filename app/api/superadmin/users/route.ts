@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession } from '@/lib/auth'
+import { getSession, isSuperAdminRole } from '@/lib/auth'
 import { recordAuditLog } from '@/lib/audit'
 
 export async function GET(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || !isSuperAdminRole(session.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || !isSuperAdminRole(session.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -90,7 +90,32 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
-    // Evitar que el Super Admin se bloquee a sí mismo
+    if (targetUser.role === 'ROOT_PLATFORM_OWNER') {
+      return NextResponse.json({
+        error: 'Acceso denegado: La cuenta del Propietario Raíz (Root Platform Owner) no puede ser modificada a través de esta interfaz.'
+      }, { status: 403 })
+    }
+
+    if (targetUser.role === 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER') {
+      return NextResponse.json({
+        error: 'Acceso denegado: Solo el Propietario Principal (Root Platform Owner) puede modificar cuentas de Super Administrador.'
+      }, { status: 403 })
+    }
+
+    if (role === 'ROOT_PLATFORM_OWNER') {
+      return NextResponse.json({
+        error: 'Acceso denegado: El rol ROOT_PLATFORM_OWNER es único y no puede asignarse a través de esta interfaz.'
+      }, { status: 403 })
+    }
+
+    // Solo el Root Platform Owner puede promover o degradar Super Administradores
+    if ((role === 'SUPER_ADMIN' || targetUser.role === 'SUPER_ADMIN') && session.role !== 'ROOT_PLATFORM_OWNER') {
+      return NextResponse.json({
+        error: 'Acceso denegado: Solo el Propietario Principal (Root Platform Owner) está autorizado para crear o remover Super Administradores.'
+      }, { status: 403 })
+    }
+
+    // Evitar que el Super Admin o Root se bloquee a sí mismo
     if (targetUser.id === session.userId && isActive === false) {
       return NextResponse.json({ error: 'No puedes desactivar tu propia cuenta' }, { status: 400 })
     }
@@ -122,7 +147,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || !isSuperAdminRole(session.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -145,6 +170,18 @@ export async function DELETE(request: Request) {
 
     if (!targetUser) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    }
+
+    if (targetUser.role === 'ROOT_PLATFORM_OWNER') {
+      return NextResponse.json({
+        error: 'Acceso denegado: El Propietario Raíz (Root Platform Owner) no puede ser eliminado del sistema.'
+      }, { status: 403 })
+    }
+
+    if (targetUser.role === 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER') {
+      return NextResponse.json({
+        error: 'Acceso denegado: Solo el Propietario Principal (Root Platform Owner) puede eliminar cuentas de Super Administrador.'
+      }, { status: 403 })
     }
 
     await prisma.user.delete({

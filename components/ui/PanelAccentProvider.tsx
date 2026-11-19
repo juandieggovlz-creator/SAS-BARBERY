@@ -24,27 +24,38 @@ interface PanelAccentProviderProps {
 export default function PanelAccentProvider({ children, className }: PanelAccentProviderProps) {
   useEffect(() => {
     return () => {
-      // Limpieza exhaustiva al desmontar el panel (ej: logout o navegación a landing)
-      if (typeof document !== 'undefined') {
-        const el = document.getElementById('accent-override')
-        if (el) el.remove()
+      // No eliminar #accent-override cuando se navega entre módulos del mismo panel,
+      // para evitar el parpadeo de color entre rutas (ej: Dashboard -> Agenda -> Web Pública).
+      // Sólo limpiar si salimos a la landing comercial, login, registro o web pública (/b/).
+      if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+        const path = window.location.pathname
+        const isLeavingPanel =
+          path === '/' ||
+          path.startsWith('/login') ||
+          path.startsWith('/register') ||
+          path.startsWith('/b/')
 
-        const root = document.documentElement
-        const residualVars = [
-          '--accent',
-          '--accent-dark',
-          '--accent-darker',
-          '--accent-light',
-          '--accent-lighter',
-          '--accent-op15',
-          '--accent-op30',
-          '--accent-op60',
-          '--accent-contrast',
-          '--accent-hover',
-          '--sidebar-active-bg',
-          '--sidebar-active-text'
-        ]
-        residualVars.forEach((v) => root.style.removeProperty(v))
+        if (isLeavingPanel) {
+          const el = document.getElementById('accent-override')
+          if (el) el.remove()
+
+          const root = document.documentElement
+          const residualVars = [
+            '--accent',
+            '--accent-dark',
+            '--accent-darker',
+            '--accent-light',
+            '--accent-lighter',
+            '--accent-op15',
+            '--accent-op30',
+            '--accent-op60',
+            '--accent-contrast',
+            '--accent-hover',
+            '--sidebar-active-bg',
+            '--sidebar-active-text'
+          ]
+          residualVars.forEach((v) => root.style.removeProperty(v))
+        }
       }
     }
   }, [])

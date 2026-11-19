@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(request: Request) {
   const session = await getSession('SUPER_ADMIN')
-  if (!session || session.role !== 'SUPER_ADMIN') {
+  if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ROOT_PLATFORM_OWNER')) {
     return NextResponse.json({ error: 'Acceso no autorizado' }, { status: 403 })
   }
 

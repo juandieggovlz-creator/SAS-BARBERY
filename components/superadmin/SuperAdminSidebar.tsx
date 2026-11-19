@@ -22,13 +22,56 @@ import {
   Menu,
   X,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  Bot
 } from 'lucide-react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 
 export default function SuperAdminSidebar() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [currentUser, setCurrentUser] = useState<{ email?: string; role?: string; name?: string } | null>(null)
+
+  React.useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => {
+        if (d?.user) {
+          setCurrentUser(d.user)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  // Control de apertura por eventos externos y bloqueo de scroll
+  React.useEffect(() => {
+    const handleOpen = () => setMobileOpen(true)
+    const handleToggle = () => setMobileOpen(prev => !prev)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false)
+    }
+
+    window.addEventListener('open-superadmin-sidebar', handleOpen)
+    window.addEventListener('toggle-superadmin-sidebar', handleToggle)
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('open-superadmin-sidebar', handleOpen)
+      window.removeEventListener('toggle-superadmin-sidebar', handleToggle)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [mobileOpen])
 
   const navGroups = [
     {
@@ -52,6 +95,7 @@ export default function SuperAdminSidebar() {
       title: 'SALUD & SOPORTE TÉCNICO',
       items: [
         { label: 'Monitor de Servicios', href: '/superadmin/system', icon: Activity },
+        { label: 'Sentinel Telegram', href: '/superadmin/sentinel', icon: Bot },
         { label: 'Centro de Incidencias', href: '/superadmin/incidents', icon: AlertOctagon },
         { label: 'Tickets de Soporte', href: '/superadmin/support', icon: LifeBuoy },
       ]
@@ -126,10 +170,11 @@ export default function SuperAdminSidebar() {
       <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
         {navGroups.map((group) => (
           <div key={group.title}>
-            <div className="px-3 mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-              {group.title}
+            <div className="px-3 mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+              <span>{group.title}</span>
+              <span className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800/70" />
             </div>
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {group.items.map((item) => {
                 const Icon = item.icon
                 const active = isActive(item.href)
@@ -140,23 +185,30 @@ export default function SuperAdminSidebar() {
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
                     className={`
-                      flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-150 group border
+                      relative flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs transition-all duration-150 group border
                       ${
                         active
-                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 shadow-xs'
-                          : 'border-transparent text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 hover:text-zinc-950 dark:hover:text-white'
+                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 shadow-xs font-extrabold'
+                          : 'border-transparent font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 hover:text-zinc-950 dark:hover:text-white'
                       }
                     `}
                   >
-                    <Icon
-                      className={`w-4 h-4 shrink-0 transition-colors ${
+                    {active && (
+                      <span className="w-1 h-4 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] shrink-0" />
+                    )}
+                    <span
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-150 ${
                         active
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white'
+                          ? 'bg-amber-500 text-zinc-950 shadow-2xs'
+                          : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-200/70 dark:group-hover:bg-zinc-800 group-hover:text-zinc-900 dark:group-hover:text-white group-hover:scale-105'
                       }`}
-                      strokeWidth={active ? 2.5 : 2}
-                    />
-                    <span className="truncate">{item.label}</span>
+                    >
+                      <Icon
+                        className="w-3.5 h-3.5 shrink-0 transition-transform duration-150"
+                        strokeWidth={active ? 2.4 : 2}
+                      />
+                    </span>
+                    <span className="truncate tracking-tight">{item.label}</span>
                     {active && (
                       <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] shrink-0" />
                     )}
@@ -177,10 +229,14 @@ export default function SuperAdminSidebar() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-xs font-black text-zinc-950 dark:text-white truncate">
-              Super Administrador
+              {currentUser?.role === 'ROOT_PLATFORM_OWNER'
+                ? 'Platform Owner (Root)'
+                : currentUser?.role === 'SUPER_ADMIN'
+                ? 'Super Administrador'
+                : 'Administrador'}
             </div>
             <div className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 truncate">
-              admin@barberos.co
+              {currentUser?.email || 'barberos.contacto@gmail.com'}
             </div>
           </div>
           <div
@@ -213,39 +269,20 @@ export default function SuperAdminSidebar() {
 
   return (
     <>
-      {/* Mobile Header Toggle */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white dark:bg-[#0c0c0e] border-b border-zinc-200 dark:border-zinc-800 px-4 py-3 flex items-center justify-between">
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-          aria-label="Abrir menú"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-        <div className="flex items-center gap-2">
-          <span className="font-black text-sm text-zinc-950 dark:text-white tracking-tight">
-            Barber<span className="text-amber-500">OS</span>
-          </span>
-          <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-500 border border-amber-500/30">
-            ADMIN
-          </span>
-        </div>
-        <ThemeToggle variant="navbar" />
-      </div>
-
       {/* Desktop Sidebar */}
-      <aside className="hidden md:block w-64 h-screen fixed top-0 left-0 z-30">
+      <aside className="hidden md:block w-64 h-screen fixed top-0 left-0 z-30 shrink-0">
         {sidebarContent}
       </aside>
 
       {/* Mobile Drawer */}
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
+        <div className="md:hidden fixed inset-0 z-50 flex animate-in fade-in duration-200">
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
           />
-          <div className="relative w-72 max-w-[85vw] h-full shadow-2xl z-10">
+          <div className="relative w-72 max-w-[85vw] h-full shadow-2xl z-10 flex flex-col bg-white dark:bg-[#0c0c0e] animate-in slide-in-from-left duration-250 pt-safe pb-safe">
             {sidebarContent}
           </div>
         </div>

@@ -40,18 +40,37 @@ export async function GET() {
 
     const members: ChatMember[] = []
 
-    // 2. Add Owner(s) to members list
-    const ownerUser = business.users[0]
-    const isCurrentOwner = session.role === 'OWNER' || session.role === 'SUPER_ADMIN'
-    
-    members.push({
-      id: ownerUser ? `user_${ownerUser.id}` : 'owner_admin',
-      name: business.name ? `Dueño (${business.name})` : 'Dueño / Administración',
-      role: 'OWNER',
-      avatar: business.logo || null,
-      email: ownerUser?.email || null,
-      isCurrentUser: isCurrentOwner
-    })
+    const currentMemberId = session.role === 'BARBER' && session.barberId
+      ? `barber_${session.barberId}`
+      : `user_${session.userId}`
+
+    // 2. Add Owner(s) and Branch Admin(s) to members list
+    if (business.users.length > 0) {
+      for (const u of business.users) {
+        const isSelf = session.userId === u.id
+        const isOwnerRole = u.role === 'OWNER' || u.role === 'SUPER_ADMIN' || (u.role as string) === 'ROOT_PLATFORM_OWNER'
+        members.push({
+          id: `user_${u.id}`,
+          name: isOwnerRole
+            ? (business.name ? `Dueño (${business.name})` : 'Dueño / Administración')
+            : `Administrador de Sede (${business.name})`,
+          role: isOwnerRole ? 'OWNER' : 'BRANCH_ADMIN',
+          avatar: business.logo || null,
+          email: u.email || null,
+          isCurrentUser: isSelf
+        })
+      }
+    } else {
+      const isCurrentOwner = session.role !== 'BARBER'
+      members.push({
+        id: 'owner_admin',
+        name: business.name ? `Dueño (${business.name})` : 'Dueño / Administración',
+        role: 'OWNER',
+        avatar: business.logo || null,
+        email: null,
+        isCurrentUser: isCurrentOwner
+      })
+    }
 
     // 3. Get all active barbers of this business
     const barbers = await prisma.barber.findMany({
@@ -87,7 +106,7 @@ export async function GET() {
 
     return NextResponse.json({
       members,
-      currentUserId: isCurrentOwner ? (ownerUser ? `user_${ownerUser.id}` : 'owner_admin') : `barber_${session.barberId}`,
+      currentUserId: currentMemberId,
       currentRole: session.role
     })
   } catch (error) {
