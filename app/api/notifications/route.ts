@@ -123,6 +123,69 @@ export async function GET() {
       }
     }
 
+    // ── Alerta Informativa: Notificación de Actualización de Plan desde Super Admin ──
+    try {
+      const recentPlanChange = await prisma.auditLog.findFirst({
+        where: {
+          businessId,
+          action: {
+            in: [
+              'PLAN_CHANGED',
+              'PLAN_ACTIVATED',
+              'INDEFINITE_SUBSCRIPTION_SET',
+              'UNLIMITED_TEST_MODE_ASSIGNED'
+            ]
+          },
+          createdAt: {
+            gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      })
+
+      if (recentPlanChange) {
+        let detailsObj: any = {}
+        try {
+          detailsObj = JSON.parse(String(recentPlanChange.details || '{}'))
+        } catch {
+          // ignore
+        }
+
+        const activePlanName =
+          detailsObj.newPlanName ||
+          detailsObj.topPlanName ||
+          detailsObj.planName ||
+          business?.plan?.name ||
+          'Premium'
+
+        const isTestMode = recentPlanChange.action === 'UNLIMITED_TEST_MODE_ASSIGNED'
+        const isIndefinite = recentPlanChange.action === 'INDEFINITE_SUBSCRIPTION_SET'
+
+        notifications.unshift({
+          id: `plan-change-${recentPlanChange.id}`,
+          title: isTestMode
+            ? '🚀 ¡Modo Pruebas Ilimitado Activado!'
+            : '🎉 ¡Tu plan ha sido actualizado!',
+          message: isTestMode
+            ? `Tu negocio ahora tiene activo el plan ${activePlanName} con barberos y sedes ilimitados sin restricciones.`
+            : isIndefinite
+            ? `Tu negocio ahora tiene activo el plan ${activePlanName} con Vigencia Indefinida sin vencimiento.`
+            : `Tu negocio ahora tiene activo el plan ${activePlanName}. Ya puedes utilizar las funciones incluidas en tu nueva suscripción.`,
+          category: 'system',
+          timestamp: recentPlanChange.createdAt.toISOString(),
+          read: false,
+          link: '/subscription',
+          metadata: {
+            code: 'PLAN_UPDATED_CONFIRMED',
+            status: activePlanName,
+            date: recentPlanChange.createdAt.toISOString()
+          }
+        })
+      }
+    } catch (e) {
+      // safe fallback
+    }
+
     // Convert real appointments to notifications
     appointments.forEach((apt) => {
       const dateFormatted = new Date(apt.date).toLocaleString('es-CO', {

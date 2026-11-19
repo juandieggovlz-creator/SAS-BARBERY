@@ -397,8 +397,8 @@ export default function SubscriptionPage() {
               </p>
             </div>
 
-            {/* Fechas calculadas */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-3 border-t border-zinc-800 text-xs">
+            {/* Fechas y capacidades calculadas */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-zinc-800 text-xs">
               <div>
                 <span className="text-[10px] uppercase font-bold text-zinc-500 block">Fecha de Registro</span>
                 <span className="font-mono font-bold text-zinc-200">
@@ -406,19 +406,29 @@ export default function SubscriptionPage() {
                 </span>
               </div>
               <div>
-                <span className="text-[10px] uppercase font-bold text-zinc-500 block">Fecha de Vencimiento</span>
+                <span className="text-[10px] uppercase font-bold text-zinc-500 block">Vigencia / Vencimiento</span>
                 <span className={`font-mono font-bold ${isSandbox ? 'text-zinc-500' : 'text-amber-300'}`}>
                   {endDate && !isSandbox
                     ? endDate.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })
                     : isSandbox
                     ? 'Sin vencimiento (Gratuito)'
-                    : 'Indefinido'}
+                    : 'Vigencia Indefinida ♾️'}
                 </span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-zinc-500 block">Capacidad Barberos</span>
                 <span className="font-mono font-bold text-zinc-200">
-                  Hasta {effective?.limits.maxBarbers || business.maxBarbers || 1} barbero(s)
+                  {effective?.limits.maxBarbers === null || effective?.limits.maxBarbers === -1 || business.maxBarbers === null
+                    ? 'Ilimitados 🚀'
+                    : `Hasta ${effective?.limits.maxBarbers || business.maxBarbers || 1} barbero(s)`}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-zinc-500 block">Capacidad Sedes</span>
+                <span className="font-mono font-bold text-zinc-200">
+                  {effective?.limits.maxBranches === null || effective?.limits.maxBranches === -1
+                    ? 'Ilimitadas 🚀'
+                    : `${effective?.limits.maxBranches || 1} sede(s)`}
                 </span>
               </div>
             </div>

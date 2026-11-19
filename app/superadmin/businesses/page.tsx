@@ -451,7 +451,7 @@ export default function SuperAdminBusinessesPage() {
                         <div className={`font-mono font-bold text-xs ${isExpired ? 'text-rose-500' : 'text-zinc-900 dark:text-zinc-100'}`}>
                           {expInfo.text}
                         </div>
-                        {expInfo.days !== null && (
+                        {expInfo.days !== null ? (
                           <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md inline-block mt-0.5 border ${
                             isExpired
                               ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40'
@@ -461,7 +461,11 @@ export default function SuperAdminBusinessesPage() {
                           }`}>
                             {isExpired ? 'Finalizó' : `${expInfo.days}d restantes`}
                           </span>
-                        )}
+                        ) : b.status === 'ACTIVE' ? (
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md inline-block mt-0.5 bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
+                            ♾️ Indefinida
+                          </span>
+                        ) : null}
                       </td>
 
                       {/* 5. Estado */}

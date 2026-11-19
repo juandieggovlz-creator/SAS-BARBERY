@@ -578,6 +578,257 @@ export async function POST(
       })
     }
 
+    // 6. Asignar vigencia indefinida (sin fecha de expiración ficticia ni 2099)
+    if (action === 'SET_INDEFINITE') {
+      const targetPlanId = planId || business.planId
+      let activePlanId = targetPlanId
+      if (!activePlanId) {
+        const defaultPlan = await prisma.plan.findFirst({
+          where: { isActive: true },
+          orderBy: { price: 'desc' }
+        })
+        activePlanId = defaultPlan?.id || null
+      }
+
+      const plan = activePlanId ? await prisma.plan.findUnique({ where: { id: activePlanId } }) : null
+
+      const updated = await prisma.business.update({
+        where: { id },
+        data: {
+          status: 'ACTIVE',
+          planId: activePlanId,
+          subscriptionEndsAt: null,
+          trialEndsAt: null
+        }
+      })
+
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: {
+            status: 'ACTIVE',
+            planId: activePlanId,
+            subscriptionEndsAt: null,
+            trialEndsAt: null
+          }
+        })
+      }
+
+      await prisma.saaSSubscription.create({
+        data: {
+          businessId: id,
+          planId: activePlanId || business.planId || '',
+          amount: 0,
+          status: 'ACTIVE',
+          currentPeriodStart: now,
+          currentPeriodEnd: now,
+          paymentMethod: 'INDEFINITE_ADMIN',
+          notes: notes || `Vigencia INDEFINIDA asignada desde Super Admin por usuario ${session.userId}`
+        }
+      })
+
+      await recordAuditLog({
+        userId: session.userId,
+        userRole: session.role,
+        businessId: id,
+        action: 'INDEFINITE_SUBSCRIPTION_SET',
+        entity: 'Business',
+        entityId: id,
+        details: {
+          businessName: business.name,
+          planName: plan?.name || business.plan?.name || 'Comercial',
+          assignedBy: session.userId,
+          notes: notes || 'Vigencia indefinida asignada',
+          executedAt: new Date().toISOString()
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `Vigencia INDEFINIDA asignada exitosamente a ${business.name}. No vencerá automáticamente.`,
+        business: updated
+      })
+    }
+
+    // 6.5. Retirar vigencia indefinida y retornar a una fecha determinada
+    if (action === 'REVOKE_INDEFINITE') {
+      const newEnd = expirationDate
+        ? parseColombiaExpirationDate(expirationDate)
+        : addCalendarMonths(now, 1)
+
+      const updated = await prisma.business.update({
+        where: { id },
+        data: {
+          status: 'ACTIVE',
+          subscriptionEndsAt: newEnd
+        }
+      })
+
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: {
+            status: 'ACTIVE',
+            subscriptionEndsAt: newEnd
+          }
+        })
+      }
+
+      await recordAuditLog({
+        userId: session.userId,
+        userRole: session.role,
+        businessId: id,
+        action: 'INDEFINITE_SUBSCRIPTION_REVOKED',
+        entity: 'Business',
+        entityId: id,
+        details: {
+          businessName: business.name,
+          revokedBy: session.userId,
+          newSubscriptionEndsAt: newEnd.toISOString()
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `Vigencia indefinida revocada. Nueva fecha de vencimiento: ${formatColombiaDate(newEnd)}.`,
+        business: updated
+      })
+    }
+
+    // 7. ASIGNAR MODO PRUEBAS ILIMITADO (Para negocio interno de pruebas del Super Admin)
+    if (action === 'ASSIGN_UNLIMITED_TEST_MODE') {
+      const topPlan = await prisma.plan.findFirst({
+        where: { isActive: true },
+        orderBy: { price: 'desc' }
+      })
+
+      if (!topPlan) {
+        return NextResponse.json({ error: 'No se encontró un plan activo disponible' }, { status: 500 })
+      }
+
+      const updated = await prisma.business.update({
+        where: { id },
+        data: {
+          status: 'ACTIVE',
+          planId: topPlan.id,
+          subscriptionEndsAt: null,
+          trialEndsAt: null,
+          maxBarbers: null, // Sin límite comercial
+          maxClients: null, // Sin límite comercial
+          maxAppointments: null // Sin límite comercial
+        }
+      })
+
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: {
+            status: 'ACTIVE',
+            planId: topPlan.id,
+            subscriptionEndsAt: null,
+            trialEndsAt: null,
+            maxBranches: -1 // Sin límite de sedes (-1 representa formalmente ilimitado)
+          }
+        })
+      }
+
+      // Guardar marcador explícito en PlatformSetting
+      await prisma.platformSetting.upsert({
+        where: { key: `test_mode_${id}` },
+        update: {
+          value: JSON.stringify({
+            enabled: true,
+            grantedBy: session.userId,
+            grantedAt: new Date().toISOString(),
+            businessName: business.name,
+            reason: reason || 'Negocio interno de pruebas de plataforma'
+          }),
+          description: `Acceso de pruebas ilimitado para ${business.name}`
+        },
+        create: {
+          key: `test_mode_${id}`,
+          value: JSON.stringify({
+            enabled: true,
+            grantedBy: session.userId,
+            grantedAt: new Date().toISOString(),
+            businessName: business.name,
+            reason: reason || 'Negocio interno de pruebas de plataforma'
+          }),
+          description: `Acceso de pruebas ilimitado para ${business.name}`
+        }
+      })
+
+      await recordAuditLog({
+        userId: session.userId,
+        userRole: session.role,
+        businessId: id,
+        action: 'UNLIMITED_TEST_MODE_ASSIGNED',
+        entity: 'Business',
+        entityId: id,
+        details: {
+          businessName: business.name,
+          grantedBy: session.userId,
+          topPlanName: topPlan.name,
+          limits: 'UNLIMITED (null)'
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `¡Modo Pruebas Ilimitado activado para ${business.name}! Plan ${topPlan.name}, barberos y sedes ilimitados sin vencimiento.`,
+        business: updated
+      })
+    }
+
+    // 7.5. REVOCAR MODO PRUEBAS ILIMITADO
+    if (action === 'REVOKE_UNLIMITED_TEST_MODE') {
+      const plan = business.plan || await prisma.plan.findFirst({ where: { isActive: true }, orderBy: { price: 'asc' } })
+
+      const newEnd = addCalendarMonths(now, 1)
+      const updated = await prisma.business.update({
+        where: { id },
+        data: {
+          maxBarbers: plan?.maxBarbers || 3,
+          maxClients: plan?.maxClients || 500,
+          maxAppointments: plan?.maxAppointments || 1000,
+          subscriptionEndsAt: newEnd
+        }
+      })
+
+      if (business.companyId) {
+        await prisma.company.update({
+          where: { id: business.companyId },
+          data: {
+            maxBranches: plan?.includedBranches || 1,
+            subscriptionEndsAt: newEnd
+          }
+        })
+      }
+
+      await prisma.platformSetting.deleteMany({
+        where: { key: `test_mode_${id}` }
+      })
+
+      await recordAuditLog({
+        userId: session.userId,
+        userRole: session.role,
+        businessId: id,
+        action: 'UNLIMITED_TEST_MODE_REVOKED',
+        entity: 'Business',
+        entityId: id,
+        details: {
+          businessName: business.name,
+          revokedBy: session.userId
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `Modo pruebas ilimitado revocado para ${business.name}. Restablecidos límites estándar del plan.`,
+        business: updated
+      })
+    }
+
     return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
   } catch (error: any) {
     console.error('Subscription management error:', error)

@@ -186,7 +186,8 @@ export async function getEffectiveSubscription(businessId: string): Promise<Effe
 
   // 3. Suscripción de pago activa vigente
   if (lifecycle.status === 'ACTIVE' || lifecycle.status === 'EXPIRING_SOON') {
-    const end = lifecycle.expiresAt!
+    const end = lifecycle.expiresAt
+    const isIndefinite = end === null
     const planSlug = targetPlan?.slug?.toLowerCase() || 'plan-basico'
 
     let tier: CommercialTier = 'BASIC'
@@ -197,11 +198,15 @@ export async function getEffectiveSubscription(businessId: string): Promise<Effe
     const isPro = tier === 'PRO' || isPremium
     const canMultiBranch = isPremium || Boolean(targetPlan?.allowsMultiBranch) || hasBranchException
 
-    const effectiveMaxBarbers = business.maxBarbers ?? targetPlan?.maxBarbers ?? 3
-    const effectiveMaxClients = business.maxClients ?? targetPlan?.maxClients ?? 500
-    const effectiveMaxAppointments = business.maxAppointments ?? targetPlan?.maxAppointments ?? 1000
+    // Manejo limpio de límites ilimitados (representados formalmente con null)
+    const isUnlimitedBarbers = business.maxBarbers === null
+    const effectiveMaxBarbers = isUnlimitedBarbers ? null : (business.maxBarbers ?? targetPlan?.maxBarbers ?? 3)
+    const effectiveMaxClients = business.maxClients === null ? null : (business.maxClients ?? targetPlan?.maxClients ?? 500)
+    const effectiveMaxAppointments = business.maxAppointments === null ? null : (business.maxAppointments ?? targetPlan?.maxAppointments ?? 1000)
     const effectiveMaxBranches = hasBranchException
       ? Math.max(business.company?.maxBranches || 1, branchExceptionMax)
+      : isUnlimitedBarbers || business.company?.maxBranches === null
+      ? null
       : canMultiBranch
       ? Math.max(business.company?.maxBranches || 1, targetPlan?.includedBranches || 1)
       : 1
@@ -218,7 +223,9 @@ export async function getEffectiveSubscription(businessId: string): Promise<Effe
       graceDaysRemaining: null,
       isSuspended: false,
       daysRemaining: lifecycle.daysRemaining,
-      statusLabel: lifecycle.status === 'EXPIRING_SOON'
+      statusLabel: isIndefinite
+        ? `Plan ${targetPlan?.name || 'Comercial'} (Vigencia Indefinida)`
+        : lifecycle.status === 'EXPIRING_SOON'
         ? `${targetPlan?.name || 'Plan'} (Vence en ${lifecycle.daysRemaining} días)`
         : `Plan ${targetPlan?.name || 'Comercial'} Activo`,
       expiresAt: end,
@@ -227,8 +234,8 @@ export async function getEffectiveSubscription(businessId: string): Promise<Effe
         name: targetPlan?.name || 'Plan Activo',
         slug: targetPlan?.slug || 'plan-basico',
         price: Number(targetPlan?.price || 0),
-        maxBarbers: effectiveMaxBarbers,
-        maxBranches: effectiveMaxBranches
+        maxBarbers: effectiveMaxBarbers as any,
+        maxBranches: effectiveMaxBranches as any
       },
       permissions: {
         canUsePublicBooking: moduleToggles.webpage,
@@ -241,10 +248,10 @@ export async function getEffectiveSubscription(businessId: string): Promise<Effe
       },
       moduleToggles,
       limits: {
-        maxBarbers: effectiveMaxBarbers,
-        maxBranches: effectiveMaxBranches,
-        maxClients: effectiveMaxClients,
-        maxAppointments: effectiveMaxAppointments
+        maxBarbers: effectiveMaxBarbers as any,
+        maxBranches: effectiveMaxBranches as any,
+        maxClients: effectiveMaxClients as any,
+        maxAppointments: effectiveMaxAppointments as any
       }
     }
   }
@@ -438,7 +445,7 @@ export async function canAddBarber(businessId: string): Promise<{ allowed: boole
 
   const maxAllowed = sub.limits.maxBarbers
 
-  if (currentCount >= maxAllowed) {
+  if (maxAllowed !== null && maxAllowed !== undefined && maxAllowed !== -1 && currentCount >= maxAllowed) {
     return {
       allowed: false,
       currentCount,
@@ -449,7 +456,7 @@ export async function canAddBarber(businessId: string): Promise<{ allowed: boole
     }
   }
 
-  return { allowed: true, currentCount, maxAllowed }
+  return { allowed: true, currentCount, maxAllowed: maxAllowed ?? -1 }
 }
 
 /**
@@ -483,7 +490,7 @@ export async function canAddBranch(businessId: string): Promise<{ allowed: boole
 
   const maxAllowed = sub.limits.maxBranches
 
-  if (currentCount >= maxAllowed) {
+  if (maxAllowed !== null && maxAllowed !== undefined && maxAllowed !== -1 && currentCount >= maxAllowed) {
     return {
       allowed: false,
       currentCount,
@@ -492,7 +499,7 @@ export async function canAddBranch(businessId: string): Promise<{ allowed: boole
     }
   }
 
-  return { allowed: true, currentCount, maxAllowed }
+  return { allowed: true, currentCount, maxAllowed: maxAllowed ?? -1 }
 }
 
 /**

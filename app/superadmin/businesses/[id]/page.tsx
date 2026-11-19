@@ -32,7 +32,8 @@ import {
   BarChart3,
   DollarSign,
   Globe,
-  Bot
+  Bot,
+  Infinity
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -896,6 +897,39 @@ export default function BusinessDetailPage() {
                   {item.label}
                 </button>
               ))}
+            </div>
+
+            <div className="pt-2.5 border-t border-zinc-200/80 space-y-2">
+              <button
+                onClick={() => handleSubscriptionAction({
+                  action: business.subscriptionEndsAt === null && business.status === 'ACTIVE' ? 'REVOKE_INDEFINITE' : 'SET_INDEFINITE',
+                  planId: selectedPlanForActivation || business.planId || (plans[0]?.id)
+                })}
+                disabled={submittingAction}
+                className={`w-full py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5 ${
+                  business.subscriptionEndsAt === null && business.status === 'ACTIVE'
+                    ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
+              >
+                <Infinity className="w-4 h-4" />
+                <span>{business.subscriptionEndsAt === null && business.status === 'ACTIVE' ? 'Retirar Vigencia Indefinida' : 'Vigencia Indefinida (Sin Vencimiento)'}</span>
+              </button>
+
+              <button
+                onClick={() => handleSubscriptionAction({
+                  action: business.maxBarbers === null ? 'REVOKE_UNLIMITED_TEST_MODE' : 'ASSIGN_UNLIMITED_TEST_MODE'
+                })}
+                disabled={submittingAction}
+                className={`w-full py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5 ${
+                  business.maxBarbers === null
+                    ? 'bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300'
+                    : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>{business.maxBarbers === null ? 'Revocar Modo Pruebas Ilimitado' : '🚀 Activar Acceso Pruebas Ilimitado'}</span>
+              </button>
             </div>
           </div>
 

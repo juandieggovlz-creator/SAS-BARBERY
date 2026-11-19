@@ -48,6 +48,8 @@ baileys_auth/
 
 # Temporary diagnostics, scratch scripts & dumps
 .github/
+/backups/
+backups/
 tmp_*
 *_dump*
 *.log
