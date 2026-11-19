@@ -20,6 +20,9 @@ export const CLOUDINARY_FOLDERS = {
   BARBERS: (businessId: string) => `barberos/${businessId}/barbers`,
   COVERS: (businessId: string) => `barberos/${businessId}/covers`,
   GALLERY: (businessId: string) => `barberos/${businessId}/gallery`,
+  QR_CODES: (businessId: string) => `barberos/${businessId}/qr-codes`,
+  DEPOSITS: (businessId: string) => `barberos/${businessId}/deposits`,
+  AVATARS: (userId: string) => `barberos/users/${userId}/avatar`,
 } as const;
 
 export interface UploadResult {

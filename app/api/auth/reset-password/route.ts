@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyPasswordResetToken } from '@/lib/auth'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
+import { sendAccountSecurityAlertEmail } from '@/lib/email'
+import { recordAuditLog } from '@/lib/audit'
 import bcrypt from 'bcryptjs'
 
 export const dynamic = 'force-dynamic'
@@ -26,8 +28,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Token de recuperación ausente o inválido' }, { status: 400 })
     }
 
-    if (!password || typeof password !== 'string' || password.length < 6) {
-      return NextResponse.json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' }, { status: 400 })
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      return NextResponse.json({ error: 'La nueva contraseña debe tener al menos 8 caracteres' }, { status: 400 })
     }
 
     // 1. Verificar firma criptográfica y vigencia (15 minutos)
@@ -58,8 +60,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // 4. Actualizar contraseña de forma segura
-    const hashedPassword = await bcrypt.hash(password, 10)
+    // 4. Actualizar contraseña de forma segura con 12 rondas de salt
+    const hashedPassword = await bcrypt.hash(password, 12)
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -69,6 +71,42 @@ export async function POST(request: Request) {
         inviteExpires: null,
       }
     })
+
+    // 5. Revocar todas las sesiones activas del usuario para forzar reautenticación segura
+    await prisma.session.updateMany({
+      where: {
+        userId: user.id,
+        isRevoked: false,
+      },
+      data: { isRevoked: true },
+    }).catch(() => {})
+
+    // 6. Notificación por correo mediante Resend
+    sendAccountSecurityAlertEmail({
+      to: user.email,
+      userName: user.name || 'Usuario BarberOS',
+      title: 'Tu contraseña ha sido restablecida',
+      description: 'Te informamos que tu contraseña fue restablecida mediante el enlace seguro de recuperación.',
+      details: {
+        'Fecha y hora': new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' }),
+        'Dirección IP': ip || 'Verificado',
+        'Estado': 'Todas las sesiones activas han sido cerradas por precaución.',
+      },
+      actionLabel: '¿No fuiste tú? Contacta a soporte de inmediato',
+      actionLink: 'https://barberos.com/support',
+    }).catch((err) => {
+      console.warn('[Reset Password Security Email Warning]:', err)
+    })
+
+    // 7. Registro de auditoría
+    await recordAuditLog({
+      userId: user.id,
+      userRole: user.role,
+      action: 'PASSWORD_RESET_SUCCESS',
+      entity: 'User',
+      entityId: user.id,
+      details: { ip, method: 'EMAIL_LINK' },
+    }).catch(() => {})
 
     return NextResponse.json({
       success: true,
