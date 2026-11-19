@@ -2265,31 +2265,27 @@ export default function WebpageEditor() {
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                            <span className="text-sm font-black text-zinc-900 dark:text-white shrink-0 min-w-[72px]">
+                            <span className="text-sm font-black text-zinc-900 dark:text-white shrink-0 min-w-[68px]">
                               {item.day}
                             </span>
                             {item.isOpen ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 whitespace-nowrap shrink-0">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 whitespace-nowrap">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
-                                <span className="whitespace-nowrap">{formattedOpen} – {formattedClose}</span>
+                                <span>{formattedOpen} – {formattedClose}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 whitespace-nowrap shrink-0">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 truncate">
                                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                                <span className="whitespace-nowrap">{item.customMessage?.trim() || 'Cerrado'}</span>
+                                <span className="truncate">{item.customMessage?.trim() || 'Cerrado'}</span>
                               </span>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-2.5 shrink-0">
-                            <span className={`text-[11px] font-black uppercase tracking-wider transition-colors ${
-                              item.isOpen ? 'text-emerald-500 dark:text-emerald-400' : 'text-zinc-400'
-                            }`}>
-                              {item.isOpen ? 'Abierto' : 'Cerrado'}
-                            </span>
+                          <div className="flex items-center shrink-0">
                             <button
                               type="button"
                               onClick={() => updateDaySchedule(item.dayIndex, { isOpen: !item.isOpen })}
+                              aria-label={item.isOpen ? `Cerrar ${item.day}` : `Abrir ${item.day}`}
                               className={`w-11 h-6 rounded-full transition-all relative cursor-pointer shrink-0 ${
                                 item.isOpen 
                                   ? 'bg-emerald-500 shadow-md shadow-emerald-500/40 ring-2 ring-emerald-500/30' 
