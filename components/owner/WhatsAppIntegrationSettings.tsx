@@ -369,12 +369,12 @@ export default function WhatsAppIntegrationSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
+      const resJson = await res.json().catch(() => ({}))
       if (res.ok) {
-        const updated = await res.json()
-        setData(prev => prev ? { ...prev, ...updated.integration } : updated.integration)
+        setData(prev => prev ? { ...prev, ...(resJson.integration || {}) } : resJson.integration)
         toast.success('Configuración guardada correctamente ✨')
       } else {
-        toast.error('No se pudo guardar la configuración')
+        toast.error(resJson.error || 'No se pudo guardar la configuración')
       }
     } catch {
       toast.error('Error de red al guardar')
@@ -858,6 +858,8 @@ export default function WhatsAppIntegrationSettings() {
 
   const isMetaActive = data.isEnabled && data.provider === 'META'
   const connState = resolveDetailedConnectionState(data, metaVerifying)
+  const isMetaConnected = connState.status === 'CONNECTED'
+  const isBotOperational = Boolean(data.botEnabled && isMetaConnected && data.isEnabled)
 
   // Renderizador de vista previa de plantilla
   const previewConfirm = (data.confirmTemplate || '')
@@ -1342,26 +1344,57 @@ export default function WhatsAppIntegrationSettings() {
             <div className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-800/80 p-2 px-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 shadow-inner">
               <div className="text-right">
                 <span className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100 flex items-center justify-end gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${data.botEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-400'}`} />
-                  {data.botEnabled ? 'Bot Activo' : 'Bot en Pausa'}
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      isBotOperational
+                        ? 'bg-emerald-500 animate-pulse'
+                        : isMetaConnected
+                        ? 'bg-amber-400'
+                        : 'bg-zinc-400'
+                    }`}
+                  />
+                  {isBotOperational
+                    ? 'Bot Activo'
+                    : isMetaConnected
+                    ? 'Bot en Pausa'
+                    : 'Bot Inactivo'}
                 </span>
                 <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
-                  {data.botEnabled ? 'Atención activa' : 'Respuestas en pausa'}
+                  {isBotOperational
+                    ? 'Atención activa'
+                    : isMetaConnected
+                    ? 'Respuestas en pausa'
+                    : 'WhatsApp no conectado'}
                 </p>
               </div>
               <button
                 type="button"
-                disabled={saving}
-                onClick={() => handleSave({ botEnabled: !data.botEnabled })}
-                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 cursor-pointer p-0.5 shrink-0 ${
-                  data.botEnabled
-                    ? 'bg-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.75)] ring-2 ring-emerald-300/80 border border-emerald-400'
-                    : 'bg-zinc-700 dark:bg-zinc-800 border border-zinc-600 dark:border-zinc-700'
+                disabled={saving || !isMetaConnected}
+                onClick={() => {
+                  if (!isMetaConnected) {
+                    toast.info('Conecta tu cuenta de WhatsApp Business para activar las respuestas automáticas')
+                    return
+                  }
+                  handleSave({ botEnabled: !data.botEnabled })
+                }}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 p-0.5 shrink-0 ${
+                  !isMetaConnected
+                    ? 'opacity-50 cursor-not-allowed bg-zinc-700 dark:bg-zinc-800 border border-zinc-600 dark:border-zinc-700'
+                    : isBotOperational
+                    ? 'cursor-pointer bg-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.75)] ring-2 ring-emerald-300/80 border border-emerald-400'
+                    : 'cursor-pointer bg-zinc-700 dark:bg-zinc-800 border border-zinc-600 dark:border-zinc-700'
                 }`}
+                title={
+                  !isMetaConnected
+                    ? 'Primero conecta tu cuenta oficial de WhatsApp'
+                    : isBotOperational
+                    ? 'Pausar bot de WhatsApp'
+                    : 'Activar bot de WhatsApp'
+                }
               >
                 <span
                   className={`inline-block h-5 w-5 transform rounded-full bg-white keep-white shadow-[0_2px_6px_rgba(0,0,0,0.5)] transition-transform duration-300 ${
-                    data.botEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                    isBotOperational ? 'translate-x-5' : 'translate-x-0.5'
                   }`}
                 />
               </button>
@@ -1448,24 +1481,42 @@ export default function WhatsAppIntegrationSettings() {
 
                     <div className="flex items-center gap-2">
                       <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full transition-all ${
-                        data.botEnabled
+                        isBotOperational
                           ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                          : isMetaConnected
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
                           : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
                       }`}>
-                        {data.botEnabled ? 'ACTIVO' : 'INACTIVO'}
+                        {isBotOperational ? 'ACTIVO' : isMetaConnected ? 'PAUSADO' : 'SIN CONEXIÓN'}
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleSave({ botEnabled: !data.botEnabled })}
-                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 cursor-pointer shrink-0 p-0.5 ${
-                          data.botEnabled
-                            ? 'bg-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.75)] ring-2 ring-emerald-300/80 border border-emerald-400'
-                            : 'bg-zinc-700 dark:bg-zinc-800 border border-zinc-600 dark:border-zinc-700'
+                        disabled={saving || !isMetaConnected}
+                        onClick={() => {
+                          if (!isMetaConnected) {
+                            toast.info('Conecta tu cuenta de WhatsApp Business para activar las respuestas automáticas')
+                            return
+                          }
+                          handleSave({ botEnabled: !data.botEnabled })
+                        }}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 shrink-0 p-0.5 ${
+                          !isMetaConnected
+                            ? 'opacity-50 cursor-not-allowed bg-zinc-700 dark:bg-zinc-800 border border-zinc-600 dark:border-zinc-700'
+                            : isBotOperational
+                            ? 'cursor-pointer bg-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.75)] ring-2 ring-emerald-300/80 border border-emerald-400'
+                            : 'cursor-pointer bg-zinc-700 dark:bg-zinc-800 border border-zinc-600 dark:border-zinc-700'
                         }`}
+                        title={
+                          !isMetaConnected
+                            ? 'Primero conecta tu cuenta oficial de WhatsApp'
+                            : isBotOperational
+                            ? 'Pausar bot de WhatsApp'
+                            : 'Activar bot de WhatsApp'
+                        }
                       >
                         <span
                           className={`inline-block h-5 w-5 transform rounded-full bg-white keep-white shadow-[0_2px_6px_rgba(0,0,0,0.5)] transition-transform duration-300 ${
-                            data.botEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                            isBotOperational ? 'translate-x-5' : 'translate-x-0.5'
                           }`}
                         />
                       </button>

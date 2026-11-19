@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { canUseWhatsApp } from '@/lib/commercial-permissions'
+import { safeDecryptToken, safeEncryptToken } from '@/lib/crypto'
 import {
   DEFAULT_CONFIRM_TEMPLATE,
   DEFAULT_REMINDER_TEMPLATE,
@@ -64,13 +66,29 @@ export async function GET(request: Request) {
           isEnabled: false,
           provider: 'NONE',
           connectionStatus: 'DISCONNECTED',
-          botEnabled: true,
+          botEnabled: false,
           bookingEnabled: true,
           allowBarberSelection: true,
           welcomeMessage: DEFAULT_WELCOME_BOT_MESSAGE,
           confirmTemplate: DEFAULT_CONFIRM_TEMPLATE,
           reminderTemplate: DEFAULT_REMINDER_TEMPLATE,
           reminderHoursBefore: 2
+        }
+      })
+    }
+
+    // Verificación comercial del plan
+    const allowedByPlan = await canUseWhatsApp(businessId)
+
+    // Sincronización y normalización: si no hay credenciales o el plan no lo permite, asegurar que no aparezca conectado ni falsamente activo
+    const hasCredentials = Boolean(integration.metaAccessToken || integration.baileysSessionId)
+    if ((!hasCredentials || !allowedByPlan) && (integration.isEnabled || integration.connectionStatus === 'CONNECTED' || (!hasCredentials && integration.botEnabled))) {
+      integration = await prisma.whatsAppIntegration.update({
+        where: { businessId },
+        data: {
+          isEnabled: false,
+          connectionStatus: 'DISCONNECTED',
+          ...(!hasCredentials ? { botEnabled: false } : {})
         }
       })
     }
@@ -108,9 +126,10 @@ export async function GET(request: Request) {
       select: { name: true, slug: true }
     })
 
-    // Máscara de seguridad para token de Meta
-    const maskedToken = integration.metaAccessToken
-      ? `${integration.metaAccessToken.slice(0, 6)}••••••••${integration.metaAccessToken.slice(-4)}`
+    // Máscara de seguridad para token de Meta (descifrando de forma segura en memoria solo para calcular la máscara)
+    const realToken = safeDecryptToken(integration.metaAccessToken)
+    const maskedToken = realToken
+      ? `${realToken.slice(0, 6)}••••••••${realToken.slice(-4)}`
       : null
 
     // DTO Seguro: Nunca enviar tokens o secretos privados de Meta en texto plano al cliente
@@ -122,6 +141,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       ...safeIntegration,
+      canUseWhatsApp: allowedByPlan,
       businessName: business?.name || 'tu Barbería',
       businessSlug: business?.slug || 'demo',
       metaAccessTokenMasked: maskedToken,
@@ -262,16 +282,42 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: true, message: 'Mensaje enviado y bot pausado para este chat' })
     }
 
+    // 4. Validación comercial: Solo bloquear si se intenta encender WhatsApp explícitamente sin un plan que lo incluya
+    const existingIntegration = await prisma.whatsAppIntegration.findUnique({
+      where: { businessId }
+    })
+    const allowedByPlan = await canUseWhatsApp(businessId)
+
+    const isTryingToEnable = isEnabled === true && (!existingIntegration || !existingIntegration.isEnabled)
+    if (isTryingToEnable && session.role !== 'SUPER_ADMIN') {
+      if (!allowedByPlan) {
+        return NextResponse.json(
+          {
+            error: 'Tu plan comercial actual no incluye automatización de WhatsApp Business. Actualiza a Plan Profesional o Premium en la sección Suscripción para activarlo.'
+          },
+          { status: 403 }
+        )
+      }
+    }
+
+    // Si el plan no permite WhatsApp, asegurar que isEnabled nunca quede forzado en true
+    const finalIsEnabled = isEnabled !== undefined ? (allowedByPlan ? isEnabled : false) : undefined
+
+    // Cifrar el token de acceso si se envía uno nuevo
+    const encryptedToken = metaAccessToken !== undefined && metaAccessToken !== ''
+      ? safeEncryptToken(metaAccessToken.trim())
+      : undefined
+
     const updated = await prisma.whatsAppIntegration.upsert({
       where: { businessId },
       update: {
-        ...(isEnabled !== undefined && { isEnabled }),
+        ...(finalIsEnabled !== undefined && { isEnabled: finalIsEnabled }),
         ...(provider !== undefined && { provider }),
         ...(connectionStatus !== undefined && { connectionStatus }),
         ...(phoneNumber !== undefined && { phoneNumber }),
         ...(metaPhoneNumberId !== undefined && { metaPhoneNumberId }),
         ...(metaWabaId !== undefined && { metaWabaId }),
-        ...(metaAccessToken !== undefined && metaAccessToken !== '' && { metaAccessToken }),
+        ...(encryptedToken !== undefined && { metaAccessToken: encryptedToken }),
         ...(metaWebhookSecret !== undefined && { metaWebhookSecret }),
         ...(metaAppId !== undefined && { metaAppId }),
         ...(metaAppSecret !== undefined && { metaAppSecret }),
@@ -290,17 +336,17 @@ export async function PATCH(request: Request) {
       },
       create: {
         businessId,
-        isEnabled: isEnabled ?? false,
+        isEnabled: finalIsEnabled ?? false,
         provider: provider ?? 'NONE',
         connectionStatus: connectionStatus ?? 'DISCONNECTED',
         phoneNumber,
         metaPhoneNumberId,
         metaWabaId,
-        metaAccessToken,
+        metaAccessToken: encryptedToken,
         metaWebhookSecret,
         metaAppId,
         metaAppSecret,
-        botEnabled: botEnabled ?? true,
+        botEnabled: botEnabled ?? false,
         bookingEnabled: bookingEnabled ?? true,
         allowBarberSelection: allowBarberSelection ?? true,
         welcomeMessage: welcomeMessage || DEFAULT_WELCOME_BOT_MESSAGE,
@@ -315,7 +361,11 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({
       success: true,
-      integration: updated
+      integration: {
+        ...updated,
+        hasMetaAccessToken: Boolean(updated.metaAccessToken),
+        hasMetaAppSecret: Boolean(updated.metaAppSecret)
+      }
     })
   } catch (err: unknown) {
     console.error('Error al actualizar WhatsApp integration:', err)
