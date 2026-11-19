@@ -6,15 +6,17 @@ async function checkProduction() {
   const PROD = 'https://sas-barbery.vercel.app'
   console.log('Testing production deployment on:', PROD)
 
-  // 1. Check Root & Login page
-  const [rootRes, loginRes, registerRes] = await Promise.all([
+  // 1. Check Root, Login, Register, & Service Worker
+  const [rootRes, loginRes, registerRes, swRes] = await Promise.all([
     fetch(PROD + '/'),
     fetch(PROD + '/login'),
     fetch(PROD + '/register'),
+    fetch(PROD + '/sw.js'),
   ])
   console.log('1. Root (/) Status:', rootRes.status)
   console.log('2. Login (/login) Status:', loginRes.status)
   console.log('3. Register (/register) Status:', registerRes.status)
+  console.log('4. Service Worker (/sw.js) Status:', swRes.status)
 
   // 2. Super Admin verification with persistent session
   const sa = await prisma.user.findFirst({
