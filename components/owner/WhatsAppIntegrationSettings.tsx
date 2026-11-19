@@ -1109,22 +1109,6 @@ export default function WhatsAppIntegrationSettings() {
                         </div>
                       </div>
                     )}
-
-                    {/* Requisito de protocolo seguro (HTTPS) para vincular mediante popup de Meta */}
-                    {typeof window !== 'undefined' && window.location.protocol === 'http:' && (
-                      <div className="p-3.5 rounded-2xl bg-sky-950/40 border border-sky-500/30 flex items-start gap-2.5 text-xs text-sky-200">
-                        <Info size={16} className="text-sky-400 shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                          <div>
-                            <span className="font-bold text-sky-300">Conexión con Meta WhatsApp: </span>
-                            Meta bloquea el popup de Embedded Signup en conexiones http://.
-                          </div>
-                          <div className="text-[11px] text-zinc-300">
-                            Para probar en local corre <code className="px-1.5 py-0.5 bg-black/40 rounded font-mono text-white">npm run dev:https</code> o ingresa tus credenciales en el botón <strong>Manual (Token)</strong>. En producción funciona automáticamente con HTTPS.
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Primary CTA Button & Utilities */}
