@@ -333,6 +333,42 @@ export async function PATCH(
       }
     }
 
+    // Disparo no-bloqueante de Notificaciones Push & Notificación Interna
+    try {
+      const { dispatchAppointmentNotification } = await import('@/lib/push-dispatcher')
+      if (finalStatus === 'CANCELLED' && currentAppt.status !== 'CANCELLED') {
+        dispatchAppointmentNotification({
+          eventType: 'APPOINTMENT_CANCELLED',
+          appointmentId: id,
+          businessId: appointment.businessId,
+          barberId: appointment.barberId,
+          clientName: appointment.client?.name,
+          serviceName: appointment.service?.name,
+        }).catch(() => {})
+      } else if (isDateChanging && requestedDate) {
+        dispatchAppointmentNotification({
+          eventType: 'APPOINTMENT_RESCHEDULED',
+          appointmentId: id,
+          businessId: appointment.businessId,
+          barberId: appointment.barberId,
+          clientName: appointment.client?.name,
+          serviceName: appointment.service?.name,
+          rescheduledTo: requestedDate,
+        }).catch(() => {})
+      } else if (finalStatus !== currentAppt.status) {
+        dispatchAppointmentNotification({
+          eventType: 'APPOINTMENT_STATUS_CHANGED',
+          appointmentId: id,
+          businessId: appointment.businessId,
+          barberId: appointment.barberId,
+          clientName: appointment.client?.name,
+          serviceName: appointment.service?.name,
+        }).catch(() => {})
+      }
+    } catch {
+      // Ignorar fallos de notificación sin romper respuesta HTTP
+    }
+
     const refreshed = await prisma.appointment.findUnique({
       where: { id },
       include: {

@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { Bell, Calendar, MessageSquare, StickyNote, CheckCheck, Trash2, ChevronRight, Sparkles } from 'lucide-react'
+import { Bell, Calendar, MessageSquare, StickyNote, CheckCheck, Trash2, ChevronRight, Sparkles, Settings } from 'lucide-react'
 import { AppNotification } from '@/app/api/notifications/route'
 import NotificationModal from './NotificationModal'
+import NotificationSettingsModal from './NotificationSettingsModal'
 
 function playChimeSound() {
   try {
@@ -44,6 +45,7 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
   const [isOpen, setIsOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'all' | 'appointment' | 'chat' | 'note'>('all')
   const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -190,12 +192,22 @@ export default function NotificationBell() {
     const next = new Set(readIds)
     next.add(id)
     saveReadIds(next)
+    // Sync with backend API
+    fetch('/api/notifications', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notificationId: id, read: true }),
+    }).catch(() => {})
   }
 
   const markAllAsRead = () => {
     const next = new Set(readIds)
     notifications.forEach((n) => next.add(n.id))
     saveReadIds(next)
+    // Sync with backend API
+    fetch('/api/notifications/mark-all-read', {
+      method: 'POST',
+    }).catch(() => {})
   }
 
   const clearAll = () => {
@@ -286,25 +298,39 @@ export default function NotificationBell() {
                 )}
               </div>
 
-              {notifications.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={markAllAsRead}
-                    className="text-[10px] font-black text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer"
-                    title="Marcar todas como leídas"
-                  >
-                    <CheckCheck size={13} />
-                    <span className="hidden sm:inline">Leídas</span>
-                  </button>
-                  <button
-                    onClick={clearAll}
-                    className="text-[10px] font-black text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400 transition-all p-1 cursor-pointer"
-                    title="Limpiar lista"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    setIsSettingsOpen(true)
+                  }}
+                  className="text-zinc-400 hover:text-zinc-100 p-1.5 rounded-lg hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                  title="Configurar Notificaciones Push"
+                  aria-label="Configurar notificaciones"
+                >
+                  <Settings size={14} />
+                </button>
+
+                {notifications.length > 0 && (
+                  <>
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-[10px] font-black text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer"
+                      title="Marcar todas como leídas"
+                    >
+                      <CheckCheck size={13} />
+                      <span className="hidden sm:inline">Leídas</span>
+                    </button>
+                    <button
+                      onClick={clearAll}
+                      className="text-[10px] font-black text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400 transition-all p-1 cursor-pointer"
+                      title="Limpiar lista"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Category Filter Tabs */}
@@ -429,6 +455,12 @@ export default function NotificationBell() {
         notification={selectedNotification}
         onClose={() => setSelectedNotification(null)}
         onMarkAsRead={markAsRead}
+      />
+
+      {/* Push & Notification Settings Modal */}
+      <NotificationSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
       />
     </>
   )

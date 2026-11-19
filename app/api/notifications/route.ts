@@ -259,6 +259,37 @@ export async function GET() {
       })
     })
 
+    // 4. Agregar notificaciones persistidas en base de datos (Web Push & Eventos de Servidor)
+    try {
+      const dbNotifs = await prisma.appNotification.findMany({
+        where: { userId: session.userId },
+        take: 30,
+        orderBy: { createdAt: 'desc' },
+      })
+
+      dbNotifs.forEach((n) => {
+        const meta = (n.metadata || {}) as any
+        notifications.push({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          category: n.type.startsWith('APPOINTMENT') ? 'appointment' : 'system',
+          timestamp: n.createdAt.toISOString(),
+          read: n.read,
+          link: meta.appUrl || (isBarber ? '/barber/appointments' : '/appointments'),
+          metadata: {
+            clientName: meta.clientName,
+            serviceName: meta.serviceName,
+            barberName: meta.barberName,
+            date: meta.dateStr,
+            status: n.type,
+          },
+        })
+      })
+    } catch {
+      // safe fallback
+    }
+
     // Sort by timestamp desc
     notifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
@@ -266,5 +297,36 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching notifications:', error)
     return NextResponse.json({ notifications: [] })
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const session = await getSession()
+    if (!session || !session.userId) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const body = await req.json()
+    const { notificationId, read } = body
+
+    if (!notificationId) {
+      return NextResponse.json({ error: 'notificationId requerido' }, { status: 400 })
+    }
+
+    // Si es un id de base de datos UUID, actualizarlo en prisma
+    if (notificationId.includes('-') && !notificationId.startsWith('apt-') && !notificationId.startsWith('note-') && !notificationId.startsWith('system-') && !notificationId.startsWith('plan-') && !notificationId.startsWith('wa-')) {
+      await prisma.appNotification.updateMany({
+        where: { id: notificationId, userId: session.userId },
+        data: {
+          read: read !== undefined ? Boolean(read) : true,
+          readAt: (read !== false) ? new Date() : null,
+        },
+      })
+    }
+
+    return NextResponse.json({ success: true, notificationId, read: read ?? true })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

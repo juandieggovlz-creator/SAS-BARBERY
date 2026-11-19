@@ -58,6 +58,20 @@ export async function PATCH(
       })
     }
 
+    // Disparo no-bloqueante de Notificaciones Push & Notificación Interna
+    try {
+      const { dispatchAppointmentNotification } = await import('@/lib/push-dispatcher')
+      const eventType = status === 'CANCELLED' ? 'APPOINTMENT_CANCELLED' : 'APPOINTMENT_STATUS_CHANGED'
+      dispatchAppointmentNotification({
+        eventType,
+        appointmentId: id,
+        businessId: appointment.businessId,
+        barberId: appointment.barberId,
+      }).catch(() => {})
+    } catch {
+      // Ignorar fallos de notificación
+    }
+
     return NextResponse.json(updated)
   } catch {
     return NextResponse.json({ error: 'Error al actualizar cita' }, { status: 500 })

@@ -468,6 +468,22 @@ export async function createCentralizedBooking(input: CreateBookingInput) {
     }
   })
 
+  // Disparo asíncrono no-bloqueante de Web Push y notificaciones internas
+  import('@/lib/push-dispatcher')
+    .then(({ dispatchAppointmentNotification }) => {
+      dispatchAppointmentNotification({
+        eventType: 'APPOINTMENT_CREATED',
+        appointmentId: result.appointment.id,
+        businessId: result.appointment.businessId,
+        barberId: result.appointment.barberId,
+        clientName: result.appointment.client?.name,
+        serviceName: result.appointment.service?.name,
+      }).catch((err) => {
+        console.warn('[BookingEngine] Error en dispatchAppointmentNotification:', err)
+      })
+    })
+    .catch(() => {})
+
   return result
 }
 
@@ -1074,6 +1090,23 @@ export async function rescheduleCentralizedBooking(params: {
       },
     })
   })
+
+  // Disparo asíncrono no-bloqueante de reprogramación
+  import('@/lib/push-dispatcher')
+    .then(({ dispatchAppointmentNotification }) => {
+      dispatchAppointmentNotification({
+        eventType: 'APPOINTMENT_RESCHEDULED',
+        appointmentId: updated.id,
+        businessId: updated.businessId,
+        barberId: updated.barberId,
+        clientName: updated.client?.name,
+        serviceName: updated.service?.name,
+        rescheduledTo: targetDate,
+      }).catch((err) => {
+        console.warn('[BookingEngine] Error en dispatchAppointmentNotification reprogramación:', err)
+      })
+    })
+    .catch(() => {})
 
   return updated
 }

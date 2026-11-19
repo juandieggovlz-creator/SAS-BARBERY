@@ -57,6 +57,8 @@ model Business {
   whatsAppConversations WhatsAppConversation[]
   invitations        BranchInvitation[]
   planRequests       PlanRequest[]
+  pushSubscriptions  PushSubscription[]
+  notifications      AppNotification[]
 
   @@index([status])
   @@index([planId])
@@ -147,6 +149,9 @@ model User {
   passkeys       PasskeyCredential[]
   recoveryCodes  RecoveryCode[]
   planRequests   PlanRequest[]
+  pushSubscriptions PushSubscription[]
+  notifications     AppNotification[]
+  notificationPreference UserNotificationPreference?
 
   @@index([role, isActive])
   @@index([businessId])
@@ -253,6 +258,7 @@ model Appointment {
   service         Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   payment         Payment?
   whatsAppLogs    WhatsAppMessageLog[]
+  notifications   AppNotification[]
 
   @@index([businessId, date])
   @@index([barberId, date])
@@ -846,5 +852,59 @@ model RateLimitStore {
 
   @@index([expireAt])
 }
+
+model PushSubscription {
+  id          String    @id @default(uuid())
+  userId      String
+  businessId  String?
+  endpoint    String    @unique
+  p256dh      String
+  auth        String
+  userAgent   String?
+  deviceName  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business    Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([businessId])
+}
+
+model AppNotification {
+  id            String       @id @default(uuid())
+  userId        String
+  businessId    String?
+  appointmentId String?
+  title         String
+  message       String
+  type          String       // APPOINTMENT_CREATED, APPOINTMENT_CANCELLED, APPOINTMENT_RESCHEDULED, APPOINTMENT_STATUS_CHANGED, SYSTEM
+  read          Boolean      @default(false)
+  readAt        DateTime?
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business      Business?    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, read])
+  @@index([businessId])
+  @@index([createdAt])
+}
+
+model UserNotificationPreference {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  pushEnabled          Boolean  @default(true)
+  soundEnabled         Boolean  @default(true)
+  notifyNewAppointment Boolean  @default(true)
+  notifyCancelled      Boolean  @default(true)
+  notifyRescheduled    Boolean  @default(true)
+  notifyStatusChange   Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 
 
