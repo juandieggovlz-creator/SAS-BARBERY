@@ -136,6 +136,8 @@ model User {
   googleSub      String?         @unique
   phoneNumber    String?
   phoneVerified  Boolean         @default(false)
+  emailVerified  Boolean         @default(false)
+  emailVerifiedAt DateTime?
   mfaEnabled     Boolean         @default(false)
   mfaSecret      String?         // AES-256-GCM encrypted Base32 TOTP secret
   mfaConfirmedAt DateTime?
@@ -153,6 +155,7 @@ model User {
   pushSubscriptions PushSubscription[]
   notifications     AppNotification[]
   notificationPreference UserNotificationPreference?
+  verificationTokens EmailVerificationToken[]
 
   @@index([role, isActive])
   @@index([businessId])
@@ -857,6 +860,20 @@ model RecoveryCode {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, usedAt])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String
+  email     String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([email])
+  @@index([expiresAt])
 }
 
 model RateLimitStore {

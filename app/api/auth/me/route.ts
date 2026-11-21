@@ -70,9 +70,49 @@ export async function GET() {
       }
     })
 
+    // Si la sesión activa tiene un businessId diferente al principal del usuario (cambio de sede activo)
+    let activeBusiness = user?.business
+    if (session.businessId && session.businessId !== user?.businessId) {
+      const switchedBusiness = await prisma.business.findUnique({
+        where: { id: session.businessId },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          status: true,
+          logo: true,
+          isMainBranch: true,
+          companyId: true,
+          plan: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              allowsMultiBranch: true
+            }
+          }
+        }
+      })
+      if (switchedBusiness) {
+        activeBusiness = switchedBusiness
+      }
+    }
+
+    const companyName = user?.company?.name || activeBusiness?.name || 'BarberOS'
+
     return NextResponse.json({
       authenticated: true,
-      user,
+      user: user ? {
+        ...user,
+        business: activeBusiness
+      } : null,
+      activeBranch: activeBusiness ? {
+        id: activeBusiness.id,
+        name: activeBusiness.name,
+        slug: activeBusiness.slug,
+        isMainBranch: activeBusiness.isMainBranch
+      } : null,
+      companyName,
       session: {
         role: session.role,
         businessId: session.businessId,

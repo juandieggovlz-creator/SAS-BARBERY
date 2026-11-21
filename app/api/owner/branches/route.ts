@@ -19,7 +19,11 @@ async function resolveOwnerCompany(session: { userId: string; companyId?: string
   if (session.businessId) {
     const biz = await prisma.business.findUnique({
       where: { id: session.businessId },
-      include: { company: { include: { plan: true } } }
+      include: {
+        company: {
+          include: { plan: true }
+        }
+      }
     })
     if (biz?.company) return biz.company
   }
@@ -64,20 +68,44 @@ export async function GET() {
             name: true,
             email: true,
             avatar: true,
-            isActive: true
+            isActive: true,
+            createdAt: true
           }
         },
         invitations: {
-          where: { status: 'PENDING' },
           select: {
             id: true,
             email: true,
             status: true,
+            token: true,
             expiresAt: true,
             createdAt: true
-          }
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 5
         }
       }
+    })
+
+    // Resolver managers asignados por managerId
+    const managerIds = branches.map(b => b.managerId).filter(Boolean) as string[]
+    const managers = managerIds.length > 0 ? await prisma.user.findMany({
+      where: { id: { in: managerIds } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        isActive: true,
+        createdAt: true
+      }
+    }) : []
+    const managerMap = new Map(managers.map(m => [m.id, m]))
+
+    // Resolver usuario propietario de la empresa
+    const ownerUser = await prisma.user.findUnique({
+      where: { id: company.ownerId },
+      select: { id: true, name: true, email: true }
     })
 
     // Check for SuperAdmin branch exception
@@ -135,22 +163,64 @@ export async function GET() {
           defaultAdditionalBranchPrice: Number(company.plan.defaultAdditionalBranchPrice)
         } : null
       },
-      branches: branches.map(b => ({
-        id: b.id,
-        name: b.name,
-        slug: b.slug,
-        phone: b.phone,
-        address: b.address,
-        mapsUrl: b.mapsUrl,
-        description: b.description,
-        logo: b.logo,
-        status: b.status,
-        isMainBranch: b.isMainBranch,
-        createdAt: b.createdAt,
-        manager: b.users[0] || null,
-        pendingInvitations: b.invitations,
-        counts: b._count
-      })),
+      branches: branches.map(b => {
+        let branchManager = null
+        if (b.isMainBranch) {
+          branchManager = {
+            id: company.ownerId,
+            name: ownerUser?.name || 'Propietario Principal',
+            email: ownerUser?.email || '',
+            role: 'OWNER',
+            isOwner: true
+          }
+        } else if (b.managerId && managerMap.has(b.managerId)) {
+          branchManager = managerMap.get(b.managerId)
+        } else if (b.users[0]) {
+          branchManager = b.users[0]
+        }
+
+        const now = new Date()
+        const pendingInvs = b.invitations.filter(i => i.status === 'PENDING')
+        const activePending = pendingInvs.find(i => now <= i.expiresAt)
+        const expiredPending = pendingInvs.find(i => now > i.expiresAt)
+
+        let adminStatus: 'ACTIVE_MANAGER' | 'PENDING_INVITATION' | 'EXPIRED_INVITATION' | 'MAIN_BRANCH_OWNER' | 'NO_MANAGER' = 'NO_MANAGER'
+        if (b.isMainBranch) {
+          adminStatus = 'MAIN_BRANCH_OWNER'
+        } else if (branchManager) {
+          adminStatus = 'ACTIVE_MANAGER'
+        } else if (activePending) {
+          adminStatus = 'PENDING_INVITATION'
+        } else if (expiredPending) {
+          adminStatus = 'EXPIRED_INVITATION'
+        }
+
+        return {
+          id: b.id,
+          name: b.name,
+          slug: b.slug,
+          phone: b.phone,
+          address: b.address,
+          mapsUrl: b.mapsUrl,
+          description: b.description,
+          logo: b.logo,
+          status: b.status,
+          isMainBranch: b.isMainBranch,
+          createdAt: b.createdAt,
+          managerId: b.managerId,
+          manager: branchManager,
+          adminStatus,
+          pendingInvitations: pendingInvs.map(i => ({
+            ...i,
+            isExpired: now > i.expiresAt
+          })),
+          recentInvitations: b.invitations.map(i => ({
+            ...i,
+            isExpired: now > i.expiresAt
+          })),
+          counts: b._count
+        }
+      }),
       stats: {
         totalBranches: branches.length,
         activeBranches: branches.filter(b => b.status === 'ACTIVE').length,

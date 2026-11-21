@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies, headers } from 'next/headers'
 import { validateSession } from '@/lib/session'
+import { prisma } from '@/lib/prisma'
 
 const DEFAULT_JWT_SECRET = '49208ea2f8404a8a7a96bddeaa113677f085d14f82963fac9b4e3d2ec7a109f6'
 
@@ -89,6 +90,46 @@ async function verifyActiveSession(payload: SessionPayload | null): Promise<Sess
     // Asegurar que el rol coincida con el estado actual en la base de datos (excepto durante soporte temporal)
     if (!payload.superAdminId && !payload.originalOwnerId) {
       payload.role = check.user.role as AppRole
+      if (check.user.companyId) {
+        payload.companyId = check.user.companyId
+      }
+    }
+
+    // Aislamiento estricto de roles de sede (BRANCH_ADMIN o BARBER):
+    // Jamás permitir que un administrador de sede o barbero opere fuera de su sede asignada
+    if (payload.role === 'BRANCH_ADMIN' || payload.role === 'BARBER') {
+      if (check.user.businessId) {
+        payload.businessId = check.user.businessId
+      }
+    }
+
+    // Para OWNER y SUPER_ADMIN: sincronizar sede activa con la cookie 'active_branch_id'
+    // validando que la sede pertenezca legítimamente a su empresa
+    if (payload.role === 'OWNER' || payload.role === 'SUPER_ADMIN') {
+      try {
+        const cookieStore = await cookies()
+        const activeBranchCookie = cookieStore.get('active_branch_id')?.value
+        if (activeBranchCookie && activeBranchCookie !== payload.businessId) {
+          const validBranch = await prisma.business.findFirst({
+            where: {
+              id: activeBranchCookie,
+              ...(payload.role !== 'SUPER_ADMIN' ? {
+                OR: [
+                  { companyId: payload.companyId },
+                  { company: { ownerId: payload.userId } }
+                ]
+              } : {})
+            },
+            select: { id: true, companyId: true }
+          })
+          if (validBranch) {
+            payload.businessId = validBranch.id
+            if (validBranch.companyId) payload.companyId = validBranch.companyId
+          }
+        }
+      } catch {
+        // Ignorar si se ejecuta fuera de contexto HTTP de request
+      }
     }
   }
 

@@ -40,18 +40,31 @@ export default function TopBar({ onOpenSearch }: TopBarProps) {
   const matchedKey = Object.keys(routeTitles).find(k => pathname === k || (k !== '/dashboard' && pathname.startsWith(k)))
   const currentRoute = matchedKey ? routeTitles[matchedKey] : { title: 'BarberOS Panel', subtitle: 'Gestión integral de barbería' }
 
-  // Detectar si el usuario tiene multisedes habilitadas
+  // Contexto visual de sede activa y empresa
+  const [activeBranchContext, setActiveBranchContext] = useState<{
+    companyName: string
+    branchName: string
+    isMainBranch: boolean
+  } | null>(null)
+
+  // Detectar si el usuario tiene multisedes habilitadas y cargar contexto de sede activa
   useEffect(() => {
     const checkMultiBranch = async () => {
       try {
         const res = await fetch('/api/auth/me')
         if (!res.ok) return
         const data = await res.json()
-        // Habilitar selector si tiene companyId y el plan permite multisedes
         const business = data?.user?.business
         const plan = business?.plan
         if (data?.user?.companyId && plan?.allowsMultiBranch) {
           setShowBranchSelector(true)
+        }
+        if (data?.activeBranch) {
+          setActiveBranchContext({
+            companyName: data.companyName || 'BarberOS',
+            branchName: data.activeBranch.name,
+            isMainBranch: Boolean(data.activeBranch.isMainBranch)
+          })
         }
       } catch {
         // ignore
@@ -92,6 +105,29 @@ export default function TopBar({ onOpenSearch }: TopBarProps) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 ml-auto shrink-0">
+          {/* Identificador Visual de Sede Activa & Empresa */}
+          {activeBranchContext && (
+            <div className="hidden lg:flex flex-col items-end text-right border-r border-zinc-200/80 dark:border-zinc-800 pr-3 mr-0.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-500 truncate max-w-[170px]">
+                {activeBranchContext.companyName}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate max-w-[140px]">
+                  {activeBranchContext.branchName}
+                </span>
+                <span
+                  className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded-md ${
+                    activeBranchContext.isMainBranch
+                      ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60'
+                      : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60'
+                  }`}
+                >
+                  {activeBranchContext.isMainBranch ? 'Sede principal' : 'Sede vinculada'}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Branch Selector (only shown for multi-branch VIP accounts) */}
           <BranchSelector visible={showBranchSelector} />
 
