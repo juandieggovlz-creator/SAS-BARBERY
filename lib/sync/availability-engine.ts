@@ -266,6 +266,18 @@ export async function getAvailableSlots(params: GetSlotsParams): Promise<Availab
     return []
   }
 
+  // Si la sede tiene un cierre programado para este día/rango, retornar 0 slots
+  const branchClosure = await prisma.branchClosure.findFirst({
+    where: {
+      businessId,
+      startDate: { lte: endOfDay },
+      endDate: { gte: startOfDay },
+    },
+  })
+  if (branchClosure) {
+    return []
+  }
+
   const barbers = await prisma.barber.findMany({
     where: {
       businessId,
@@ -395,6 +407,18 @@ export async function getAvailableSlotsForWeb(params: GetSlotsParams): Promise<S
     : null
 
   if (businessDaySchedule && !businessDaySchedule.isOpen) {
+    return []
+  }
+
+  // Si la sede tiene un cierre programado para este día/rango, retornar 0 slots
+  const branchClosure = await prisma.branchClosure.findFirst({
+    where: {
+      businessId,
+      startDate: { lte: endOfDay },
+      endDate: { gte: startOfDay },
+    },
+  })
+  if (branchClosure) {
     return []
   }
 

@@ -2264,7 +2264,7 @@ export default function WebpageEditor() {
                         }`}
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1 flex-wrap sm:flex-nowrap">
                             <span className="text-sm font-black text-zinc-900 dark:text-white shrink-0 min-w-[68px]">
                               {item.day}
                             </span>
@@ -2274,7 +2274,7 @@ export default function WebpageEditor() {
                                 <span>{formattedOpen} – {formattedClose}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 truncate">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/60 truncate max-w-[220px]">
                                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
                                 <span className="truncate">{item.customMessage?.trim() || 'Cerrado'}</span>
                               </span>

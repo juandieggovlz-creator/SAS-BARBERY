@@ -27,7 +27,8 @@ import {
   Building2,
   ChevronRight,
   LifeBuoy,
-  Crown
+  Crown,
+  Loader2
 } from 'lucide-react'
 
 interface BusinessInfo {
@@ -158,13 +159,29 @@ export default function OwnerSidebar() {
     return () => window.removeEventListener('business-updated', handleUpdate)
   }, [])
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-    } catch {
-      // Ignore
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  const handleLogout = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
     }
-    window.location.href = '/login'
+    if (loggingOut) return
+    setLoggingOut(true)
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.clear()
+      }
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        keepalive: true,
+      })
+    } catch {
+      // Ignore network errors and continue to redirect
+    } finally {
+      window.location.replace('/login')
+    }
   }
 
   const navGroups: { title: string; items: { label: string; href: string; icon: React.ElementType; external?: boolean }[] }[] = [
@@ -397,11 +414,17 @@ export default function OwnerSidebar() {
 
         {/* Logout */}
         <button
+          type="button"
           onClick={handleLogout}
-          className="group flex items-center w-full gap-2.5 px-3 py-2.5 text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-700 active:bg-red-700 dark:active:bg-red-800 transition-all rounded-xl"
+          disabled={loggingOut}
+          className="group flex items-center w-full gap-2.5 px-3 py-2.5 text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-700 active:bg-red-700 dark:active:bg-red-800 transition-all rounded-xl cursor-pointer disabled:opacity-50 touch-manipulation"
         >
-          <LogOut className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-          <span>Cerrar Sesión</span>
+          {loggingOut ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+          ) : (
+            <LogOut className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          )}
+          <span>{loggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}</span>
         </button>
       </div>
     </div>

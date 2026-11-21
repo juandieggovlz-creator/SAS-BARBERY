@@ -30,7 +30,7 @@ export default function SuperAdminSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
-  const [activeTab, setActiveTab] = useState<'general' | 'businesses' | 'security' | 'emails'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'businesses' | 'security' | 'emails' | 'appearance'>('general')
 
   const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -152,10 +152,11 @@ export default function SuperAdminSettingsPage() {
       {/* ── TABS NAVIGATION ── */}
       <div className="flex items-center gap-2 border-b border-zinc-200 pb-2 overflow-x-auto">
         {[
-          { key: 'general', label: '1. General', icon: Globe },
+          { key: 'general', label: '1. Identidad SaaS', icon: Globe },
           { key: 'businesses', label: '2. Negocios', icon: Building2 },
           { key: 'security', label: '3. Seguridad', icon: Shield },
-          { key: 'emails', label: '4. Plantillas de Correo', icon: Mail }
+          { key: 'emails', label: '4. Plantillas de Correo', icon: Mail },
+          { key: 'appearance', label: '5. Apariencia Admin', icon: Palette }
         ].map(tab => {
           const Icon = tab.icon
           const isActive = activeTab === tab.key
@@ -196,17 +197,7 @@ export default function SuperAdminSettingsPage() {
                     Define los datos oficiales que ven los propietarios y barberos en emails y soporte.
                   </p>
                 </div>
-                <span className="text-[10px] font-bold text-zinc-400 uppercase">Módulo General</span>
-              </div>
-
-              {/* ── Color de Acento ── */}
-              <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-1">
-                  <Palette className="w-4 h-4 text-amber-500" />
-                  <h4 className="text-sm font-black uppercase tracking-tight text-zinc-950 dark:text-white">Personalización de Panel</h4>
-                </div>
-                <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-4">Color de acento personal para tu panel. El cambio aplica de inmediato.</p>
-                <AccentColorPicker card={false} />
+                <span className="text-[10px] font-bold text-zinc-400 uppercase">Módulo Global</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -504,6 +495,44 @@ export default function SuperAdminSettingsPage() {
                     className="w-full p-3 bg-white border border-zinc-200 rounded-xl text-xs text-zinc-800 font-mono outline-none"
                   />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: APARIENCIA DEL SUPER ADMIN (AISLADA) */}
+          {activeTab === 'appearance' && (
+            <div className="p-6 bg-white border border-zinc-200 rounded-3xl shadow-xs space-y-6">
+              <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-black uppercase tracking-tight text-zinc-950 flex items-center gap-2">
+                    <Palette className="w-5 h-5 text-amber-500" /> Preferencias Personales del Super Admin
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    Personaliza la estética de tu consola de control administrativo global.
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 uppercase font-mono">
+                  Aislamiento Estricto
+                </span>
+              </div>
+
+              {/* Banner de Aislamiento */}
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                <p className="font-bold text-zinc-900 dark:text-zinc-100">🔒 Garantía de Aislamiento Visual:</p>
+                <p>
+                  Los ajustes visuales de esta sección (color de acento y tema) aplican <strong>únicamente a tu sesión de Super Admin</strong>.
+                  Nunca afectarán el diseño de los negocios registrados, las portadas cinematográficas públicas, el flujo de reservas ni los paneles de los propietarios o barberos.
+                </p>
+              </div>
+
+              {/* Selector de Acento */}
+              <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <Palette className="w-4 h-4 text-amber-500" />
+                  <h4 className="text-sm font-black uppercase tracking-tight text-zinc-950 dark:text-white">Color de Acento de la Consola</h4>
+                </div>
+                <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-4">Selecciona el color de resalte para botones, métricas y badges en tu consola.</p>
+                <AccentColorPicker card={false} />
               </div>
             </div>
           )}

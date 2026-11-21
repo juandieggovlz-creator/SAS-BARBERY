@@ -131,6 +131,19 @@ export default function BranchesPage() {
   const [generatedInviteUrl, setGeneratedInviteUrl] = useState<string | null>(null)
   const [copiedInvite, setCopiedInvite] = useState(false)
 
+  // Switch de Sede Activa
+  const [switchingBranchId, setSwitchingBranchId] = useState<string | null>(null)
+
+  // Modal de Días de Cierre y Bloqueos de Sede
+  const [closuresBranch, setClosuresBranch] = useState<BranchItem | null>(null)
+  const [closuresList, setClosuresList] = useState<any[]>([])
+  const [closuresLoading, setClosuresLoading] = useState(false)
+  const [newClosureDate, setNewClosureDate] = useState('')
+  const [newClosureEndDate, setNewClosureEndDate] = useState('')
+  const [newClosureReason, setNewClosureReason] = useState('')
+  const [addingClosure, setAddingClosure] = useState(false)
+  const [closureConflictWarning, setClosureConflictWarning] = useState<any | null>(null)
+
   const fetchBranches = async () => {
     try {
       setLoading(true)
@@ -300,6 +313,133 @@ export default function BranchesPage() {
     setCopiedInvite(true)
     toast.success('Enlace de invitación copiado 🎉')
     setTimeout(() => setCopiedInvite(false), 3000)
+  }
+
+  const handleCancelInvite = async (invitationId: string) => {
+    if (!invitingBranch) return
+    try {
+      const res = await fetch(`/api/owner/branches/${invitingBranch.id}/invite?invitationId=${invitationId}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        toast.success('Invitación revocada correctamente')
+        fetchBranches()
+        setInvitingBranch(prev => prev ? {
+          ...prev,
+          pendingInvitations: prev.pendingInvitations.filter(i => i.id !== invitationId)
+        } : null)
+      } else {
+        const d = await res.json()
+        toast.error(d.error || 'Error al revocar invitación')
+      }
+    } catch {
+      toast.error('Error de red al revocar')
+    }
+  }
+
+  const handleSwitchBranch = async (branchId: string) => {
+    try {
+      setSwitchingBranchId(branchId)
+      const res = await fetch(`/api/owner/branches/${branchId}/switch`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(`Sede activa: ${data.branch?.name}`)
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('active_branch_id', branchId)
+        }
+        window.location.href = '/dashboard'
+      } else {
+        toast.error(data.error || 'Error al cambiar a esta sede')
+      }
+    } catch {
+      toast.error('Error de red al cambiar de sede')
+    } finally {
+      setSwitchingBranchId(null)
+    }
+  }
+
+  const handleOpenClosures = async (branch: BranchItem) => {
+    setClosuresBranch(branch)
+    setClosureConflictWarning(null)
+    setNewClosureDate('')
+    setNewClosureEndDate('')
+    setNewClosureReason('')
+    try {
+      setClosuresLoading(true)
+      const res = await fetch(`/api/owner/branches/${branch.id}/closures`)
+      if (res.ok) {
+        const data = await res.json()
+        setClosuresList(data.closures || [])
+      }
+    } catch {
+      toast.error('Error al cargar bloqueos de la sede')
+    } finally {
+      setClosuresLoading(false)
+    }
+  }
+
+  const handleCreateClosure = async (confirm = false) => {
+    if (!closuresBranch || !newClosureDate) {
+      toast.error('Selecciona una fecha')
+      return
+    }
+    try {
+      setAddingClosure(true)
+      const res = await fetch(`/api/owner/branches/${closuresBranch.id}/closures`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: newClosureDate,
+          endDate: newClosureEndDate || newClosureDate,
+          reason: newClosureReason,
+          confirmWithConflicts: confirm,
+        })
+      })
+      const data = await res.json()
+      if (data.warning && !confirm) {
+        setClosureConflictWarning(data)
+        return
+      }
+      if (res.ok && data.success) {
+        toast.success('Día de cierre / bloqueo registrado con éxito')
+        setClosureConflictWarning(null)
+        setNewClosureDate('')
+        setNewClosureEndDate('')
+        setNewClosureReason('')
+        const resCl = await fetch(`/api/owner/branches/${closuresBranch.id}/closures`)
+        if (resCl.ok) {
+          const dCl = await resCl.json()
+          setClosuresList(dCl.closures || [])
+        }
+      } else {
+        toast.error(data.error || 'Error al guardar bloqueo')
+      }
+    } catch {
+      toast.error('Error de red al guardar bloqueo')
+    } finally {
+      setAddingClosure(false)
+    }
+  }
+
+  const handleDeleteClosure = async (closureId: string) => {
+    if (!closuresBranch) return
+    try {
+      const res = await fetch(`/api/owner/branches/${closuresBranch.id}/closures/${closureId}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        toast.success('Bloqueo eliminado correctamente')
+        setClosuresList(prev => prev.filter(c => c.id !== closureId))
+      } else {
+        const d = await res.json()
+        toast.error(d.error || 'Error al eliminar bloqueo')
+      }
+    } catch {
+      toast.error('Error de red al eliminar bloqueo')
+    }
   }
 
   if (loading) {
@@ -537,38 +677,78 @@ export default function BranchesPage() {
                     </div>
                   </div>
 
-                  {/* Enlace público de la sede */}
-                  <div className="mt-4 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs">
-                    <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 truncate mr-2">
-                      {publicUrl}
-                    </span>
-                    <div className="flex items-center gap-1 shrink-0">
+                  {/* Enlace público de la sede o Alerta de configuración */}
+                  {branch.counts.services === 0 || branch.counts.barbers === 0 ? (
+                    <div className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-800/50 flex items-center justify-between text-xs gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span className="text-[11px] font-bold text-amber-900 dark:text-amber-300 truncate">
+                          Configuración pendiente ({branch.counts.services} serv. · {branch.counts.barbers} barb.)
+                        </span>
+                      </div>
                       <button
-                        onClick={() => handleCopy(publicUrl, branch.id)}
-                        className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-300 transition-colors"
-                        title="Copiar enlace público"
+                        onClick={() => handleSwitchBranch(branch.id)}
+                        className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-zinc-950 text-[10px] font-black uppercase tracking-wider transition-all shrink-0 cursor-pointer shadow-2xs"
                       >
-                        {copiedId === branch.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        Configurar
                       </button>
-                      <a
-                        href={publicUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-300 transition-colors"
-                        title="Abrir página pública"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="mt-4 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs">
+                      <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 truncate mr-2">
+                        {publicUrl}
+                      </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => handleCopy(publicUrl, branch.id)}
+                          className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+                          title="Copiar enlace público"
+                        >
+                          {copiedId === branch.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                        <a
+                          href={publicUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-300 transition-colors"
+                          title="Abrir página pública"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Botones de acción inferiores */}
-                <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800/80">
+                <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800/80 gap-2 flex-wrap">
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
+                      onClick={() => handleSwitchBranch(branch.id)}
+                      disabled={switchingBranchId === branch.id}
+                      className="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+                      title="Activar sesión para administrar esta sede"
+                    >
+                      {switchingBranchId === branch.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Store className="w-3.5 h-3.5 text-amber-400 dark:text-amber-500" />
+                      )}
+                      <span>Administrar Sede</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleOpenClosures(branch)}
+                      className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-200 flex items-center gap-1.5 transition-all cursor-pointer"
+                      title="Gestionar días de descanso y bloqueos temporales"
+                    >
+                      <Calendar className="w-3 h-3 text-amber-500" />
+                      <span>Días de Cierre</span>
+                    </button>
+
+                    <button
                       onClick={() => handleOpenEdit(branch)}
-                      className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-200 flex items-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-200 flex items-center gap-1.5 transition-all cursor-pointer"
                     >
                       <Edit2 className="w-3 h-3" />
                       <span>Editar</span>
@@ -576,7 +756,7 @@ export default function BranchesPage() {
 
                     <button
                       onClick={() => handleOpenInvite(branch)}
-                      className="px-3 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700/60 hover:bg-amber-50 dark:hover:bg-amber-950/30 text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700/60 hover:bg-amber-50 dark:hover:bg-amber-950/30 text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 transition-all cursor-pointer"
                     >
                       <Mail className="w-3 h-3" />
                       <span>Invitar Admin</span>
@@ -593,7 +773,7 @@ export default function BranchesPage() {
                   {!branch.isMainBranch && (
                     <button
                       onClick={() => setDeletingBranch(branch)}
-                      className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                       title="Eliminar / archivar sede"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -937,18 +1117,24 @@ export default function BranchesPage() {
 
                   {/* Invitaciones pendientes existentes */}
                   {invitingBranch.pendingInvitations.length > 0 && (
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
-                      <span className="font-bold">Invitaciones pendientes:</span>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1.5">
+                      <span className="font-bold text-[11px] uppercase tracking-wider block">Invitaciones pendientes:</span>
                       {invitingBranch.pendingInvitations.map(inv => (
-                        <div key={inv.id} className="flex items-center gap-2 pl-2">
-                          <Clock className="w-3 h-3 text-amber-500 shrink-0" />
-                          <span className="font-mono">{inv.email}</span>
-                          <span className="text-zinc-400">(expira {new Date(inv.expiresAt).toLocaleDateString('es-CO')})</span>
+                        <div key={inv.id} className="flex items-center justify-between gap-2 p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span className="font-mono text-xs text-zinc-800 dark:text-zinc-200 truncate">{inv.email}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCancelInvite(inv.id)}
+                            className="text-[10px] font-black uppercase text-rose-600 dark:text-rose-400 hover:text-rose-700 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 px-2 py-1 rounded-lg transition-colors cursor-pointer shrink-0"
+                            title="Revocar invitación y anular token de acceso"
+                          >
+                            Revocar
+                          </button>
                         </div>
                       ))}
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400 pl-2">
-                        Si invitas al mismo correo, la invitación anterior se cancelará automáticamente.
-                      </p>
                     </div>
                   )}
 
@@ -1016,6 +1202,179 @@ export default function BranchesPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: GESTIÓN DE DÍAS DE CIERRE Y BLOQUEOS DE SEDE ── */}
+      {closuresBranch && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#121215] w-full max-w-lg rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-6 sm:p-8 animate-scaleUp space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-amber-500" /> Días de Cierre & Bloqueos
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Sede: <strong className="text-zinc-700 dark:text-zinc-200">{closuresBranch.name}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setClosuresBranch(null)}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Advertencia de conflicto si hay citas agendadas */}
+            {closureConflictWarning && (
+              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-black text-amber-900 dark:text-amber-200 uppercase tracking-wider">
+                      Citas previas detectadas ({closureConflictWarning.conflictCount})
+                    </h4>
+                    <p className="text-xs text-amber-800 dark:text-amber-300 mt-1 leading-relaxed">
+                      {closureConflictWarning.message}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="max-h-32 overflow-y-auto space-y-1 text-xs">
+                  {closureConflictWarning.conflicts?.map((c: any) => (
+                    <div key={c.id} className="p-1.5 rounded-lg bg-white/70 dark:bg-black/30 border border-amber-200/60 dark:border-amber-900/40 flex justify-between">
+                      <span className="font-bold">{c.clientName}</span>
+                      <span className="text-zinc-500">{new Date(c.date).toLocaleDateString('es-CO')} {new Date(c.date).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setClosureConflictWarning(null)}
+                    className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-300"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCreateClosure(true)}
+                    disabled={addingClosure}
+                    className="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-zinc-950 text-xs font-black shadow-xs cursor-pointer"
+                  >
+                    Confirmar y Bloquear Sede
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Formulario nuevo bloqueo */}
+            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                Programar Nuevo Cierre / Bloqueo
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-500 block mb-1">Fecha Inicio *</label>
+                  <input
+                    type="date"
+                    value={newClosureDate}
+                    onChange={e => setNewClosureDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-500 block mb-1">Fecha Fin (opcional)</label>
+                  <input
+                    type="date"
+                    value={newClosureEndDate}
+                    onChange={e => setNewClosureEndDate(e.target.value)}
+                    placeholder="Mismo día si está vacío"
+                    className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-zinc-500 block mb-1">Motivo (opcional)</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Feriado nacional, Mantenimiento locativo, Vacaciones colectivas"
+                  value={newClosureReason}
+                  onChange={e => setNewClosureReason(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleCreateClosure(false)}
+                  disabled={addingClosure || !newClosureDate}
+                  className="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-black flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {addingClosure && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Aplicar Bloqueo</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Lista de bloqueos activos */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                Bloqueos Activos ({closuresList.length})
+              </span>
+
+              {closuresLoading ? (
+                <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-amber-500" /></div>
+              ) : closuresList.length === 0 ? (
+                <p className="text-xs text-zinc-400 italic py-2 text-center bg-zinc-50 dark:bg-zinc-900/40 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
+                  No hay bloqueos programados. La sede atiende en sus horarios regulares.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {closuresList.map(c => {
+                    const startStr = new Date(c.startDate).toLocaleDateString('es-CO')
+                    const endStr = new Date(c.endDate).toLocaleDateString('es-CO')
+                    const dateDisplay = startStr === endStr ? startStr : `${startStr} – ${endStr}`
+                    return (
+                      <div
+                        key={c.id}
+                        className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <span className="font-black text-zinc-900 dark:text-white block">{dateDisplay}</span>
+                          {c.reason && <span className="text-zinc-400 text-[11px] truncate block">{c.reason}</span>}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClosure(c.id)}
+                          className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                          title="Eliminar bloqueo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setClosuresBranch(null)}
+                className="px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-700 dark:text-zinc-300"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

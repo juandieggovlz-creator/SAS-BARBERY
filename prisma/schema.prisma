@@ -56,6 +56,7 @@ model Business {
   whatsAppLogs        WhatsAppMessageLog[]
   whatsAppConversations WhatsAppConversation[]
   invitations        BranchInvitation[]
+  closures           BranchClosure[]
   planRequests       PlanRequest[]
   pushSubscriptions  PushSubscription[]
   notifications      AppNotification[]
@@ -449,6 +450,19 @@ model BranchInvitation {
   @@index([companyId, status])
   @@index([email])
   @@index([token])
+}
+
+model BranchClosure {
+  id          String    @id @default(uuid())
+  businessId  String
+  startDate   DateTime
+  endDate     DateTime
+  reason      String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, startDate, endDate])
 }
 
 enum InvitationStatus {

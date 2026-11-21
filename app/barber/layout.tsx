@@ -18,7 +18,8 @@ import {
   LifeBuoy,
   Menu,
   X,
-  Store
+  Store,
+  Loader2
 } from 'lucide-react'
 import NotificationBell from '@/components/notifications/NotificationBell'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -96,9 +97,29 @@ export default function BarberLayout({ children }: { children: React.ReactNode }
     return <>{children}</>
   }
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    window.location.href = '/login'
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  const handleLogout = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    if (loggingOut) return
+    setLoggingOut(true)
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.clear()
+      }
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        keepalive: true,
+      })
+    } catch {
+      // Ignore
+    } finally {
+      window.location.replace('/login')
+    }
   }
 
   const navGroups: {
@@ -309,12 +330,18 @@ export default function BarberLayout({ children }: { children: React.ReactNode }
             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider hidden sm:inline">Tema</span>
           </div>
           <button
+            type="button"
             onClick={handleLogout}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all rounded-lg cursor-pointer"
+            disabled={loggingOut}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all rounded-lg cursor-pointer disabled:opacity-50 touch-manipulation"
             title="Cerrar sesión"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Salir</span>
+            {loggingOut ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-500" />
+            ) : (
+              <LogOut className="w-3.5 h-3.5" />
+            )}
+            <span>{loggingOut ? 'Saliendo...' : 'Salir'}</span>
           </button>
         </div>
       </div>

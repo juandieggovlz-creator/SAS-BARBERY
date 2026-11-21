@@ -218,6 +218,24 @@ export async function createCentralizedBooking(input: CreateBookingInput) {
     )
   }
 
+  // Verificar si la sede tiene un bloqueo o fecha de cierre programada
+  const activeClosure = await prisma.branchClosure.findFirst({
+    where: {
+      businessId,
+      startDate: { lte: endOfDay },
+      endDate: { gte: startOfDay },
+    },
+  })
+
+  if (activeClosure) {
+    const reasonText = activeClosure.reason?.trim() ? ` (${activeClosure.reason.trim()})` : ''
+    throw new BookingEngineError(
+      `Esta sede se encuentra cerrada en la fecha seleccionada${reasonText}. Por favor selecciona otra fecha.`,
+      400,
+      'BRANCH_CLOSED_DATE'
+    )
+  }
+
   // 5. Resolver candidatos de barbero (si no se envió o es 'ANY', probar todos los activos)
   const normalizedBarberId =
     barberId && barberId !== 'ANY' && barberId.trim() !== '' ? barberId.trim() : null
@@ -1008,6 +1026,24 @@ export async function rescheduleCentralizedBooking(params: {
       `La barbería se encuentra cerrada los días ${businessDaySchedule.day}.`,
       400,
       'BUSINESS_CLOSED_DAY'
+    )
+  }
+
+  // Verificar si la sede tiene un bloqueo o fecha de cierre programada
+  const activeClosure = await prisma.branchClosure.findFirst({
+    where: {
+      businessId,
+      startDate: { lte: endOfDay },
+      endDate: { gte: startOfDay },
+    },
+  })
+
+  if (activeClosure) {
+    const reasonText = activeClosure.reason?.trim() ? ` (${activeClosure.reason.trim()})` : ''
+    throw new BookingEngineError(
+      `Esta sede se encuentra cerrada en la fecha seleccionada${reasonText}. Por favor selecciona otra fecha.`,
+      400,
+      'BRANCH_CLOSED_DATE'
     )
   }
 
