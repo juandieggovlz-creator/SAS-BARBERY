@@ -374,28 +374,28 @@ export default function SuperAdminBusinessesPage() {
                   const statusLabel = isExpired
                     ? 'Vencida'
                     : b.status === 'TRIAL'
-                    ? 'En Prueba'
-                    : b.status === 'ACTIVE'
-                    ? 'Activa'
-                    : b.status === 'SUSPENDED'
-                    ? 'Suspendida'
-                    : 'Cancelada'
+                      ? 'En Prueba'
+                      : b.status === 'ACTIVE'
+                        ? 'Activa'
+                        : b.status === 'SUSPENDED'
+                          ? 'Suspendida'
+                          : 'Cancelada'
 
                   const statusClass = isExpired
                     ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40 font-bold'
                     : b.status === 'TRIAL'
-                    ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 font-bold'
-                    : b.status === 'ACTIVE'
-                    ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 font-bold'
-                    : 'bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100 border-zinc-400 dark:border-zinc-700 font-bold'
+                      ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 font-bold'
+                      : b.status === 'ACTIVE'
+                        ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40 font-bold'
+                        : 'bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100 border-zinc-400 dark:border-zinc-700 font-bold'
 
                   const dotColor = isExpired
                     ? 'bg-rose-500'
                     : b.status === 'TRIAL'
-                    ? 'bg-amber-500'
-                    : b.status === 'ACTIVE'
-                    ? 'bg-emerald-500'
-                    : 'bg-zinc-500'
+                      ? 'bg-amber-500'
+                      : b.status === 'ACTIVE'
+                        ? 'bg-emerald-500'
+                        : 'bg-zinc-500'
 
                   return (
                     <tr
@@ -452,13 +452,12 @@ export default function SuperAdminBusinessesPage() {
                           {expInfo.text}
                         </div>
                         {expInfo.days !== null ? (
-                          <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md inline-block mt-0.5 border ${
-                            isExpired
-                              ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40'
-                              : expInfo.days <= 7
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md inline-block mt-0.5 border ${isExpired
+                            ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40'
+                            : expInfo.days <= 7
                               ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40'
                               : 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/40'
-                          }`}>
+                            }`}>
                             {isExpired ? 'Finalizó' : `${expInfo.days}d restantes`}
                           </span>
                         ) : b.status === 'ACTIVE' ? (

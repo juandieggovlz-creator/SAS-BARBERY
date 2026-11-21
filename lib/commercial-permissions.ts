@@ -200,16 +200,16 @@ export async function getEffectiveSubscription(businessId: string): Promise<Effe
 
     // Manejo limpio de límites ilimitados (representados formalmente con null)
     const isUnlimitedBarbers = business.maxBarbers === null
-    const effectiveMaxBarbers = isUnlimitedBarbers ? null : (business.maxBarbers ?? targetPlan?.maxBarbers ?? 3)
-    const effectiveMaxClients = business.maxClients === null ? null : (business.maxClients ?? targetPlan?.maxClients ?? 500)
-    const effectiveMaxAppointments = business.maxAppointments === null ? null : (business.maxAppointments ?? targetPlan?.maxAppointments ?? 1000)
+    const effectiveMaxBarbers = isUnlimitedBarbers ? null : (targetPlan?.maxBarbers ?? business.maxBarbers ?? 3)
+    const effectiveMaxClients = business.maxClients === null ? null : (targetPlan?.maxClients ?? business.maxClients ?? 500)
+    const effectiveMaxAppointments = business.maxAppointments === null ? null : (targetPlan?.maxAppointments ?? business.maxAppointments ?? 1000)
     const effectiveMaxBranches = hasBranchException
       ? Math.max(business.company?.maxBranches || 1, branchExceptionMax)
       : isUnlimitedBarbers || business.company?.maxBranches === null
-      ? null
-      : canMultiBranch
-      ? Math.max(business.company?.maxBranches || 1, targetPlan?.includedBranches || 1)
-      : 1
+        ? null
+        : canMultiBranch
+          ? Math.max(business.company?.maxBranches || 1, targetPlan?.includedBranches || 1)
+          : 1
 
     return {
       businessId: business.id,
@@ -226,8 +226,8 @@ export async function getEffectiveSubscription(businessId: string): Promise<Effe
       statusLabel: isIndefinite
         ? `Plan ${targetPlan?.name || 'Comercial'} (Vigencia Indefinida)`
         : lifecycle.status === 'EXPIRING_SOON'
-        ? `${targetPlan?.name || 'Plan'} (Vence en ${lifecycle.daysRemaining} días)`
-        : `Plan ${targetPlan?.name || 'Comercial'} Activo`,
+          ? `${targetPlan?.name || 'Plan'} (Vence en ${lifecycle.daysRemaining} días)`
+          : `Plan ${targetPlan?.name || 'Comercial'} Activo`,
       expiresAt: end,
       plan: {
         id: targetPlan?.id,
@@ -273,8 +273,8 @@ export async function getEffectiveSubscription(businessId: string): Promise<Effe
     const effectiveMaxBranches = hasBranchException
       ? Math.max(business.company?.maxBranches || 1, branchExceptionMax)
       : canMultiBranch
-      ? Math.max(business.company?.maxBranches || 1, targetPlan.includedBranches || 1)
-      : 1
+        ? Math.max(business.company?.maxBranches || 1, targetPlan.includedBranches || 1)
+        : 1
 
     return {
       businessId: business.id,
@@ -323,6 +323,8 @@ export async function getEffectiveSubscription(businessId: string): Promise<Effe
     const trialMaxBranches = hasBranchException
       ? Math.max(business.company?.maxBranches || 2, branchExceptionMax)
       : Math.max(business.company?.maxBranches || 2, 2)
+    const isUnlimitedBarbers = business.maxBarbers === null
+    const trialMaxBarbers = isUnlimitedBarbers ? null : (targetPlan?.maxBarbers ?? 30)
 
     return {
       businessId: business.id,
@@ -342,7 +344,7 @@ export async function getEffectiveSubscription(businessId: string): Promise<Effe
         name: 'Prueba Gratuita Premium (30 días)',
         slug: 'trial',
         price: 0,
-        maxBarbers: business.maxBarbers || 30,
+        maxBarbers: trialMaxBarbers as any,
         maxBranches: trialMaxBranches
       },
       permissions: {
@@ -356,7 +358,7 @@ export async function getEffectiveSubscription(businessId: string): Promise<Effe
       },
       moduleToggles,
       limits: {
-        maxBarbers: business.maxBarbers || 30,
+        maxBarbers: trialMaxBarbers as any,
         maxBranches: trialMaxBranches,
         maxClients: business.maxClients || 15000,
         maxAppointments: business.maxAppointments || 30000

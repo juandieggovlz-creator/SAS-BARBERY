@@ -208,7 +208,7 @@ export function evaluateSubscriptionLifecycle(params: {
   const isPaidPlan = planSlug !== 'sandbox' && planSlug !== 'trial'
 
   // 0. Suscripción comercial activa con VIGENCIA INDEFINIDA (sin fecha de expiración ficticia)
-  if (isPaidPlan && !subEnd && (businessStatus === 'ACTIVE' || businessStatus === 'TRIAL')) {
+  if (isPaidPlan && !subEnd && businessStatus === 'ACTIVE') {
     return {
       status: 'ACTIVE',
       label: 'Vigencia Indefinida',
