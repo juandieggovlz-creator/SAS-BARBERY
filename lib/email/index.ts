@@ -15,7 +15,8 @@ export {
   sendAccountSecurityAlertEmail,
   sendSupportTicketCreatedEmail,
   sendSupportTicketReplyEmail,
-  sendSupportTicketResolvedEmail
+  sendSupportTicketResolvedEmail,
+  sendEmailVerificationEmail
 } from './email-service'
 export { renderMasterEmailLayout } from './templates/layout'
 export * from './templates'

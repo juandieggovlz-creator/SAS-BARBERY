@@ -70,6 +70,48 @@ export function getAccentByHex(hex: string): AccentColor {
   return ACCENT_COLORS.find((c) => c.hex.toLowerCase() === normalized.toLowerCase()) ?? DEFAULT_ACCENT
 }
 
+export function buildSuperAdminAccentCSS(c: AccentColor): string {
+  const { r, g, b } = c
+  const main = `rgb(${r},${g},${b})`
+  const dark1 = `rgb(${Math.round(r * 0.82)},${Math.round(g * 0.82)},${Math.round(b * 0.82)})`
+  const dark2 = `rgb(${Math.round(r * 0.67)},${Math.round(g * 0.67)},${Math.round(b * 0.67)})`
+  const light1 = `rgba(${r},${g},${b},0.10)`
+  const light2 = `rgba(${r},${g},${b},0.20)`
+  const op15 = `rgba(${r},${g},${b},0.15)`
+  const op30 = `rgba(${r},${g},${b},0.30)`
+  const op60 = `rgba(${r},${g},${b},0.60)`
+  const contrast = c.contrastText
+  const S = '[data-panel="superadmin"]'
+
+  return `
+/* ── BarberOS Super Admin Accent Color Override (strictly scoped) ── */
+${S} {
+  --accent: ${main};
+  --accent-dark: ${dark1};
+  --accent-darker: ${dark2};
+  --accent-light: ${light1};
+  --accent-lighter: ${light2};
+  --accent-op15: ${op15};
+  --accent-op30: ${op30};
+  --accent-op60: ${op60};
+  --accent-contrast: ${contrast};
+  --accent-hover: ${dark1};
+  --sidebar-active-bg: ${main};
+  --sidebar-active-text: ${contrast};
+}
+${S} .sa-accent-bg {
+  background-color: ${main} !important;
+  color: ${contrast} !important;
+}
+${S} .sa-accent-text {
+  color: ${main} !important;
+}
+${S} .sa-accent-border {
+  border-color: ${main} !important;
+}
+`
+}
+
 export function buildAccentCSS(c: AccentColor): string {
   const { r, g, b } = c
   const main    = `rgb(${r},${g},${b})`

@@ -30,6 +30,13 @@ export interface EmailProviderStatus {
   details: string
 }
 
+export interface EmailVerificationEmailParams {
+  to: string
+  userName: string
+  verificationLink: string
+  expiresHours?: number
+}
+
 // ─── Template Payload Types ──────────────────────────────────────────────────
 
 export interface BarberInviteEmailParams {

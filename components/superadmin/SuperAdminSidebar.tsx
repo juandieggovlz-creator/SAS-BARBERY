@@ -24,12 +24,16 @@ import {
   ShieldCheck,
   ChevronRight,
   Bot,
-  Loader2
+  Loader2,
+  Palette,
+  Sun,
+  Moon
 } from 'lucide-react'
-import ThemeToggle from '@/components/ui/ThemeToggle'
+import { useSuperAdminTheme } from '@/components/superadmin/SuperAdminThemeManager'
 
 export default function SuperAdminSidebar() {
   const pathname = usePathname()
+  const { theme: saTheme, toggleTheme: saToggleTheme } = useSuperAdminTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ email?: string; role?: string; name?: string } | null>(null)
 
@@ -107,6 +111,7 @@ export default function SuperAdminSidebar() {
         { label: 'Bitácora de Auditoría', href: '/superadmin/audit', icon: FileText },
         { label: 'Comunicados Globales', href: '/superadmin/announcements', icon: Bell },
         { label: 'Políticas & Legal', href: '/superadmin/legal', icon: ShieldCheck },
+        { label: 'Mi Apariencia', href: '/superadmin/appearance', icon: Palette },
         { label: 'Configuración Global', href: '/superadmin/settings', icon: Settings },
       ]
     }
@@ -265,9 +270,21 @@ export default function SuperAdminSidebar() {
         {/* Quick controls */}
         <div className="flex items-center justify-between px-1 pt-1">
           <div className="flex items-center gap-2">
-            <ThemeToggle variant="navbar" />
+            <button
+              type="button"
+              onClick={saToggleTheme}
+              aria-label={saTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              title={saTheme === 'dark' ? 'Modo claro ☀️' : 'Modo oscuro 🌙'}
+              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 select-none cursor-pointer border ${
+                saTheme === 'dark'
+                  ? 'bg-zinc-800 border-zinc-700 text-amber-300 hover:bg-zinc-700 shadow-xs'
+                  : 'bg-zinc-100 border-zinc-200/80 text-zinc-700 hover:bg-zinc-200/80'
+              }`}
+            >
+              {saTheme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-zinc-600" />}
+            </button>
             <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider hidden sm:inline">
-              Tema
+              Tema Consola
             </span>
           </div>
 

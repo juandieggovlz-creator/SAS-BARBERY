@@ -11,6 +11,7 @@ import {
   BarberInviteEmailParams,
   BranchAdminInviteEmailParams,
   PasswordResetEmailParams,
+  EmailVerificationEmailParams,
   AppointmentConfirmationEmailParams,
   AccountSecurityAlertEmailParams,
   SupportTicketCreatedEmailParams,
@@ -513,4 +514,66 @@ Canal oficial: ${OFFICIAL_CONTACT_EMAIL}
 `.trim()
 
   return { html, text, subject: `Ticket #${ticketCode} Resuelto — BarberOS` }
+}
+
+// ─── 9. Verificación de Correo Electrónico (Registro) ─────────────────────────
+
+export function generateEmailVerificationTemplate(params: EmailVerificationEmailParams) {
+  const { userName, verificationLink, expiresHours = 24 } = params
+
+  const contentHtml = `
+    <p style="margin: 0 0 16px 0; font-size: 15px; color: #e4e4e7; line-height: 1.6;">
+      Hola <strong style="color: #ffffff;">${userName}</strong>,
+    </p>
+    <p style="margin: 0 0 20px 0; font-size: 14px; color: #d4d4d8; line-height: 1.6;">
+      Gracias por registrarte en <strong style="color: #f59e0b;">BarberOS</strong>. Para proteger la seguridad de tu negocio y habilitar todas las funciones de tu cuenta, por favor confirma que esta es tu dirección de correo electrónico.
+    </p>
+    <div style="background-color: #14161d; border: 1px solid #27272a; border-radius: 14px; padding: 18px 20px; margin-bottom: 20px;">
+      <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 800; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.05em;">
+        Al verificar tu cuenta podrás:
+      </p>
+      <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #a1a1aa; line-height: 1.6;">
+        <li>Recibir alertas de citas agendadas y cancelaciones en tiempo real.</li>
+        <li>Restablecer tu contraseña de forma segura si la olvidas.</li>
+        <li>Invitar a tu equipo de barberos y administradores de sede.</li>
+      </ul>
+    </div>
+    <p style="margin: 0; font-size: 13px; color: #a1a1aa; line-height: 1.5;">
+      Haz clic en el siguiente botón para verificar tu cuenta de inmediato:
+    </p>
+  `
+
+  const html = renderMasterEmailLayout({
+    preheader: `Confirma tu dirección de correo electrónico para activar tu cuenta en BarberOS`,
+    headline: `Verifica tu cuenta`,
+    subtitle: `Un solo clic para activar tu acceso seguro y comenzar a operar.`,
+    contentHtml,
+    actionButton: {
+      label: 'Verificar Mi Correo Electrónico',
+      url: verificationLink
+    },
+    footerNote: `Este enlace de verificación es seguro, de uso único y expirará en ${expiresHours} horas. Si no creaste una cuenta en BarberOS, puedes ignorar este correo sin que se realice ninguna acción.`
+  })
+
+  const text = `
+Hola ${userName},
+
+Gracias por registrarte en BarberOS.
+
+Para confirmar tu dirección de correo electrónico y activar tu cuenta, ingresa al siguiente enlace seguro:
+${verificationLink}
+
+Este enlace expira en ${expiresHours} horas.
+
+Si tú no creaste esta cuenta, puedes desestimar este mensaje de forma segura.
+
+Soporte oficial: ${OFFICIAL_CONTACT_EMAIL}
+© BarberOS
+`.trim()
+
+  return {
+    html,
+    text,
+    subject: `Verifica tu dirección de correo electrónico — BarberOS`
+  }
 }

@@ -7,6 +7,8 @@ import fs from 'fs'
 import { DEFAULT_SCHEDULE } from '@/lib/schedule'
 import { uploadImageFromString } from '@/lib/cloudinary'
 import { sendSentinelNotification } from '@/lib/telegram-sentinel'
+import { createEmailVerificationToken } from '@/lib/auth/email-verification'
+import { sendEmailVerificationEmail } from '@/lib/email'
 
 export async function POST(request: Request) {
   try {
@@ -273,6 +275,21 @@ export async function POST(request: Request) {
 
     // Establish JWT session cookie
     await createSession(user.id, 'OWNER', null, business.id, null, null, false, company.id)
+
+    // Generar enlace seguro de verificación y enviar correo transaccional (Resend)
+    try {
+      const { verificationLink } = await createEmailVerificationToken(user.id, user.email)
+      sendEmailVerificationEmail({
+        to: user.email,
+        userName: fullName ? fullName.trim() : 'Propietario',
+        verificationLink,
+        expiresHours: 24
+      }).catch(err => {
+        console.warn('Aviso: Envío de correo de verificación diferido o simulado:', err)
+      })
+    } catch (verifErr) {
+      console.error('Error generando token de verificación de email:', verifErr)
+    }
 
     // Notificación en segundo plano a BarberOS Sentinel
     sendSentinelNotification({

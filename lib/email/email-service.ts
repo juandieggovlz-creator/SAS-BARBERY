@@ -19,7 +19,8 @@ import {
   AccountSecurityAlertEmailParams,
   SupportTicketCreatedEmailParams,
   SupportTicketReplyEmailParams,
-  SupportTicketResolvedEmailParams
+  SupportTicketResolvedEmailParams,
+  EmailVerificationEmailParams
 } from './types'
 
 import {
@@ -30,7 +31,8 @@ import {
   generateAccountSecurityAlertTemplate,
   generateSupportTicketCreatedTemplate,
   generateSupportTicketReplyTemplate,
-  generateSupportTicketResolvedTemplate
+  generateSupportTicketResolvedTemplate,
+  generateEmailVerificationTemplate
 } from './templates'
 
 export const OFFICIAL_CONTACT_EMAIL = 'barberos.contacto@gmail.com'
@@ -124,7 +126,13 @@ async function sendViaResend(
     const errorMsg = data?.message || `HTTP ${response.status}: Error al despachar con Resend`
     
     // Resend Sandbox / Modo prueba: solo permite envíos reales a la cuenta propietaria en Resend
-    if (response.status === 403 && typeof errorMsg === 'string' && errorMsg.includes('You can only send testing emails')) {
+    const isTestingRestriction = typeof errorMsg === 'string' && (
+      errorMsg.includes('You can only send testing emails') ||
+      errorMsg.includes('testing email address') ||
+      errorMsg.includes('verify a domain')
+    )
+
+    if (isTestingRestriction) {
       console.warn('[EmailService:Resend Sandbox] Cuenta en modo prueba sin dominio verificado. Envío simulado para destinatario externo.')
       return {
         success: true,
@@ -318,5 +326,19 @@ export async function sendSupportTicketResolvedEmail(params: SupportTicketResolv
     html,
     text,
     tags: [{ name: 'category', value: 'support_ticket_resolved' }]
+  })
+}
+
+/**
+ * 9. Envía enlace seguro de verificación de correo electrónico tras registro.
+ */
+export async function sendEmailVerificationEmail(params: EmailVerificationEmailParams): Promise<EmailResult> {
+  const { html, text, subject } = generateEmailVerificationTemplate(params)
+  return await sendEmail({
+    to: params.to,
+    subject,
+    html,
+    text,
+    tags: [{ name: 'category', value: 'email_verification' }]
   })
 }
