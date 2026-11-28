@@ -321,11 +321,10 @@ export default function OwnerSidebar() {
                       />
                     )}
                     <span
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-150 ${
-                        active
-                          ? 'shadow-2xs'
-                          : 'bg-zinc-100/80 dark:bg-zinc-900/90 text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-200/70 dark:group-hover:bg-zinc-800 group-hover:text-zinc-900 dark:group-hover:text-white group-hover:scale-105'
-                      }`}
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-150 ${active
+                        ? 'shadow-2xs'
+                        : 'bg-zinc-100/80 dark:bg-zinc-900/90 text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-200/70 dark:group-hover:bg-zinc-800 group-hover:text-zinc-900 dark:group-hover:text-white group-hover:scale-105'
+                        }`}
                       style={active ? {
                         backgroundColor: 'var(--accent)',
                         color: 'var(--accent-contrast)',

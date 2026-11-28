@@ -23,6 +23,7 @@ import {
   Trash2
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { notifyPlatformSettingsUpdated } from '@/lib/platform-config'
 
 export default function SuperAdminSettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({})
@@ -62,8 +63,10 @@ export default function SuperAdminSettingsPage() {
       if (res.ok && data.logoUrl) {
         if (theme === 'light') {
           setSettings(prev => ({ ...prev, platform_logo_light: data.logoUrl }))
+          notifyPlatformSettingsUpdated({ platform_logo_light: data.logoUrl })
         } else {
           setSettings(prev => ({ ...prev, platform_logo_dark: data.logoUrl, platform_logo: data.logoUrl }))
+          notifyPlatformSettingsUpdated({ platform_logo_dark: data.logoUrl, platform_logo: data.logoUrl })
         }
         toast.success(`Logo (${theme === 'light' ? 'Tema Claro' : 'Tema Oscuro'}) actualizado con éxito`, { id: toastId })
       } else {
@@ -114,6 +117,7 @@ export default function SuperAdminSettingsPage() {
       })
 
       if (res.ok) {
+        notifyPlatformSettingsUpdated(settings)
         toast.success('Configuración global BarberOS guardada con éxito')
       } else {
         toast.error('Error al guardar ajustes')

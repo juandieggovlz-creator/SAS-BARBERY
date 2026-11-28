@@ -43,7 +43,8 @@ export async function GET() {
 
   const validation = await MetaCloudProvider.validateCredentials({
     phoneNumberId: integration.metaPhoneNumberId,
-    accessToken: decryptedToken
+    accessToken: decryptedToken,
+    wabaId: integration.metaWabaId || undefined
   })
 
   await prisma.whatsAppIntegration.update({
@@ -118,7 +119,8 @@ export async function POST(request: Request) {
     // 2. Validación en vivo contra Meta Graph API v22.0
     const validation = await MetaCloudProvider.validateCredentials({
       phoneNumberId: String(phoneNumberId).trim(),
-      accessToken: String(accessToken).trim()
+      accessToken: String(accessToken).trim(),
+      wabaId: wabaId ? String(wabaId).trim() : undefined
     })
 
     if (!validation.valid) {

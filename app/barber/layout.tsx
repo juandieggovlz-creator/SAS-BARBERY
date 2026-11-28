@@ -5,16 +5,16 @@ import Link from 'next/link'
 import Image from 'next/image'
 import BrandLogo from '@/components/ui/BrandLogo'
 import { usePathname } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Scissors, 
-  DollarSign, 
-  TrendingUp, 
-  Clock, 
-  MessageSquare, 
-  Bell, 
-  User, 
+import {
+  LayoutDashboard,
+  Calendar,
+  Scissors,
+  DollarSign,
+  TrendingUp,
+  Clock,
+  MessageSquare,
+  Bell,
+  User,
   LogOut,
   LifeBuoy,
   Menu,
@@ -127,37 +127,37 @@ export default function BarberLayout({ children }: { children: React.ReactNode }
     title: string
     items: { label: string; href: string; icon: React.ElementType }[]
   }[] = [
-    {
-      title: 'OPERACIONES',
-      items: [
-        { label: 'Inicio', href: '/barber/dashboard', icon: LayoutDashboard },
-        { label: 'Mi Agenda', href: '/barber/calendar', icon: Calendar },
-        { label: 'Servicios', href: '/barber/services', icon: Scissors },
-      ]
-    },
-    {
-      title: 'RENDIMIENTO',
-      items: [
-        { label: 'Comisiones', href: '/barber/commissions', icon: DollarSign },
-        { label: 'Rendimiento', href: '/barber/performance', icon: TrendingUp },
-        { label: 'Horarios', href: '/barber/schedule', icon: Clock },
-      ]
-    },
-    {
-      title: 'COMUNICACIÓN',
-      items: [
-        { label: 'Chat Interno', href: '/barber/chat', icon: MessageSquare },
-        { label: 'Notificaciones', href: '/barber/notifications', icon: Bell },
-      ]
-    },
-    {
-      title: 'CUENTA',
-      items: [
-        { label: 'Mi Perfil', href: '/barber/profile', icon: User },
-        { label: 'Soporte BarberOS', href: '/barber/support', icon: LifeBuoy },
-      ]
-    }
-  ]
+      {
+        title: 'OPERACIONES',
+        items: [
+          { label: 'Inicio', href: '/barber/dashboard', icon: LayoutDashboard },
+          { label: 'Mi Agenda', href: '/barber/calendar', icon: Calendar },
+          { label: 'Servicios', href: '/barber/services', icon: Scissors },
+        ]
+      },
+      {
+        title: 'RENDIMIENTO',
+        items: [
+          { label: 'Comisiones', href: '/barber/commissions', icon: DollarSign },
+          { label: 'Rendimiento', href: '/barber/performance', icon: TrendingUp },
+          { label: 'Horarios', href: '/barber/schedule', icon: Clock },
+        ]
+      },
+      {
+        title: 'COMUNICACIÓN',
+        items: [
+          { label: 'Chat Interno', href: '/barber/chat', icon: MessageSquare },
+          { label: 'Notificaciones', href: '/barber/notifications', icon: Bell },
+        ]
+      },
+      {
+        title: 'CUENTA',
+        items: [
+          { label: 'Mi Perfil', href: '/barber/profile', icon: User },
+          { label: 'Soporte BarberOS', href: '/barber/support', icon: LifeBuoy },
+        ]
+      }
+    ]
 
   const sidebarContent = (
     <div
@@ -254,11 +254,10 @@ export default function BarberLayout({ children }: { children: React.ReactNode }
                       />
                     )}
                     <span
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-150 ${
-                        active
-                          ? 'shadow-2xs'
-                          : 'bg-zinc-100/80 dark:bg-zinc-900/90 text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-200/70 dark:group-hover:bg-zinc-800 group-hover:text-zinc-900 dark:group-hover:text-white group-hover:scale-105'
-                      }`}
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-150 ${active
+                        ? 'shadow-2xs'
+                        : 'bg-zinc-100/80 dark:bg-zinc-900/90 text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-200/70 dark:group-hover:bg-zinc-800 group-hover:text-zinc-900 dark:group-hover:text-white group-hover:scale-105'
+                        }`}
                       style={active ? {
                         backgroundColor: 'var(--accent)',
                         color: 'var(--accent-contrast)',
@@ -369,11 +368,10 @@ export default function BarberLayout({ children }: { children: React.ReactNode }
         <div className="flex-1 md:ml-64 flex flex-col min-h-screen bg-[#f8fafc] dark:bg-[#09090b] w-full min-w-0">
           <BarberTopBar profile={profile} />
           <main
-            className={`flex-1 w-full min-w-0 panel-page-enter ${
-              pathname === '/barber/chat'
-                ? 'h-[calc(100vh-4rem)] p-2 sm:p-3 overflow-hidden flex flex-col pb-20 md:pb-3'
-                : 'p-3 sm:p-6 md:p-8 max-w-7xl mx-auto pb-24 md:pb-8'
-            }`}
+            className={`flex-1 w-full min-w-0 panel-page-enter ${pathname === '/barber/chat'
+              ? 'h-[calc(100vh-4rem)] p-2 sm:p-3 overflow-hidden flex flex-col pb-20 md:pb-3'
+              : 'p-3 sm:p-6 md:p-8 max-w-7xl mx-auto pb-24 md:pb-8'
+              }`}
           >
             {children}
           </main>

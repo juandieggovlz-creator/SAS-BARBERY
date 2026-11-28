@@ -26,6 +26,21 @@ let cachedSettings: PublicPlatformSettings | null = null
 let cacheExpiry = 0
 
 /**
+ * Notifies all listeners that platform settings (e.g. logos or names) have been updated.
+ */
+export function notifyPlatformSettingsUpdated(newSettings?: Partial<PublicPlatformSettings>) {
+  if (typeof window !== 'undefined') {
+    if (newSettings && cachedSettings) {
+      cachedSettings = { ...cachedSettings, ...newSettings }
+    } else {
+      cachedSettings = null
+      cacheExpiry = 0
+    }
+    window.dispatchEvent(new CustomEvent('platform-settings-updated', { detail: newSettings }))
+  }
+}
+
+/**
  * Formats a WhatsApp number for use in wa.me links.
  * Input: '+57 324 2063393' → Output: '573242063393'
  */

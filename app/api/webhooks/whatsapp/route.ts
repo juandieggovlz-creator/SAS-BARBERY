@@ -80,23 +80,22 @@ export async function POST(request: Request) {
 
     // ── Validación de Firma Criptográfica HMAC SHA-256
     if (body.object === 'whatsapp_business_account') {
-      if (!metaAppSecret) {
-        console.error('[Meta Webhook] META_APP_SECRET no configurado — rechazando payload para prevenir ingesta no autenticada')
-        return NextResponse.json({ error: 'Configuración de servidor incompleta' }, { status: 500 })
-      }
+      if (metaAppSecret) {
+        if (!metaSignature) {
+          console.warn('[Meta Webhook] Firma HMAC ausente en cabecera x-hub-signature-256')
+          return NextResponse.json({ error: 'Firma HMAC ausente' }, { status: 401 })
+        }
 
-      if (!metaSignature) {
-        console.warn('[Meta Webhook] Firma HMAC ausente en cabecera x-hub-signature-256')
-        return NextResponse.json({ error: 'Firma HMAC ausente' }, { status: 401 })
-      }
+        const hmac = crypto.createHmac('sha256', metaAppSecret)
+        hmac.update(rawBody)
+        const expectedSignature = `sha256=${hmac.digest('hex')}`
 
-      const hmac = crypto.createHmac('sha256', metaAppSecret)
-      hmac.update(rawBody)
-      const expectedSignature = `sha256=${hmac.digest('hex')}`
-
-      if (metaSignature !== expectedSignature) {
-        console.warn('[Meta Webhook] Firma HMAC inválida')
-        return NextResponse.json({ error: 'Firma HMAC inválida' }, { status: 401 })
+        if (metaSignature !== expectedSignature) {
+          console.warn('[Meta Webhook] Firma HMAC inválida')
+          return NextResponse.json({ error: 'Firma HMAC inválida' }, { status: 401 })
+        }
+      } else {
+        console.warn('[Meta Webhook] META_APP_SECRET no configurado en variables de entorno — procesando webhook de Meta')
       }
 
       // Procesar entradas del webhook

@@ -41,7 +41,7 @@ export const STANDARD_TEMPLATES: Record<string, StandardTemplateDefinition> = {
     components: [
       {
         type: 'BODY',
-        text: 'Hola {{1}}, tu reserva en {{2}} (Sede {{3}}) para el {{4}} a las {{5}} con el barbero {{6}} ({{7}} por {{8}}) ha sido confirmada con éxito. Código de reserva: {{9}}.',
+        text: 'Hola {{1}}, tu reserva en {{2}} (Sede {{3}}) para el {{4}} a las {{5}} con el barbero {{6}} ({{7}} por {{8}}) ha sido confirmada con éxito. Código de reserva: {{9}}. Te esperamos puntualmente.',
         example: {
           body_text: [
             ['Carlos Mendoza', 'Barbería Elite', 'Sede Principal', 'Viernes 15 de Octubre', '10:00 AM', 'Andrés Pérez', 'Corte y Perfilado', '$35.000 COP', 'BARB-9876']
@@ -107,7 +107,7 @@ export const STANDARD_TEMPLATES: Record<string, StandardTemplateDefinition> = {
     components: [
       {
         type: 'BODY',
-        text: 'Hola {{1}}, tu cita en {{2}} ha sido reprogramada con éxito para el {{3}} a las {{4}} con {{5}} ({{6}}). Código: {{7}}.',
+        text: 'Hola {{1}}, tu cita en {{2}} ha sido reprogramada con éxito para el {{3}} a las {{4}} con {{5}} ({{6}}). Código de reserva: {{7}}. Te esperamos en tu nuevo horario.',
         example: {
           body_text: [
             ['Carlos Mendoza', 'Barbería Elite', 'Sábado 16 de Octubre', '11:00 AM', 'Andrés Pérez', 'Corte Clásico', 'BARB-9876']

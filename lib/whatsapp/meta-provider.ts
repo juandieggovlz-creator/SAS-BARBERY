@@ -15,24 +15,29 @@ export class MetaCloudProvider {
   }
 
   /**
-   * Valida las credenciales en vivo contra Meta Graph API
+   * Valida las credenciales en vivo contra Meta Graph API v22.0
+   * Si se incluye wabaId, valida también que el Phone Number ID pertenezca a dicha cuenta de WhatsApp Business.
    */
   static async validateCredentials({
     phoneNumberId,
-    accessToken
+    accessToken,
+    wabaId
   }: {
     phoneNumberId: string
     accessToken: string
+    wabaId?: string
   }): Promise<{
     valid: boolean
     displayPhoneNumber?: string
     verifiedName?: string
     qualityRating?: string
+    wabaName?: string
     error?: string
   }> {
     try {
       const cleanPhoneId = phoneNumberId.trim()
       const cleanToken = accessToken.trim()
+      const cleanWabaId = wabaId?.trim()
 
       if (!cleanPhoneId || !cleanToken) {
         return {
@@ -41,30 +46,67 @@ export class MetaCloudProvider {
         }
       }
 
-      // Consulta a la Graph API de Meta
-      const url = `https://graph.facebook.com/v22.0/${cleanPhoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating`
-      const res = await fetch(url, {
+      // 1. Consulta al nodo de teléfono en Meta Graph API v22.0
+      const phoneUrl = `https://graph.facebook.com/v22.0/${cleanPhoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating`
+      const phoneRes = await fetch(phoneUrl, {
         headers: {
           'Authorization': `Bearer ${cleanToken}`,
           'Content-Type': 'application/json'
         }
       })
 
-      const data = await res.json()
+      const phoneData = await phoneRes.json()
 
-      if (!res.ok) {
-        const errorMsg = data?.error?.message || data?.error?.error_user_msg || 'Credenciales inválidas en Meta Cloud API'
+      if (!phoneRes.ok) {
+        const errorMsg = this.formatMetaError(phoneData?.error)
         return {
           valid: false,
           error: errorMsg
         }
       }
 
+      let wabaName: string | undefined = undefined
+
+      // 2. Si se suministró WABA ID, validar cuenta comercial y pertenencia
+      if (cleanWabaId) {
+        const wabaUrl = `https://graph.facebook.com/v22.0/${cleanWabaId}?fields=id,name,timezone_id,phone_numbers`
+        const wabaRes = await fetch(wabaUrl, {
+          headers: {
+            'Authorization': `Bearer ${cleanToken}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        const wabaData = await wabaRes.json()
+
+        if (!wabaRes.ok) {
+          const errorMsg = this.formatMetaError(wabaData?.error)
+          return {
+            valid: false,
+            error: `WABA ID inválido o sin permisos: ${errorMsg}`
+          }
+        }
+
+        wabaName = wabaData.name
+
+        // Comprobar que el phoneNumberId esté asociado a los phone_numbers de este WABA
+        const associatedNumbers = wabaData?.phone_numbers?.data || []
+        const isAssociated = associatedNumbers.some((p: { id: string }) => p.id === cleanPhoneId)
+
+        if (associatedNumbers.length > 0 && !isAssociated) {
+          return {
+            valid: false,
+            error: `El Phone Number ID (${cleanPhoneId}) no pertenece a la cuenta de WhatsApp Business (WABA ID: ${cleanWabaId}). Números autorizados: ${associatedNumbers.map((p: any) => p.display_phone_number || p.id).join(', ')}`
+          }
+        }
+      }
+
       return {
         valid: true,
-        displayPhoneNumber: data.display_phone_number,
-        verifiedName: data.verified_name,
-        qualityRating: data.quality_rating
+        displayPhoneNumber: phoneData.display_phone_number,
+        verifiedName: phoneData.verified_name,
+        qualityRating: phoneData.quality_rating,
+        wabaName
       }
     } catch (err: unknown) {
       console.error('Error validando credenciales de Meta:', err)
@@ -73,6 +115,48 @@ export class MetaCloudProvider {
         error: (err as Error)?.message || 'Error de conexión con Meta Graph API'
       }
     }
+  }
+
+  /**
+   * Mapea códigos de error técnicos de Meta Cloud API a explicaciones claras en español
+   */
+  static formatMetaError(error: any): string {
+    if (!error) return 'Error desconocido en Meta Cloud API'
+    if (typeof error === 'string') return error
+
+    const code = error.code
+    const subcode = error.error_subcode
+    const message = error.message || ''
+
+    if (code === 190) {
+      return 'Token de acceso inválido, revocado o expirado. Genera un System User Access Token permanente en Meta Business Suite con permisos whatsapp_business_messaging y whatsapp_business_management.'
+    }
+    if (code === 100 && subcode === 2388299) {
+      return 'Error en la plantilla de Meta: Las variables no pueden ubicarse al principio ni al final del texto del mensaje.'
+    }
+    if (code === 131030) {
+      return 'Número destinatario no registrado en la lista de pruebas de Meta. Agrega el número de teléfono en la consola de desarrolladores de Meta (WhatsApp > API Setup).'
+    }
+    if (code === 131047) {
+      return 'Ventana de 24 horas cerrada. Para contactar a este cliente fuera de 24h debes enviar una plantilla oficial aprobada (type: template).'
+    }
+    if (code === 131026) {
+      return 'Mensaje no entregable. El número de teléfono no tiene una cuenta activa de WhatsApp o ha bloqueado las notificaciones del negocio.'
+    }
+    if (code === 130429) {
+      return 'Límite de tasa (Rate limit) excedido en Meta Cloud API. Por favor espera unos minutos antes de reintentar.'
+    }
+    if (code === 132000) {
+      return 'Parámetros incompatibles o insuficientes con la plantilla oficial de WhatsApp.'
+    }
+    if (code === 132001) {
+      return 'La plantilla oficial no existe o aún no ha sido aprobada por Meta en esta WABA.'
+    }
+    if (code === 100) {
+      return `Parámetro incorrecto en Graph API: ${message}`
+    }
+
+    return error.error_user_msg || message || `Error de Meta API (código ${code})`
   }
 
   /**

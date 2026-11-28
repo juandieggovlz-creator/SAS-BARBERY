@@ -1126,6 +1126,32 @@ export default function WhatsAppIntegrationSettings() {
                       </div>
                     </div>
 
+                    {/* Tarjeta de credenciales vinculadas en tiempo real */}
+                    {data?.hasMetaAccessToken && data?.metaPhoneNumberId && (
+                      <div className="p-3.5 rounded-2xl bg-blue-950/40 border border-blue-500/30 text-xs text-blue-100 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-blue-300 flex items-center gap-1.5">
+                            <CheckCircle2 size={14} className="text-emerald-400" /> Conexión Meta Cloud API
+                          </span>
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold">
+                            ACTIVO
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] font-mono">
+                          <div>
+                            <span className="text-zinc-400 block text-[9px] uppercase tracking-wider font-sans">Phone Number ID</span>
+                            <span className="text-zinc-200">{data.metaPhoneNumberId}</span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-400 block text-[9px] uppercase tracking-wider font-sans">WABA ID</span>
+                            <span className={data.metaWabaId ? "text-amber-300 font-bold" : "text-amber-400/80 italic font-sans text-[10px]"}>
+                              {data.metaWabaId || '⚠️ Falta WABA ID (Requerido para plantillas)'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Banner de Estado Contextual */}
                     {connState.status !== 'CONNECTED' && connState.status !== 'NOT_CONFIGURED' && (
                       <div className={`p-3.5 rounded-2xl flex items-start gap-2.5 text-xs border ${connState.badgeBg} ${connState.badgeBorder} ${connState.colorClass}`}>
@@ -2611,16 +2637,36 @@ export default function WhatsAppIntegrationSettings() {
                     </div>
                   </div>
 
-                  {/* Meta Number ID */}
-                  <div>
-                    <label className="block text-xs font-black text-zinc-300 mb-1">Meta Number ID (Phone Number ID)</label>
-                    <input
-                      type="text"
-                      placeholder="Identificador del número de teléfono"
-                      value={metaForm.phoneNumberId}
-                      onChange={(e) => setMetaForm({ ...metaForm, phoneNumberId: e.target.value })}
-                      className="w-full px-3 py-2.5 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-all"
-                    />
+                  {/* WABA ID & Phone Number ID en fila responsive */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-black text-zinc-300">WABA ID (WhatsApp Business Account)</label>
+                        <span className="text-[10px] text-amber-400 font-bold">Indispensable</span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Ej. 1108294458673458"
+                        value={metaForm.wabaId}
+                        onChange={(e) => setMetaForm({ ...metaForm, wabaId: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-all font-mono"
+                      />
+                      <p className="text-[10px] text-zinc-500 mt-1">Requerido por Meta para sincronizar y aprobar plantillas oficiales.</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-black text-zinc-300">Phone Number ID</label>
+                        <span className="text-[10px] text-emerald-400 font-bold">Obligatorio</span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Ej. 1478595075329006"
+                        value={metaForm.phoneNumberId}
+                        onChange={(e) => setMetaForm({ ...metaForm, phoneNumberId: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-all font-mono"
+                      />
+                      <p className="text-[10px] text-zinc-500 mt-1">ID del número de teléfono en WhatsApp &gt; Configuración de API.</p>
+                    </div>
                   </div>
 
                   {/* Meta JWT Token */}
@@ -2873,22 +2919,37 @@ export default function WhatsAppIntegrationSettings() {
               </div>
             )}
 
-            {/* Wizard Step 3: Meta Number ID & JWT Token */}
+            {/* Wizard Step 3: WABA ID, Meta Number ID & JWT Token */}
             {wizardStep === 3 && (
               <div className="space-y-4">
-                <h4 className="text-sm font-black text-white">3. Número y Token de Meta</h4>
+                <h4 className="text-sm font-black text-white">3. Cuenta WABA, Número y Token de Meta</h4>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Copia el <strong>Phone Number ID</strong> desde WhatsApp &gt; Configuración de la API, y tu <strong>Token Permanente</strong> de Usuario del Sistema.
+                  Copia el <strong>WABA ID</strong> (WhatsApp Business Account ID), el <strong>Phone Number ID</strong> desde WhatsApp &gt; Configuración de la API, y tu <strong>Token Permanente</strong> de Usuario del Sistema.
                 </p>
 
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Meta Number ID</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-zinc-300">WhatsApp Business Account ID (WABA ID)</label>
+                    <span className="text-[10px] text-amber-400 font-bold">Indispensable</span>
+                  </div>
                   <input
                     type="text"
-                    placeholder="Ej. 104829103948192"
+                    placeholder="Ej. 1108294458673458"
+                    value={metaForm.wabaId}
+                    onChange={(e) => setMetaForm({ ...metaForm, wabaId: e.target.value })}
+                    className="w-full px-3.5 py-3 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 font-mono"
+                  />
+                  <p className="text-[10px] text-zinc-500 mt-1">Permite la creación y sincronización automática de las 4 plantillas oficiales de Meta.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Phone Number ID (Meta Number ID)</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. 1478595075329006"
                     value={metaForm.phoneNumberId}
                     onChange={(e) => setMetaForm({ ...metaForm, phoneNumberId: e.target.value })}
-                    className="w-full px-3.5 py-3 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-3 bg-[#0a101d] border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 font-mono"
                   />
                 </div>
 
@@ -2919,7 +2980,11 @@ export default function WhatsAppIntegrationSettings() {
                     <span className="font-mono text-zinc-200">{metaForm.appId || 'No especificado'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">Meta Number ID:</span>
+                    <span className="text-zinc-500">WABA ID:</span>
+                    <span className="font-mono text-amber-400">{metaForm.wabaId || 'No especificado'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Phone Number ID:</span>
                     <span className="font-mono text-zinc-200">{metaForm.phoneNumberId || 'No especificado'}</span>
                   </div>
                   <div className="flex justify-between">
