@@ -234,6 +234,8 @@ model Client {
   email         String?
   internalNotes String?
   businessId    String
+  whatsappConsent Boolean     @default(true)
+  whatsappOptOutAt DateTime?
   createdAt     DateTime      @default(now())
   appointments  Appointment[]
   business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -254,6 +256,8 @@ model Appointment {
   notes           String?
   depositRequired Decimal?          @default(0) @db.Decimal(10, 2)
   depositPaid     Boolean           @default(false)
+  clientConfirmedAttendance Boolean  @default(false)
+  confirmedViaWhatsAppAt    DateTime?
   createdAt       DateTime          @default(now())
   reservationCode String            @unique @default(cuid())
   business        Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -734,6 +738,17 @@ model WhatsAppIntegration {
   reminderTemplate     String?                  @db.Text
   reminderHoursBefore  Int                      @default(2)
 
+  // Gestión de Plantillas Oficiales de Meta
+  metaTemplatesSyncStatus String?                  // 'SYNCED' | 'PENDING' | 'ERROR'
+  metaTemplatesData       Json?                    // Registro de plantillas oficiales, IDs, estados y motivos de rechazo
+  templatesLastSyncedAt   DateTime?
+  
+  // Toggles de automatizaciones
+  notifyOnConfirmation   Boolean                  @default(true)
+  notifyOnReminder       Boolean                  @default(true)
+  notifyOnReschedule     Boolean                  @default(true)
+  notifyOnCancellation   Boolean                  @default(true)
+
   connectedAt          DateTime?
   lastSyncedAt         DateTime?
   errorMessage         String?
@@ -802,6 +817,7 @@ model WhatsAppConversation {
   selectedAppointmentId String?                   // ID de cita para reprogramar o cancelar
   metadata              Json?                     // Mapeo transitorio de opciones { "1": "serviceId", "slots": [...] }
   lastMessageId         String?                   // Deduplicación de webhooks
+  lastCustomerMessageAt DateTime?                 // Rastreo de la ventana de atención de 24 horas de Meta
   lastActivityAt        DateTime                  @default(now())
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt

@@ -72,6 +72,19 @@ interface WhatsAppData {
   reminderTemplate: string | null
   reminderHoursBefore: number
   connectedAt?: string | null
+  metaTemplatesSyncStatus?: string | null
+  metaTemplatesData?: Record<string, {
+    id?: string
+    name: string
+    status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'NOT_CREATED'
+    rejectedReason?: string | null
+    lastUpdated?: string
+  }> | null
+  templatesLastSyncedAt?: string | null
+  notifyOnConfirmation?: boolean
+  notifyOnReminder?: boolean
+  notifyOnReschedule?: boolean
+  notifyOnCancellation?: boolean
   humanConversations?: {
     id: string
     customerPhone: string
@@ -251,7 +264,8 @@ export default function WhatsAppIntegrationSettings() {
   const [data, setData] = useState<WhatsAppData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'flows' | 'human_agents' | 'logs'>('flows')
+  const [activeTab, setActiveTab] = useState<'flows' | 'human_agents' | 'logs' | 'meta_templates'>('flows')
+  const [syncingTemplates, setSyncingTemplates] = useState(false)
   const [chatFilter, setChatFilter] = useState<'all' | 'human' | 'bot'>('all')
 
   // Estado para responder manualmente a un chat
@@ -380,6 +394,28 @@ export default function WhatsAppIntegrationSettings() {
       toast.error('Error de red al guardar')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Sincronizar Plantillas Oficiales con Meta Graph API v22.0
+  const handleSyncTemplates = async () => {
+    setSyncingTemplates(true)
+    try {
+      const res = await fetch('/api/owner/integrations/whatsapp/meta/templates/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      const resJson = await res.json().catch(() => ({}))
+      if (res.ok && resJson.success) {
+        toast.success(resJson.message || 'Plantillas sincronizadas con Meta exitosamente ✨')
+        await fetchConfig()
+      } else {
+        toast.error(resJson.error || 'No se pudieron sincronizar las plantillas')
+      }
+    } catch {
+      toast.error('Error de red al sincronizar plantillas con Meta')
+    } finally {
+      setSyncingTemplates(false)
     }
   }
 
@@ -1452,6 +1488,22 @@ export default function WhatsAppIntegrationSettings() {
               </span>
             )}
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('meta_templates')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'meta_templates'
+                ? 'bg-zinc-950 dark:bg-zinc-100 text-white dark:text-zinc-950 shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+            }`}
+          >
+            <ShieldCheck size={14} className={activeTab === 'meta_templates' ? 'text-emerald-500' : ''} />
+            Plantillas Oficiales Meta (4)
+            {data.metaTemplatesSyncStatus === 'SYNCED' && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            )}
+          </button>
         </div>
 
         {/* ══════════════════════════════════════════════════════════════
@@ -2087,6 +2139,238 @@ export default function WhatsAppIntegrationSettings() {
             )}
           </div>
         )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            VISTA 4: GESTIÓN DE PLANTILLAS OFICIALES DE META CLOUD API
+           ══════════════════════════════════════════════════════════════ */}
+        {activeTab === 'meta_templates' && (() => {
+          const templatesData = data.metaTemplatesData || {}
+
+          const standardTemplatesList = [
+            {
+              id: 'barberos_confirmacion_reserva',
+              name: 'barberos_confirmacion_reserva',
+              title: 'Confirmación de Reserva',
+              category: 'UTILITY',
+              description: 'Notificación transaccional inmediata cuando el cliente agenda una cita en línea.',
+              badgeText: 'Aprobación Inmediata',
+              buttonType: 'Botón Enlace Web',
+              toggleKey: 'notifyOnConfirmation' as const,
+              currentToggle: data.notifyOnConfirmation ?? true,
+              preview: 'Hola Carlos Mendoza, tu reserva en Barbería Elite (Sede Principal) para el Viernes 15 de Octubre a las 10:00 AM con el barbero Andrés Pérez (Corte y Perfilado por $35.000 COP) ha sido confirmada con éxito. Código de reserva: BARB-9876.'
+            },
+            {
+              id: 'barberos_recordatorio_cita',
+              name: 'barberos_recordatorio_cita',
+              title: 'Recordatorio con 3 Botones Nativos',
+              category: 'UTILITY',
+              description: 'Recordatorio anticipado previo a la cita con 3 botones interactivos de acción inmediata.',
+              badgeText: '3 Botones Nativos',
+              buttonType: 'Sí asistiré / Reprogramar / Cancelar',
+              toggleKey: 'notifyOnReminder' as const,
+              currentToggle: data.notifyOnReminder ?? true,
+              preview: 'Hola Carlos Mendoza, te recordamos tu cita en Barbería Elite (Sede Principal) para el Viernes 15 a las 10:00 AM con Andrés Pérez (Corte Clásico). Código: BARB-9876. Por favor confirma tu asistencia o gestiona tu horario con los botones inferiores:'
+            },
+            {
+              id: 'barberos_reprogramacion_cita',
+              name: 'barberos_reprogramacion_cita',
+              title: 'Notificación de Reprogramación',
+              category: 'UTILITY',
+              description: 'Notificación formal cuando una cita es actualizada de fecha u hora en el sistema.',
+              badgeText: 'Transaccional',
+              buttonType: 'Botón Enlace Web',
+              toggleKey: 'notifyOnReschedule' as const,
+              currentToggle: data.notifyOnReschedule ?? true,
+              preview: 'Hola Carlos Mendoza, tu cita en Barbería Elite ha sido reprogramada con éxito para el Sábado 16 de Octubre a las 11:00 AM con Andrés Pérez (Corte Clásico). Código: BARB-9876.'
+            },
+            {
+              id: 'barberos_cancelacion_cita',
+              name: 'barberos_cancelacion_cita',
+              title: 'Notificación de Cancelación',
+              category: 'UTILITY',
+              description: 'Aviso formal cuando una cita es cancelada por el cliente o por la barbería.',
+              badgeText: 'Transaccional',
+              buttonType: 'Botón Enlace Web',
+              toggleKey: 'notifyOnCancellation' as const,
+              currentToggle: data.notifyOnCancellation ?? true,
+              preview: 'Hola Carlos Mendoza, te informamos que tu cita en Barbería Elite programada para el Viernes 15 de Octubre a las 10:00 AM ha sido cancelada. Código: BARB-9876.'
+            }
+          ]
+
+          const getStatusBadge = (status?: string, reason?: string | null) => {
+            switch (status) {
+              case 'APPROVED':
+                return (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
+                    <CheckCircle2 size={12} />
+                    APROBADA POR META
+                  </span>
+                )
+              case 'PENDING':
+                return (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                    <Clock size={12} />
+                    EN REVISIÓN
+                  </span>
+                )
+              case 'REJECTED':
+                return (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black bg-rose-500/15 text-rose-500 border border-rose-500/30"
+                    title={reason || 'Rechazada por políticas de Meta'}
+                  >
+                    <AlertCircle size={12} />
+                    RECHAZADA
+                  </span>
+                )
+              default:
+                return (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black bg-zinc-500/15 text-zinc-400 border border-zinc-500/30">
+                    <Info size={12} />
+                    NO CREADA AÚN
+                  </span>
+                )
+            }
+          }
+
+          return (
+            <div className="space-y-6">
+              {/* Header de la sección de Plantillas */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-gradient-to-r from-emerald-500/10 via-zinc-900/40 to-blue-500/10 border border-emerald-500/20 rounded-3xl">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={22} className="text-emerald-500" />
+                    <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white uppercase tracking-tight">
+                      Plantillas Oficiales de Meta WhatsApp Business
+                    </h3>
+                  </div>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-300 max-w-2xl leading-relaxed">
+                    BarberOS administra automáticamente 4 plantillas oficiales de categoría <strong>Utilidad (UTILITY)</strong> para enviar notificaciones fuera de la ventana de 24 horas y habilitar botones nativos interactivos de confirmación y cancelación.
+                  </p>
+                  {data.templatesLastSyncedAt && (
+                    <p className="text-[11px] text-zinc-400 flex items-center gap-1.5 pt-1">
+                      <Clock size={12} />
+                      Última sincronización con Meta: {new Date(data.templatesLastSyncedAt).toLocaleString('es-CO')}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSyncTemplates}
+                  disabled={syncingTemplates || !isMetaConnected}
+                  className={`px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg self-start md:self-auto shrink-0 ${
+                    syncingTemplates
+                      ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                      : isMetaConnected
+                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 hover:scale-[1.02]'
+                      : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                  }`}
+                >
+                  <RefreshCw size={15} className={syncingTemplates ? 'animate-spin' : ''} />
+                  {syncingTemplates ? 'Sincronizando con Meta...' : 'Sincronizar Plantillas con Meta'}
+                </button>
+              </div>
+
+              {/* Grid de las 4 Plantillas Estándar */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {standardTemplatesList.map((tpl) => {
+                  const metaTpl = templatesData[tpl.name]
+                  const status = metaTpl?.status || 'NOT_CREATED'
+                  const rejectedReason = metaTpl?.rejectedReason
+
+                  return (
+                    <div
+                      key={tpl.id}
+                      className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-950/40 p-6 flex flex-col justify-between hover:border-emerald-500/40 transition-all shadow-sm space-y-4"
+                    >
+                      <div>
+                        {/* Cabecera de la Tarjeta */}
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              {tpl.category}
+                            </span>
+                            <h4 className="text-sm font-black text-zinc-900 dark:text-white mt-1.5 tracking-tight">
+                              {tpl.title}
+                            </h4>
+                            <p className="text-[11px] font-mono text-zinc-400">
+                              {tpl.name}
+                            </p>
+                          </div>
+                          {getStatusBadge(status, rejectedReason)}
+                        </div>
+
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
+                          {tpl.description}
+                        </p>
+
+                        {/* Vista Previa del Contenido Oficial */}
+                        <div className="mt-4 p-3.5 rounded-2xl bg-white dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-[11px] text-zinc-700 dark:text-zinc-300 leading-relaxed font-sans relative">
+                          <p className="line-clamp-4">{tpl.preview}</p>
+                          <div className="mt-2.5 pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[10px] font-bold text-zinc-400">
+                            <span>Tipo de Botones:</span>
+                            <span className="text-emerald-500 font-mono">{tpl.buttonType}</span>
+                          </div>
+                        </div>
+
+                        {rejectedReason && (
+                          <div className="mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs flex items-start gap-2">
+                            <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-bold">Motivo de rechazo de Meta:</p>
+                              <p className="text-[11px] mt-0.5">{rejectedReason}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Switch de activación de la notificación */}
+                      <div className="pt-4 border-t border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">
+                            Envío automático
+                          </span>
+                          <span className="text-[10px] text-zinc-400">
+                            {tpl.currentToggle ? 'Activado para los clientes' : 'Desactivado temporalmente'}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSave({ [tpl.toggleKey]: !tpl.currentToggle })}
+                          disabled={saving}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                            tpl.currentToggle
+                              ? 'bg-emerald-500'
+                              : 'bg-zinc-300 dark:bg-zinc-700'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${
+                              tpl.currentToggle ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Disclaimer Oficial sobre Tarifas de Meta */}
+              <div className="p-4 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-start gap-3">
+                <Info size={18} className="text-zinc-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  <strong className="text-zinc-800 dark:text-zinc-200">Aviso sobre costos de mensajería de Meta WhatsApp:</strong>
+                  <p className="mt-0.5">
+                    Las conversaciones generadas por plantillas oficiales de categoría Utilidad (UTILITY) son facturadas directamente por Meta a tu cuenta comercial de WhatsApp Business según las tarifas por mensaje vigentes en tu país. BarberOS no cobra ninguna tarifa por mensaje, cargo oculto ni comisión sobre los envíos oficiales.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
       </div>
 

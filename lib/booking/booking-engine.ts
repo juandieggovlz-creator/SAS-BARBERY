@@ -83,6 +83,7 @@ export interface CreateBookingInput {
   clientName?: string | null
   clientPhone?: string | null
   clientEmail?: string | null
+  whatsappConsent?: boolean | null
   notes?: string | null
   source?: 'PUBLIC_WEB' | 'OWNER_DASHBOARD' | 'BARBER_DASHBOARD' | 'WHATSAPP'
   proofUrl?: string | null
@@ -102,6 +103,7 @@ export async function createCentralizedBooking(input: CreateBookingInput) {
     clientName,
     clientPhone,
     clientEmail,
+    whatsappConsent,
     notes,
     source = 'PUBLIC_WEB',
     proofUrl,
@@ -375,13 +377,23 @@ export async function createCentralizedBooking(input: CreateBookingInput) {
             name: cleanName,
             phone: cleanPhone,
             email: clientEmail ? String(clientEmail).trim() : null,
+            whatsappConsent: whatsappConsent !== undefined && whatsappConsent !== null ? Boolean(whatsappConsent) : true,
           },
         })
-      } else if (clientEmail && !resolvedClient.email) {
-        resolvedClient = await tx.client.update({
-          where: { id: resolvedClient.id },
-          data: { email: String(clientEmail).trim() },
-        })
+      } else {
+        const updateData: { email?: string; whatsappConsent?: boolean } = {}
+        if (clientEmail && !resolvedClient.email) {
+          updateData.email = String(clientEmail).trim()
+        }
+        if (whatsappConsent !== undefined && whatsappConsent !== null) {
+          updateData.whatsappConsent = Boolean(whatsappConsent)
+        }
+        if (Object.keys(updateData).length > 0) {
+          resolvedClient = await tx.client.update({
+            where: { id: resolvedClient.id },
+            data: updateData,
+          })
+        }
       }
     }
 

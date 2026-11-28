@@ -108,7 +108,49 @@ export async function POST(request: Request) {
           const phoneNumberId = value.metadata?.phone_number_id
           const displayPhoneNumber = value.metadata?.display_phone_number
 
-          // 1. Manejo de Estados de Mensaje (Statuses: sent, delivered, read, failed)
+          // ── A. Eventos de Estado de Plantillas de Meta (message_template_status_update) ──
+          if (change.field === 'message_template_status_update' || value.event) {
+            const templateId = value.message_template_id
+            const templateName = value.message_template_name
+            const eventStatus = value.event // 'APPROVED' | 'REJECTED' | 'PAUSED' | 'DISABLED'
+            const reason = value.reason || null
+            const wabaId = entry.id
+
+            console.log(`[Meta Webhook] Actualización de plantilla: ${templateName} -> ${eventStatus} (WABA: ${wabaId})`)
+
+            if (wabaId && templateName) {
+              try {
+                const affectedIntegrations = await prisma.whatsAppIntegration.findMany({
+                  where: { metaWabaId: wabaId }
+                })
+
+                for (const integ of affectedIntegrations) {
+                  const currentData = (integ.metaTemplatesData as Record<string, any>) || {}
+                  currentData[templateName] = {
+                    ...(currentData[templateName] || {}),
+                    id: templateId || currentData[templateName]?.id,
+                    name: templateName,
+                    status: eventStatus,
+                    rejectedReason: reason,
+                    lastUpdated: new Date().toISOString()
+                  }
+
+                  await prisma.whatsAppIntegration.update({
+                    where: { id: integ.id },
+                    data: {
+                      metaTemplatesData: currentData,
+                      templatesLastSyncedAt: new Date()
+                    }
+                  })
+                }
+              } catch (tplErr) {
+                console.error('[Meta Webhook] Error actualizando estado de plantilla:', tplErr)
+              }
+            }
+            continue
+          }
+
+          // ── B. Manejo de Estados de Mensaje (Statuses: sent, delivered, read, failed) ──
           if (value.statuses && Array.isArray(value.statuses)) {
             for (const status of value.statuses) {
               const metaMsgId = status.id
@@ -122,7 +164,6 @@ export async function POST(request: Request) {
                 else if (newStatus === 'failed') mappedStatus = 'FAILED'
 
                 if (mappedStatus) {
-                  // Actualizar log si coincide con el messageId en rawPayload
                   try {
                     await prisma.whatsAppMessageLog.updateMany({
                       where: {
@@ -141,7 +182,7 @@ export async function POST(request: Request) {
             }
           }
 
-          // 2. Manejo de Coexistencia: Respuestas directas del barbero desde la app móvil (Echoes)
+          // ── C. Manejo de Coexistencia: Respuestas directas del barbero desde la app móvil (Echoes) ──
           const echoes = value.message_echoes || []
           if (echoes.length > 0 && phoneNumberId) {
             const integration = await prisma.whatsAppIntegration.findFirst({
@@ -180,26 +221,28 @@ export async function POST(request: Request) {
             }
           }
 
-          // 3. Manejo de Mensajes Entrantes de Clientes
+          // ── D. Manejo de Mensajes Entrantes de Clientes (Botones, Opt-Out y Texto) ──
           if (value.messages && Array.isArray(value.messages) && value.messages.length > 0 && phoneNumberId) {
             const integration = await prisma.whatsAppIntegration.findFirst({
-              where: { metaPhoneNumberId: phoneNumberId }
+              where: { metaPhoneNumberId: phoneNumberId },
+              include: { business: true }
             })
 
             if (integration && integration.isEnabled) {
-              // Validar si el plan comercial permite respuestas de WhatsApp
               const allowedByPlan = await canUseWhatsApp(integration.businessId)
 
               for (const message of value.messages) {
                 const from = message.from // Número del cliente
-                const messageText = message.text?.body || message.button?.text || message.interactive?.list_reply?.id || message.interactive?.button_reply?.id || ''
+                const cleanFrom = from ? from.replace(/\D/g, '') : ''
+                const buttonPayload = message.button?.payload || message.interactive?.button_reply?.id || ''
+                const buttonText = message.button?.text || message.interactive?.button_reply?.title || ''
+                const messageText = message.text?.body || buttonText || message.interactive?.list_reply?.title || ''
                 const messageId = message.id
                 const senderName = value.contacts?.[0]?.profile?.name
 
                 // Si es un echo donde el remitente es el propio número de la barbería
                 const cleanPhone = displayPhoneNumber ? displayPhoneNumber.replace(/\D/g, '') : null
-                if (cleanPhone && from && from.replace(/\D/g, '') === cleanPhone) {
-                  // Mensaje manual enviado desde la app de WhatsApp del celular (Coexistencia)
+                if (cleanPhone && cleanFrom === cleanPhone) {
                   const recipient = message.recipient_id ? String(message.recipient_id).replace(/\D/g, '') : ''
                   if (recipient) {
                     await prisma.whatsAppConversation.upsert({
@@ -228,10 +271,184 @@ export async function POST(request: Request) {
                   continue
                 }
 
-                if (from && messageText && allowedByPlan) {
-                  // Procesar mensaje con el ConversationEngine guiado
+                if (!cleanFrom) continue
+
+                // 1. Refrescar la ventana de 24 horas del cliente
+                await prisma.whatsAppConversation.upsert({
+                  where: {
+                    businessId_customerPhone: {
+                      businessId: integration.businessId,
+                      customerPhone: cleanFrom
+                    }
+                  },
+                  update: {
+                    lastActivityAt: new Date(),
+                    lastCustomerMessageAt: new Date()
+                  },
+                  create: {
+                    businessId: integration.businessId,
+                    customerPhone: cleanFrom,
+                    lastActivityAt: new Date(),
+                    lastCustomerMessageAt: new Date()
+                  }
+                })
+
+                // 2. Control de Consentimiento y Opt-Out (STOP / BAJA / ALTA)
+                const upperText = (messageText || '').trim().toUpperCase()
+                const optOutKeywords = ['STOP', 'BAJA', 'CANCELAR MENSAJES', 'DEJAR DE RECIBIR MENSAJES', 'NO MAS MENSAJES', 'DESUSCRIBIR']
+                const optInKeywords = ['ALTA', 'ACTIVAR', 'REANUDAR MENSAJES', 'START']
+
+                if (optOutKeywords.includes(upperText)) {
+                  await prisma.client.updateMany({
+                    where: {
+                      businessId: integration.businessId,
+                      phone: { contains: cleanFrom.slice(-10) }
+                    },
+                    data: {
+                      whatsappConsent: false,
+                      whatsappOptOutAt: new Date()
+                    }
+                  })
+
+                  const { WhatsAppService } = await import('@/lib/whatsapp/whatsapp-service')
+                  await WhatsAppService.sendDirectMessage({
+                    businessId: integration.businessId,
+                    to: cleanFrom,
+                    text: `Has sido dado de baja de las notificaciones automáticas por WhatsApp de *${integration.business.name}*. No recibirás más recordatorios de citas. Para reactivar las notificaciones en cualquier momento, responde con la palabra *ALTA*.`,
+                    tag: 'OPT_OUT_CONFIRMATION'
+                  })
+                  continue
+                }
+
+                if (optInKeywords.includes(upperText)) {
+                  await prisma.client.updateMany({
+                    where: {
+                      businessId: integration.businessId,
+                      phone: { contains: cleanFrom.slice(-10) }
+                    },
+                    data: {
+                      whatsappConsent: true,
+                      whatsappOptOutAt: null
+                    }
+                  })
+
+                  const { WhatsAppService } = await import('@/lib/whatsapp/whatsapp-service')
+                  await WhatsAppService.sendDirectMessage({
+                    businessId: integration.businessId,
+                    to: cleanFrom,
+                    text: `✅ ¡Perfecto! Has reactivado las notificaciones por WhatsApp de *${integration.business.name}*. Volverás a recibir confirmaciones y recordatorios de tus citas.`,
+                    tag: 'OPT_IN_CONFIRMATION'
+                  })
+                  continue
+                }
+
+                // 3. Procesamiento de Clics en Botones Nativos de Plantillas Oficiales
+                if (buttonPayload) {
+                  const { WhatsAppService } = await import('@/lib/whatsapp/whatsapp-service')
+                  const { getPublicPageUrl } = await import('@/lib/url')
+
+                  // A) Botón: "Sí, asistiré"
+                  if (buttonPayload.startsWith('CONFIRM_')) {
+                    const appointmentId = buttonPayload.replace('CONFIRM_', '').trim()
+                    const appt = await prisma.appointment.findFirst({
+                      where: {
+                        id: appointmentId,
+                        businessId: integration.businessId
+                      },
+                      include: { client: true, barber: true, service: true, business: true }
+                    })
+
+                    if (appt) {
+                      if (appt.status === 'CANCELLED') {
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `ℹ️ Esta cita ya había sido cancelada previamente. Si deseas agendar un nuevo horario, ingresa aquí:\n${getPublicPageUrl(integration.business.slug)}`,
+                          appointmentId: appt.id,
+                          tag: 'BUTTON_CONFIRM_ALREADY_CANCELLED'
+                        })
+                      } else {
+                        // Confirmar asistencia de forma idempotente
+                        await prisma.appointment.update({
+                          where: { id: appt.id },
+                          data: {
+                            status: 'CONFIRMED',
+                            clientConfirmedAttendance: true,
+                            confirmedViaWhatsAppAt: new Date()
+                          }
+                        })
+
+                        const { formattedDate, formattedTime } = WhatsAppService.formatDateTime(new Date(appt.date))
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `✅ ¡Excelente, *${appt.client?.name || 'Cliente'}*! Tu asistencia a la cita del *${formattedDate}* a las *${formattedTime}* con *${appt.barber?.name || 'tu barbero'}* ha sido confirmada con éxito. 💈✂️\n\n¡Te esperamos puntualmente en *${integration.business.name}*!`,
+                          appointmentId: appt.id,
+                          tag: 'BUTTON_CONFIRM_ATTENDANCE'
+                        })
+                      }
+                    }
+                    continue
+                  }
+
+                  // B) Botón: "Reprogramar cita"
+                  if (buttonPayload.startsWith('RESCHEDULE_')) {
+                    const appointmentId = buttonPayload.replace('RESCHEDULE_', '').trim()
+                    const bookingUrl = getPublicPageUrl(integration.business.slug)
+                    await WhatsAppService.sendDirectMessage({
+                      businessId: integration.businessId,
+                      to: cleanFrom,
+                      text: `🔄 Con gusto te ayudamos a reprogramar tu cita. Puedes elegir tu nuevo horario directamente en nuestra agenda digital:\n${bookingUrl}\n\nO indícanos qué fecha y hora prefieres para verificar disponibilidad.`,
+                      appointmentId,
+                      tag: 'BUTTON_RESCHEDULE_REQUEST'
+                    })
+                    continue
+                  }
+
+                  // C) Botón: "Cancelar cita"
+                  if (buttonPayload.startsWith('CANCEL_')) {
+                    const appointmentId = buttonPayload.replace('CANCEL_', '').trim()
+                    const appt = await prisma.appointment.findFirst({
+                      where: {
+                        id: appointmentId,
+                        businessId: integration.businessId
+                      },
+                      include: { client: true }
+                    })
+
+                    if (appt) {
+                      if (appt.status !== 'CANCELLED') {
+                        await prisma.appointment.update({
+                          where: { id: appt.id },
+                          data: { status: 'CANCELLED' }
+                        })
+
+                        const bookingUrl = getPublicPageUrl(integration.business.slug)
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `❌ Tu cita ha sido cancelada. Si deseas volver a agendar en el futuro, puedes hacerlo cuando desees en:\n${bookingUrl}`,
+                          appointmentId: appt.id,
+                          tag: 'BUTTON_CANCEL_CONFIRMED'
+                        })
+                      } else {
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `ℹ️ Tu cita ya se encuentra cancelada.`,
+                          appointmentId: appt.id,
+                          tag: 'BUTTON_ALREADY_CANCELLED'
+                        })
+                      }
+                    }
+                    continue
+                  }
+                }
+
+                // 4. Procesar mensaje con el ConversationEngine si está habilitado por plan
+                if (cleanFrom && messageText && allowedByPlan) {
                   WhatsAppConversationEngine.handleMessage({
-                    from,
+                    from: cleanFrom,
                     text: messageText,
                     businessId: integration.businessId,
                     messageId,

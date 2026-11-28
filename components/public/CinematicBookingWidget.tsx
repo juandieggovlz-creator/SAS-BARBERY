@@ -53,6 +53,7 @@ export interface CinematicBookingWidgetProps {
   submittingBooking: boolean
   clientName: string
   clientPhone: string
+  whatsappConsent?: boolean
   nextDays: NextDayOption[]
   totalAccumulatedPrice: number
   totalAccumulatedDuration: number
@@ -109,6 +110,7 @@ export interface CinematicBookingWidgetProps {
   onSelectSlot: (slot: string | null) => void
   onChangeClientName: (val: string) => void
   onChangeClientPhone: (val: string) => void
+  onChangeWhatsappConsent?: (val: boolean) => void
   onSubmitBooking: (e: React.FormEvent) => void
   onResetBooking: () => void
   onScrollToBooking: () => void
@@ -145,6 +147,7 @@ export function CinematicBookingWidget({
   submittingBooking,
   clientName,
   clientPhone,
+  whatsappConsent = true,
   nextDays,
   totalAccumulatedPrice,
   totalAccumulatedDuration,
@@ -168,6 +171,7 @@ export function CinematicBookingWidget({
   onSelectSlot,
   onChangeClientName,
   onChangeClientPhone,
+  onChangeWhatsappConsent,
   onSubmitBooking,
   onResetBooking,
 }: CinematicBookingWidgetProps) {
@@ -1557,6 +1561,19 @@ export function CinematicBookingWidget({
                         }}
                       />
                     </div>
+
+                    {/* Checkbox de Consentimiento para WhatsApp */}
+                    <label className="flex items-start gap-2.5 mt-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={whatsappConsent}
+                        onChange={(e) => onChangeWhatsappConsent?.(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-zinc-700 text-amber-500 focus:ring-amber-400 bg-zinc-900 cursor-pointer"
+                      />
+                      <span className="text-xs opacity-80 leading-snug" style={{ color: colors.textSecondary }}>
+                        Deseo recibir confirmación, recordatorios y gestión de mi cita por <strong className="text-emerald-500 dark:text-emerald-400 font-semibold">WhatsApp</strong>.
+                      </span>
+                    </label>
                   </div>
                 </div>
 

@@ -152,6 +152,7 @@ export default function PublicBusinessPage() {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [clientName, setClientName] = useState('')
   const [clientPhone, setClientPhone] = useState('')
+  const [whatsappConsent, setWhatsappConsent] = useState(true)
   const [submittingBooking, setSubmittingBooking] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState<any | null>(null)
   const [bookingError, setBookingError] = useState<string | null>(null)
@@ -428,6 +429,7 @@ export default function PublicBusinessPage() {
         date: fullDateTime,
         clientName: clientName.trim(),
         clientPhone: clientPhone.trim(),
+        whatsappConsent,
       }
 
       const res = await fetch('/api/public/appointments', {
@@ -1935,6 +1937,8 @@ export default function PublicBusinessPage() {
             onSelectSlot={(slot) => setSelectedSlot(slot)}
             onChangeClientName={(val) => setClientName(val)}
             onChangeClientPhone={(val) => setClientPhone(val)}
+            whatsappConsent={whatsappConsent}
+            onChangeWhatsappConsent={(val) => setWhatsappConsent(val)}
             onSubmitBooking={handleCreateAppointment}
             onResetBooking={() => {
               setBookingSuccess(null)

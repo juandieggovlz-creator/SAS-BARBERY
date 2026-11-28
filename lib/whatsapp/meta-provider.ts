@@ -176,6 +176,96 @@ export class MetaCloudProvider {
   }
 
   /**
+   * Envía un mensaje basado en Plantilla Oficial de Meta (type: 'template')
+   * Requisito estricto fuera de la ventana de atención de 24 horas de Meta.
+   */
+  static async sendTemplateMessage({
+    phoneNumberId,
+    accessToken,
+    to,
+    templateName,
+    languageCode = 'es',
+    components
+  }: {
+    phoneNumberId: string
+    accessToken: string
+    to: string
+    templateName: string
+    languageCode?: string
+    components?: Array<{
+      type: 'header' | 'body' | 'button'
+      sub_type?: 'url' | 'quick_reply'
+      index?: string | number
+      parameters: Array<{
+        type: 'text' | 'payload'
+        text?: string
+        payload?: string
+      }>
+    }>
+  }): Promise<WhatsAppSendResult> {
+    try {
+      const recipient = this.cleanPhoneNumber(to)
+      if (!recipient) {
+        return { success: false, error: 'Número de destinatario inválido' }
+      }
+
+      const url = `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`
+
+      const templatePayload: Record<string, unknown> = {
+        name: templateName,
+        language: {
+          code: languageCode
+        }
+      }
+
+      if (components && components.length > 0) {
+        templatePayload.components = components
+      }
+
+      const payload = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: recipient,
+        type: 'template',
+        template: templatePayload
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        const errorMsg = data?.error?.message || data?.error?.error_user_msg || `Error al enviar plantilla ${templateName} vía Meta API`
+        console.error(`Meta Cloud Template API Error (${templateName}):`, data)
+        return {
+          success: false,
+          error: errorMsg,
+          rawResponse: data
+        }
+      }
+
+      const messageId = data?.messages?.[0]?.id
+
+      return {
+        success: true,
+        messageId,
+        rawResponse: data
+      }
+    } catch (err: unknown) {
+      console.error(`Error enviando plantilla ${templateName} por Meta API:`, err)
+      const error = err instanceof Error ? err.message : 'Error inesperado de conexión con Meta'
+      return { success: false, error }
+    }
+  }
+
+  /**
    * Suscribe la aplicación a la WABA para recibir webhooks oficiales (mensajes y coexistencia)
    * Endpoint oficial de Meta: POST /v22.0/{waba_id}/subscribed_apps
    */

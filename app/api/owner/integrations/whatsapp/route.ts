@@ -193,6 +193,10 @@ export async function PATCH(request: Request) {
       advisorMessage,
       goodbyeMessage,
       notifyBusinessOnBooking,
+      notifyOnConfirmation,
+      notifyOnReminder,
+      notifyOnReschedule,
+      notifyOnCancellation,
       confirmTemplate,
       reminderTemplate,
       reminderHoursBefore,
@@ -328,6 +332,10 @@ export async function PATCH(request: Request) {
         ...(advisorMessage !== undefined && { advisorMessage }),
         ...(goodbyeMessage !== undefined && { goodbyeMessage }),
         ...(notifyBusinessOnBooking !== undefined && { notifyBusinessOnBooking }),
+        ...(notifyOnConfirmation !== undefined && { notifyOnConfirmation }),
+        ...(notifyOnReminder !== undefined && { notifyOnReminder }),
+        ...(notifyOnReschedule !== undefined && { notifyOnReschedule }),
+        ...(notifyOnCancellation !== undefined && { notifyOnCancellation }),
         ...(confirmTemplate !== undefined && { confirmTemplate }),
         ...(reminderTemplate !== undefined && { reminderTemplate }),
         ...(reminderHoursBefore !== undefined && { reminderHoursBefore: Number(reminderHoursBefore) || 2 }),
@@ -350,12 +358,16 @@ export async function PATCH(request: Request) {
         bookingEnabled: bookingEnabled ?? true,
         allowBarberSelection: allowBarberSelection ?? true,
         welcomeMessage: welcomeMessage || DEFAULT_WELCOME_BOT_MESSAGE,
-        advisorMessage,
-        goodbyeMessage,
-        notifyBusinessOnBooking: notifyBusinessOnBooking ?? true,
         confirmTemplate: confirmTemplate || DEFAULT_CONFIRM_TEMPLATE,
         reminderTemplate: reminderTemplate || DEFAULT_REMINDER_TEMPLATE,
-        reminderHoursBefore: Number(reminderHoursBefore) || 2
+        reminderHoursBefore: Number(reminderHoursBefore) || 2,
+        notifyBusinessOnBooking: notifyBusinessOnBooking ?? false,
+        notifyOnConfirmation: notifyOnConfirmation ?? true,
+        notifyOnReminder: notifyOnReminder ?? true,
+        notifyOnReschedule: notifyOnReschedule ?? true,
+        notifyOnCancellation: notifyOnCancellation ?? true,
+        advisorMessage,
+        goodbyeMessage
       }
     })
 
