@@ -152,7 +152,7 @@ export default function PublicBusinessPage() {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [clientName, setClientName] = useState('')
   const [clientPhone, setClientPhone] = useState('')
-  const [whatsappConsent, setWhatsappConsent] = useState(true)
+  const [whatsappConsent, setWhatsappConsent] = useState(false)
   const [submittingBooking, setSubmittingBooking] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState<any | null>(null)
   const [bookingError, setBookingError] = useState<string | null>(null)

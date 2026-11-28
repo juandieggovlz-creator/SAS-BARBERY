@@ -234,8 +234,11 @@ model Client {
   email         String?
   internalNotes String?
   businessId    String
-  whatsappConsent Boolean     @default(true)
-  whatsappOptOutAt DateTime?
+  whatsappConsent       Boolean   @default(false)
+  whatsappConsentAt     DateTime?
+  whatsappConsentSource String?
+  whatsappConsentVersion String?  @default("1.0")
+  whatsappOptOutAt      DateTime?
   createdAt     DateTime      @default(now())
   appointments  Appointment[]
   business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)

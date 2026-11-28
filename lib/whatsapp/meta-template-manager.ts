@@ -29,7 +29,7 @@ export interface StandardTemplateDefinition {
 
 /**
  * 4 Plantillas estándar oficiales de BarberOS para Meta WhatsApp Business API.
- * Categoría estrictamente UTILITY para máxima tasa de aprobación inmediata y menor costo.
+ * Categoría estrictamente UTILITY para optimizar la compatibilidad con las políticas de Meta y reducir costos de mensajería.
  */
 export const STANDARD_TEMPLATES: Record<string, StandardTemplateDefinition> = {
   barberos_confirmacion_reserva: {
@@ -406,5 +406,56 @@ export class MetaTemplateManager {
     if (!templatesData || typeof templatesData !== 'object') return false
     const t = templatesData[templateName]
     return t?.status === 'APPROVED'
+  }
+
+  /**
+   * Helper que resuelve credenciales de la base de datos para una sede y ejecuta la sincronización
+   */
+  static async syncTemplatesForBusiness(businessId: string): Promise<MetaTemplateSyncResult> {
+    let integration = await prisma.whatsAppIntegration.findUnique({
+      where: { businessId }
+    })
+
+    if (!integration || !integration.metaWabaId || !integration.metaAccessToken) {
+      const branch = await prisma.business.findUnique({
+        where: { id: businessId },
+        select: { companyId: true }
+      })
+      if (branch?.companyId) {
+        integration = await prisma.whatsAppIntegration.findFirst({
+          where: {
+            business: { companyId: branch.companyId, isMainBranch: true },
+            isEnabled: true
+          }
+        })
+      }
+    }
+
+    if (!integration || !integration.metaWabaId || !integration.metaAccessToken) {
+      return {
+        success: false,
+        wabaId: integration?.metaWabaId || '',
+        templates: {},
+        createdCount: 0,
+        error: 'Integración no configurada con WABA ID o Access Token'
+      }
+    }
+
+    const decryptedToken = safeDecryptToken(integration.metaAccessToken)
+    if (!decryptedToken) {
+      return {
+        success: false,
+        wabaId: integration.metaWabaId,
+        templates: {},
+        createdCount: 0,
+        error: 'No se pudo descifrar el token de acceso de Meta'
+      }
+    }
+
+    return this.ensureAndSyncTemplates({
+      businessId,
+      wabaId: integration.metaWabaId,
+      accessToken: decryptedToken
+    })
   }
 }

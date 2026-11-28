@@ -342,10 +342,96 @@ export async function POST(request: Request) {
                   continue
                 }
 
-                // 3. Procesamiento de Clics en Botones Nativos de Plantillas Oficiales
+                // 3. Control de Confirmación de Cancelación Pendiente (Segundo Paso Obligatorio)
+                const conversationRecord = await prisma.whatsAppConversation.findUnique({
+                  where: {
+                    businessId_customerPhone: {
+                      businessId: integration.businessId,
+                      customerPhone: cleanFrom
+                    }
+                  }
+                })
+
+                const convMetadata = (conversationRecord?.metadata as Record<string, any>) || {}
+                const pendingCancelApptId = convMetadata?.pendingCancelAppointmentId
+
+                if (pendingCancelApptId) {
+                  const { WhatsAppService } = await import('@/lib/whatsapp/whatsapp-service')
+                  const { getPublicPageUrl } = await import('@/lib/url')
+                  const bookingUrl = getPublicPageUrl(integration.business.slug)
+
+                  if (upperText === 'CONFIRMAR CANCELAR' || upperText === 'SI CANCELAR' || buttonPayload === `CONFIRM_CANCEL_${pendingCancelApptId}`) {
+                    const apptToCancel = await prisma.appointment.findFirst({
+                      where: { id: pendingCancelApptId, businessId: integration.businessId },
+                      include: { client: true, barber: true }
+                    })
+
+                    if (apptToCancel) {
+                      if (apptToCancel.status === 'CANCELLED') {
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `ℹ️ Esta cita ya se encuentra cancelada.`,
+                          appointmentId: apptToCancel.id,
+                          tag: 'BUTTON_ALREADY_CANCELLED'
+                        })
+                      } else if (apptToCancel.status === 'COMPLETED' || new Date(apptToCancel.date).getTime() < Date.now()) {
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `ℹ️ Esta cita ya pasó o fue completada. No es posible cancelarla.`,
+                          appointmentId: apptToCancel.id,
+                          tag: 'CANCEL_REJECTED_PAST_OR_COMPLETED'
+                        })
+                      } else {
+                        await prisma.appointment.update({
+                          where: { id: apptToCancel.id },
+                          data: { status: 'CANCELLED' }
+                        })
+
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `❌ Tu cita con *${apptToCancel.barber?.name || 'tu barbero'}* ha sido cancelada exitosamente. Si deseas volver a agendar en el futuro, puedes hacerlo cuando desees en:\n${bookingUrl}`,
+                          appointmentId: apptToCancel.id,
+                          tag: 'BUTTON_CANCEL_CONFIRMED'
+                        })
+                      }
+                    }
+
+                    // Limpiar estado pendiente de cancelación
+                    const { pendingCancelAppointmentId: _, ...restMeta } = convMetadata
+                    if (conversationRecord) {
+                      await prisma.whatsAppConversation.update({
+                        where: { id: conversationRecord.id },
+                        data: { metadata: restMeta }
+                      })
+                    }
+                    continue
+                  } else if (upperText === 'NO' || upperText === 'CANCELAR NO' || upperText === 'MANTENER') {
+                    const { pendingCancelAppointmentId: _, ...restMeta } = convMetadata
+                    if (conversationRecord) {
+                      await prisma.whatsAppConversation.update({
+                        where: { id: conversationRecord.id },
+                        data: { metadata: restMeta }
+                      })
+                    }
+
+                    await WhatsAppService.sendDirectMessage({
+                      businessId: integration.businessId,
+                      to: cleanFrom,
+                      text: `✅ Entendido. Tu cita se mantiene programada sin cambios. ¡Te esperamos puntualmente en *${integration.business.name}*!`,
+                      tag: 'CANCEL_ABORTED'
+                    })
+                    continue
+                  }
+                }
+
+                // 4. Procesamiento de Clics en Botones Nativos de Plantillas Oficiales
                 if (buttonPayload) {
                   const { WhatsAppService } = await import('@/lib/whatsapp/whatsapp-service')
                   const { getPublicPageUrl } = await import('@/lib/url')
+                  const bookingUrl = getPublicPageUrl(integration.business.slug)
 
                   // A) Botón: "Sí, asistiré"
                   if (buttonPayload.startsWith('CONFIRM_')) {
@@ -359,13 +445,40 @@ export async function POST(request: Request) {
                     })
 
                     if (appt) {
-                      if (appt.status === 'CANCELLED') {
+                      const nowMs = Date.now()
+                      const apptDateMs = new Date(appt.date).getTime()
+
+                      if (appt.status === 'COMPLETED') {
                         await WhatsAppService.sendDirectMessage({
                           businessId: integration.businessId,
                           to: cleanFrom,
-                          text: `ℹ️ Esta cita ya había sido cancelada previamente. Si deseas agendar un nuevo horario, ingresa aquí:\n${getPublicPageUrl(integration.business.slug)}`,
+                          text: `ℹ️ Esta cita ya figura como completada y finalizada.`,
+                          appointmentId: appt.id,
+                          tag: 'BUTTON_CONFIRM_ALREADY_COMPLETED'
+                        })
+                      } else if (apptDateMs < nowMs) {
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `ℹ️ El horario programado para esta cita ya pasó. No es posible modificar su estado.`,
+                          appointmentId: appt.id,
+                          tag: 'BUTTON_CONFIRM_EXPIRED_DATE'
+                        })
+                      } else if (appt.status === 'CANCELLED') {
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `ℹ️ Esta cita fue cancelada previamente y no puede ser confirmada. Si deseas agendar un nuevo horario, ingresa aquí:\n${bookingUrl}`,
                           appointmentId: appt.id,
                           tag: 'BUTTON_CONFIRM_ALREADY_CANCELLED'
+                        })
+                      } else if (appt.clientConfirmedAttendance) {
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `ℹ️ Tu asistencia a esta cita ya se encuentra confirmada. ¡Te esperamos!`,
+                          appointmentId: appt.id,
+                          tag: 'BUTTON_ALREADY_CONFIRMED'
                         })
                       } else {
                         // Confirmar asistencia de forma idempotente
@@ -394,18 +507,39 @@ export async function POST(request: Request) {
                   // B) Botón: "Reprogramar cita"
                   if (buttonPayload.startsWith('RESCHEDULE_')) {
                     const appointmentId = buttonPayload.replace('RESCHEDULE_', '').trim()
-                    const bookingUrl = getPublicPageUrl(integration.business.slug)
-                    await WhatsAppService.sendDirectMessage({
-                      businessId: integration.businessId,
-                      to: cleanFrom,
-                      text: `🔄 Con gusto te ayudamos a reprogramar tu cita. Puedes elegir tu nuevo horario directamente en nuestra agenda digital:\n${bookingUrl}\n\nO indícanos qué fecha y hora prefieres para verificar disponibilidad.`,
-                      appointmentId,
-                      tag: 'BUTTON_RESCHEDULE_REQUEST'
+                    const appt = await prisma.appointment.findFirst({
+                      where: { id: appointmentId, businessId: integration.businessId }
                     })
+
+                    if (appt && appt.status === 'CANCELLED') {
+                      await WhatsAppService.sendDirectMessage({
+                        businessId: integration.businessId,
+                        to: cleanFrom,
+                        text: `ℹ️ Esta cita se encuentra cancelada. Si deseas agendar un nuevo horario en nuestra agenda digital, ingresa aquí:\n${bookingUrl}`,
+                        appointmentId,
+                        tag: 'RESCHEDULE_ON_CANCELLED'
+                      })
+                    } else if (appt && appt.status === 'COMPLETED') {
+                      await WhatsAppService.sendDirectMessage({
+                        businessId: integration.businessId,
+                        to: cleanFrom,
+                        text: `ℹ️ Esta cita ya fue completada. Si deseas agendar tu próximo servicio, ingresa aquí:\n${bookingUrl}`,
+                        appointmentId,
+                        tag: 'RESCHEDULE_ON_COMPLETED'
+                      })
+                    } else {
+                      await WhatsAppService.sendDirectMessage({
+                        businessId: integration.businessId,
+                        to: cleanFrom,
+                        text: `🔄 Con gusto te ayudamos a reprogramar tu cita. Puedes elegir tu nuevo horario directamente en nuestra agenda digital:\n${bookingUrl}\n\nO indícanos qué fecha y hora prefieres para verificar disponibilidad.`,
+                        appointmentId,
+                        tag: 'BUTTON_RESCHEDULE_REQUEST'
+                      })
+                    }
                     continue
                   }
 
-                  // C) Botón: "Cancelar cita"
+                  // C) Botón: "Cancelar cita" -> Requiere confirmación adicional obligatoria
                   if (buttonPayload.startsWith('CANCEL_')) {
                     const appointmentId = buttonPayload.replace('CANCEL_', '').trim()
                     const appt = await prisma.appointment.findFirst({
@@ -413,31 +547,66 @@ export async function POST(request: Request) {
                         id: appointmentId,
                         businessId: integration.businessId
                       },
-                      include: { client: true }
+                      include: { client: true, barber: true }
                     })
 
                     if (appt) {
-                      if (appt.status !== 'CANCELLED') {
-                        await prisma.appointment.update({
-                          where: { id: appt.id },
-                          data: { status: 'CANCELLED' }
-                        })
+                      const nowMs = Date.now()
+                      const apptDateMs = new Date(appt.date).getTime()
 
-                        const bookingUrl = getPublicPageUrl(integration.business.slug)
-                        await WhatsAppService.sendDirectMessage({
-                          businessId: integration.businessId,
-                          to: cleanFrom,
-                          text: `❌ Tu cita ha sido cancelada. Si deseas volver a agendar en el futuro, puedes hacerlo cuando desees en:\n${bookingUrl}`,
-                          appointmentId: appt.id,
-                          tag: 'BUTTON_CANCEL_CONFIRMED'
-                        })
-                      } else {
+                      if (appt.status === 'CANCELLED') {
                         await WhatsAppService.sendDirectMessage({
                           businessId: integration.businessId,
                           to: cleanFrom,
                           text: `ℹ️ Tu cita ya se encuentra cancelada.`,
                           appointmentId: appt.id,
                           tag: 'BUTTON_ALREADY_CANCELLED'
+                        })
+                      } else if (appt.status === 'COMPLETED') {
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `ℹ️ Esta cita ya figura como completada y no puede ser cancelada.`,
+                          appointmentId: appt.id,
+                          tag: 'CANCEL_REJECTED_COMPLETED'
+                        })
+                      } else if (apptDateMs < nowMs) {
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `ℹ️ El horario de esta cita ya pasó y no puede ser modificada.`,
+                          appointmentId: appt.id,
+                          tag: 'CANCEL_REJECTED_EXPIRED'
+                        })
+                      } else {
+                        // Guardar en la conversación el id de la cita pendiente por confirmar cancelación
+                        await prisma.whatsAppConversation.upsert({
+                          where: {
+                            businessId_customerPhone: {
+                              businessId: integration.businessId,
+                              customerPhone: cleanFrom
+                            }
+                          },
+                          update: {
+                            metadata: {
+                              ...convMetadata,
+                              pendingCancelAppointmentId: appt.id
+                            }
+                          },
+                          create: {
+                            businessId: integration.businessId,
+                            customerPhone: cleanFrom,
+                            metadata: { pendingCancelAppointmentId: appt.id }
+                          }
+                        })
+
+                        const { formattedDate, formattedTime } = WhatsAppService.formatDateTime(new Date(appt.date))
+                        await WhatsAppService.sendDirectMessage({
+                          businessId: integration.businessId,
+                          to: cleanFrom,
+                          text: `⚠️ *Confirmación requerida para cancelar tu cita*\n\n¿Estás seguro de que deseas cancelar tu cita en *${integration.business.name}* para el *${formattedDate}* a las *${formattedTime}* con *${appt.barber?.name || 'tu barbero'}*?\n\n👉 Para confirmar la cancelación definitiva, responde con: *CONFIRMAR CANCELAR*\n👉 Para mantener tu cita intacta, responde con: *NO*`,
+                          appointmentId: appt.id,
+                          tag: 'BUTTON_CANCEL_CONFIRMATION_PROMPT'
                         })
                       }
                     }

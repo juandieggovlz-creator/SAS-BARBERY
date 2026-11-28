@@ -370,6 +370,7 @@ export async function createCentralizedBooking(input: CreateBookingInput) {
         },
       })
 
+      const isConsentGiven = Boolean(whatsappConsent)
       if (!resolvedClient) {
         resolvedClient = await tx.client.create({
           data: {
@@ -377,16 +378,28 @@ export async function createCentralizedBooking(input: CreateBookingInput) {
             name: cleanName,
             phone: cleanPhone,
             email: clientEmail ? String(clientEmail).trim() : null,
-            whatsappConsent: whatsappConsent !== undefined && whatsappConsent !== null ? Boolean(whatsappConsent) : true,
+            whatsappConsent: isConsentGiven,
+            whatsappConsentAt: isConsentGiven ? new Date() : null,
+            whatsappConsentSource: source || 'PUBLIC_WEB',
+            whatsappConsentVersion: '1.0',
           },
         })
       } else {
-        const updateData: { email?: string; whatsappConsent?: boolean } = {}
+        const updateData: {
+          email?: string
+          whatsappConsent?: boolean
+          whatsappConsentAt?: Date | null
+          whatsappConsentSource?: string
+          whatsappConsentVersion?: string
+        } = {}
         if (clientEmail && !resolvedClient.email) {
           updateData.email = String(clientEmail).trim()
         }
         if (whatsappConsent !== undefined && whatsappConsent !== null) {
-          updateData.whatsappConsent = Boolean(whatsappConsent)
+          updateData.whatsappConsent = isConsentGiven
+          updateData.whatsappConsentAt = isConsentGiven ? new Date() : null
+          updateData.whatsappConsentSource = source || 'PUBLIC_WEB'
+          updateData.whatsappConsentVersion = '1.0'
         }
         if (Object.keys(updateData).length > 0) {
           resolvedClient = await tx.client.update({

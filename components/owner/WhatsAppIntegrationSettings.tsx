@@ -2153,7 +2153,7 @@ export default function WhatsAppIntegrationSettings() {
               title: 'Confirmación de Reserva',
               category: 'UTILITY',
               description: 'Notificación transaccional inmediata cuando el cliente agenda una cita en línea.',
-              badgeText: 'Aprobación Inmediata',
+              badgeText: 'Revisión Estándar Meta',
               buttonType: 'Botón Enlace Web',
               toggleKey: 'notifyOnConfirmation' as const,
               currentToggle: data.notifyOnConfirmation ?? true,

@@ -371,6 +371,19 @@ export async function PATCH(request: Request) {
       }
     })
 
+    // Sincronización automática de plantillas en segundo plano al conectar credenciales de Meta
+    if (updated.isEnabled && updated.metaWabaId && updated.metaAccessToken) {
+      import('@/lib/whatsapp/meta-template-manager')
+        .then(({ MetaTemplateManager }) => {
+          MetaTemplateManager.syncTemplatesForBusiness(businessId)
+            .then(syncRes => {
+              console.log(`[AutoSync Meta Templates] Sincronización automática para sede ${businessId}: ${syncRes.success ? 'EXITOSA' : 'FALLIDA'}`)
+            })
+            .catch(err => console.warn('[AutoSync Meta Templates] Error en sincronización automática:', err))
+        })
+        .catch(() => {})
+    }
+
     return NextResponse.json({
       success: true,
       integration: {

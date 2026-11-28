@@ -11,24 +11,33 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   try {
     const authHeader = request.headers.get('authorization')
-    const { searchParams } = new URL(request.url)
-    const secretParam = searchParams.get('secret') || searchParams.get('key')
     const cronSecret = process.env.CRON_SECRET
 
-    // CRON_SECRET es obligatorio para proteger el endpoint
+    // Requerir exclusivamente Authorization: Bearer <CRON_SECRET>. No admitir secretos en parámetros de URL.
     if (!cronSecret) {
       return NextResponse.json({ error: 'CRON_SECRET no está configurado en el servidor' }, { status: 500 })
     }
 
-    const isAuthorized = authHeader === `Bearer ${cronSecret}` || secretParam === cronSecret
-    if (!isAuthorized) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'No autorizado. Se requiere cabecera Authorization: Bearer <CRON_SECRET>' }, { status: 401 })
     }
 
-    const mode = searchParams.get('mode') // 'window' | 'daily' | 'force'
+    const { searchParams } = new URL(request.url)
+    const mode = searchParams.get('mode') // 'window' | 'daily'
     const now = new Date()
 
-    // Traer todos los negocios que tienen WhatsApp activo y recordatorios configurados (> 0 horas)
+    // 1. Limpieza preventiva de locks PENDING obsoletos (> 10 min) en caso de fallos de red previos
+    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000)
+    await prisma.whatsAppMessageLog.deleteMany({
+      where: {
+        direction: 'OUTBOUND',
+        status: 'PENDING',
+        messageBody: { contains: 'RESERVA_BLOQUEADA_CRON' },
+        createdAt: { lt: tenMinutesAgo }
+      }
+    }).catch(err => console.warn('[Cron Reminders] Error limpiando locks obsoletos:', err))
+
+    // 2. Consultar integraciones de WhatsApp activas con recordatorios configurados (> 0 horas)
     const activeIntegrations = await prisma.whatsAppIntegration.findMany({
       where: {
         isEnabled: true,
@@ -61,22 +70,24 @@ export async function GET(request: Request) {
       let windowEnd: Date
 
       if (mode === 'daily') {
-        // Modo Vercel Hobby (ejecución diaria 1 vez cada 24h)
-        windowStart = new Date(now.getTime() - 15 * 60 * 1000)
+        // Modo Vercel Hobby (ejecución diaria 1 vez cada 24h a las 12:00 UTC)
+        windowStart = new Date(now.getTime() + 15 * 60 * 1000) // Siempre futuro, nunca pasado
         windowEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000)
       } else {
-        // Modo ventana precisa (para cron-job.org ejecutado cada 5, 10 o 15 minutos)
-        // Se buscan citas cuya hora sea dentro de [horas_antes - 15m, horas_antes + 15m] respecto a 'now'
+        // Modo ventana precisa (para cron externo ejecutado cada 5, 10 o 15 minutos)
+        // Se buscan citas en la ventana [horas_antes - 20min, horas_antes + 20min] respecto a 'now'
         const targetMs = now.getTime() + hoursBefore * 60 * 60 * 1000
-        const marginMs = 20 * 60 * 1000 // Margen de +/- 20 minutos para tolerancia de reloj
+        const marginMs = 20 * 60 * 1000 // Tolerancia de +/- 20 minutos
         windowStart = new Date(targetMs - marginMs)
         windowEnd = new Date(targetMs + marginMs)
       }
 
+      // Regla estricta: NO enviar recordatorios a citas cuyo horario ya pasó (date > now)
       const upcomingAppointments = await prisma.appointment.findMany({
         where: {
           businessId: integration.businessId,
           date: {
+            gt: now, // Garantiza que nunca se envíen recordatorios tardíos
             gte: windowStart,
             lte: windowEnd
           },
@@ -91,9 +102,11 @@ export async function GET(request: Request) {
             where: {
               direction: 'OUTBOUND',
               OR: [
-                { messageBody: { contains: 'Recordatorio' } },
-                { rawPayload: { path: ['tag'], equals: 'REMINDER' } },
-                { rawPayload: { path: ['templateName'], equals: 'barberos_recordatorio_cita' } }
+                { status: 'SENT' },
+                {
+                  status: 'PENDING',
+                  createdAt: { gte: tenMinutesAgo }
+                }
               ]
             }
           }
@@ -101,15 +114,16 @@ export async function GET(request: Request) {
       })
 
       for (const appt of upcomingAppointments) {
-        // Deduplicación estricta: si ya existe log de recordatorio exitoso o en proceso para esta cita, saltar
+        // Deduplicación estricta: si ya existe log enviado o lock PENDING activo reciente, saltar
         if (appt.whatsAppLogs.length > 0) {
           continue
         }
 
-        // Concurrency Lock atómico: insertar log provisional SENDING para bloquear ejecuciones concurrentes
+        // Concurrency Lock atómico: insertar log provisional PENDING para bloquear ejecuciones concurrentes
         let lockAcquired = false
+        let lockLogId = ''
         try {
-          await prisma.whatsAppMessageLog.create({
+          const lockLog = await prisma.whatsAppMessageLog.create({
             data: {
               businessId: integration.businessId,
               appointmentId: appt.id,
@@ -123,8 +137,8 @@ export async function GET(request: Request) {
             }
           })
           lockAcquired = true
+          lockLogId = lockLog.id
         } catch {
-          // Si falló el insert provisional, otro proceso ya tomó la cita
           lockAcquired = false
         }
 
@@ -133,6 +147,10 @@ export async function GET(request: Request) {
         totalProcessed++
         try {
           const res = await WhatsAppService.sendAppointmentReminder(appt.id)
+          // Limpiar el log provisional una vez procesado el envío real
+          if (lockLogId) {
+            await prisma.whatsAppMessageLog.delete({ where: { id: lockLogId } }).catch(() => {})
+          }
           results.push({
             appointmentId: appt.id,
             client: appt.client?.name,
@@ -141,6 +159,9 @@ export async function GET(request: Request) {
             error: res.error
           })
         } catch (e: unknown) {
+          if (lockLogId) {
+            await prisma.whatsAppMessageLog.delete({ where: { id: lockLogId } }).catch(() => {})
+          }
           results.push({
             appointmentId: appt.id,
             client: appt.client?.name,

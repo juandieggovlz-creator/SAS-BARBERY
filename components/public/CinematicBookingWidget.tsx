@@ -147,7 +147,7 @@ export function CinematicBookingWidget({
   submittingBooking,
   clientName,
   clientPhone,
-  whatsappConsent = true,
+  whatsappConsent = false,
   nextDays,
   totalAccumulatedPrice,
   totalAccumulatedDuration,

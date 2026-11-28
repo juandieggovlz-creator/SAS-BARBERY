@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     }
 
     // Ejecutar verificación, consulta y registro de plantillas estándar en Meta Graph API v22.0
-    const syncResult = await MetaTemplateManager.ensureAndSyncTemplates(branchId)
+    const syncResult = await MetaTemplateManager.syncTemplatesForBusiness(branchId)
 
     if (!syncResult.success) {
       return NextResponse.json({
