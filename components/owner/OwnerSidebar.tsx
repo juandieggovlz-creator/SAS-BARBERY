@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react'
 let globalOwnerSidebarScroll = 0
 import Link from 'next/link'
 import Image from 'next/image'
+import BrandLogo from '@/components/ui/BrandLogo'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -238,12 +239,10 @@ export default function OwnerSidebar() {
                 className="object-cover"
               />
             ) : (
-              <Image
-                src="/logo.png"
-                alt="BarberOS"
-                fill
-                sizes="36px"
-                className="object-cover"
+              <BrandLogo
+                width={36}
+                height={36}
+                className="w-full h-full"
               />
             )}
           </div>
@@ -382,12 +381,10 @@ export default function OwnerSidebar() {
                 className="object-cover"
               />
             ) : (
-              <Image
-                src="/logo.png"
-                alt="BarberOS"
-                fill
-                sizes="28px"
-                className="object-cover"
+              <BrandLogo
+                width={28}
+                height={28}
+                className="w-full h-full"
               />
             )}
           </div>

@@ -33,15 +33,19 @@ export const metadata: Metadata = {
   description: "Gestiona reservas online, finanzas, comisiones, agenda y la página web de tu barbería desde una sola plataforma. Prueba gratis 1 mes.",
   keywords: "barbería software, gestión barbería, reservas online barbería, sistema barbería Colombia",
   icons: {
-    icon: '/logo.png',
-    apple: '/logo.png',
-    shortcut: '/logo.png',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png' },
+      { url: '/favicon.png', type: 'image/png' }
+    ],
+    apple: '/apple-touch-icon.png',
+    shortcut: '/favicon.ico',
   },
   openGraph: {
     title: "BarberOS – Plataforma Integral para Barberías",
     description: "Todo tu negocio en una sola plataforma. Reservas 24/7, caja ciega, comisiones automáticas y tu propia página web.",
     type: "website",
-    images: [{ url: '/logo.png', width: 512, height: 512, alt: 'BarberOS Logo' }],
+    images: [{ url: '/logo-dark.png', width: 512, height: 512, alt: 'BarberOS Logo' }],
   },
 };
 

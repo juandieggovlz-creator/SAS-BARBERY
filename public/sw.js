@@ -25,8 +25,8 @@ self.addEventListener('push', (event) => {
   const title = payload.title || 'BarberOS'
   const options = {
     body: payload.body || 'Nueva actualización en tu barbería.',
-    icon: payload.icon || '/favicon.ico',
-    badge: payload.badge || '/favicon.ico',
+    icon: payload.icon || '/icon.png',
+    badge: payload.badge || '/favicon.png',
     tag: payload.tag || `barberos-${Date.now()}`,
     data: payload.data || { url: '/appointments' },
     vibrate: [200, 100, 200],

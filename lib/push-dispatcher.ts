@@ -187,8 +187,8 @@ export async function dispatchAppointmentNotification(
         const payload = JSON.stringify({
           title,
           body: message,
-          icon: '/favicon.ico',
-          badge: '/favicon.ico',
+          icon: '/icon.png',
+          badge: '/favicon.png',
           tag: `barberos-${appointment.id}-${params.eventType.toLowerCase()}`,
           data: {
             url: appUrl,

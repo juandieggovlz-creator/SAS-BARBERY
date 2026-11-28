@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Phone, MapPin, Heart, ShieldCheck, Globe, ExternalLink, Mail } from 'lucide-react'
 import { getPublicSettings, getWhatsAppUrl, type PublicPlatformSettings } from '@/lib/platform-config'
+import BrandLogo from '@/components/ui/BrandLogo'
 
 const FALLBACK_WA = '+57 324 2063393'
 const FALLBACK_WA_URL = 'https://wa.me/573242063393'
@@ -28,12 +29,12 @@ export default function Footer() {
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-3" aria-label="BarberOS - Inicio">
               <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md shrink-0">
-                <Image
-                  src="/logo.png"
-                  alt="BarberOS Logo"
+                <BrandLogo
                   width={40}
                   height={40}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full"
+                  lightSrc={settings?.platform_logo_light}
+                  darkSrc={settings?.platform_logo_dark || settings?.platform_logo}
                 />
               </div>
               <span className="text-xl sm:text-2xl font-black tracking-tight text-zinc-950 dark:text-white uppercase">

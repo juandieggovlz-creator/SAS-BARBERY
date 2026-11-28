@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import BrandLogo from '@/components/ui/BrandLogo'
 import { CheckCircle2, AlertCircle, Loader2, Mail, ArrowRight, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -91,8 +92,8 @@ function VerifyEmailContent() {
     <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#121216] border border-zinc-200 dark:border-zinc-800 shadow-xl text-center space-y-6">
       {/* Brand Header */}
       <div className="flex flex-col items-center gap-2">
-        <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-md border border-zinc-200 dark:border-zinc-700 bg-zinc-950 flex items-center justify-center">
-          <Image src="/icon.png" alt="BarberOS Logo" width={48} height={48} className="object-cover" />
+        <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 flex items-center justify-center p-1">
+          <BrandLogo width={44} height={44} className="w-full h-full" />
         </div>
         <span className="text-[11px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 font-mono">
           BarberOS · Verificación de Cuenta

@@ -20,6 +20,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File | null
+    const theme = (formData.get('theme') as string)?.toLowerCase() === 'light' ? 'light' : 'dark'
 
     if (!file) {
       return NextResponse.json({ error: 'No se envió ningún archivo de imagen' }, { status: 400 })
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    const folder = 'barberos/platform/logo'
+    const folder = `barberos/platform/logo-${theme}`
     const uploadResult = await uploadImageFromBuffer(buffer, folder, {
       transformation: [
         { width: 512, height: 512, crop: 'limit' },
@@ -55,17 +56,31 @@ export async function POST(request: Request) {
     })
 
     const newLogoUrl = uploadResult.secureUrl
+    const targetKey = theme === 'light' ? 'platform_logo_light' : 'platform_logo_dark'
 
     // 4. Guardar en PlatformSetting (upsert)
     await prisma.platformSetting.upsert({
-      where: { key: 'platform_logo' },
+      where: { key: targetKey },
       update: { value: newLogoUrl },
       create: {
-        key: 'platform_logo',
+        key: targetKey,
         value: newLogoUrl,
-        description: 'Logo oficial de BarberOS'
+        description: `Logo oficial de BarberOS para tema ${theme === 'light' ? 'claro' : 'oscuro'}`
       }
     })
+
+    // Si es tema oscuro o genérico, sincronizar también platform_logo para compatibilidad global
+    if (theme === 'dark') {
+      await prisma.platformSetting.upsert({
+        where: { key: 'platform_logo' },
+        update: { value: newLogoUrl },
+        create: {
+          key: 'platform_logo',
+          value: newLogoUrl,
+          description: 'Logo oficial de BarberOS (fallback global)'
+        }
+      })
+    }
 
     // 5. Registrar en auditoría
     await recordAuditLog({
@@ -74,6 +89,8 @@ export async function POST(request: Request) {
       action: 'PLATFORM_LOGO_UPDATED',
       entity: 'PlatformSetting',
       details: {
+        theme,
+        key: targetKey,
         logoUrl: newLogoUrl,
         sizeBytes: file.size,
         format: uploadResult.format,
@@ -84,8 +101,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Logo oficial de BarberOS actualizado con éxito.',
-      logoUrl: newLogoUrl
+      message: `Logo oficial de BarberOS (${theme === 'light' ? 'Tema Claro' : 'Tema Oscuro'}) actualizado con éxito.`,
+      logoUrl: newLogoUrl,
+      theme,
+      key: targetKey
     })
   } catch (error: any) {
     console.error('Error subiendo logo de BarberOS a Cloudinary:', error)

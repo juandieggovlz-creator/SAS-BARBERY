@@ -6,14 +6,18 @@ const PUBLIC_KEYS = [
   'platform_name',
   'support_email',
   'support_whatsapp',
-  'platform_logo'
+  'platform_logo',
+  'platform_logo_light',
+  'platform_logo_dark'
 ]
 
 const DEFAULT_PUBLIC_SETTINGS: Record<string, string> = {
   platform_name: 'BarberOS',
   support_email: 'barberos.contacto@gmail.com',
   support_whatsapp: '+57 324 2063393',
-  platform_logo: '/logo.png'
+  platform_logo: '/logo-dark.png',
+  platform_logo_light: '/logo-light.png',
+  platform_logo_dark: '/logo-dark.png'
 }
 
 /**

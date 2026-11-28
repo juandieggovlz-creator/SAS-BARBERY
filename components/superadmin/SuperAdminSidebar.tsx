@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import BrandLogo from '@/components/ui/BrandLogo'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -155,13 +156,11 @@ export default function SuperAdminSidebar() {
       {/* ── BRAND HEADER ── */}
       <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
         <Link href="/superadmin/dashboard" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm shrink-0 border border-zinc-300 dark:border-zinc-700 bg-zinc-950 flex items-center justify-center">
-            <Image
-              src="/logo.png"
-              alt="BarberOS Logo"
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm shrink-0 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 flex items-center justify-center">
+            <BrandLogo
               width={36}
               height={36}
-              className="w-full h-full object-cover"
+              className="w-full h-full"
             />
           </div>
           <div>

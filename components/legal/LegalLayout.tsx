@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import BrandLogo from '@/components/ui/BrandLogo'
 import { ArrowLeft, Clock, ShieldCheck, Mail, Phone, MapPin, ExternalLink } from 'lucide-react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import LegalNav from './LegalNav'
@@ -36,12 +37,10 @@ export default function LegalLayout({ currentSlug, docMeta, children }: LegalLay
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-9 h-9 rounded-xl overflow-hidden transition-transform duration-300 group-hover:scale-105 shadow-md shadow-zinc-950/15 shrink-0 border border-zinc-200 dark:border-zinc-800">
-              <Image
-                src="/logo.png"
-                alt="BarberOS Logo"
+              <BrandLogo
                 width={36}
                 height={36}
-                className="w-full h-full object-cover"
+                className="w-full h-full"
                 priority
               />
             </div>

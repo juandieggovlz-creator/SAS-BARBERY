@@ -28,10 +28,10 @@ export default function SuperAdminSettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingTheme, setUploadingTheme] = useState<'light' | 'dark' | null>(null)
   const [activeTab, setActiveTab] = useState<'general' | 'businesses' | 'security' | 'emails'>('general')
 
-  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>, theme: 'light' | 'dark') => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -45,12 +45,13 @@ export default function SuperAdminSettingsPage() {
       return
     }
 
-    setUploadingLogo(true)
-    const toastId = toast.loading('Subiendo logo oficial a Cloudinary...')
+    setUploadingTheme(theme)
+    const toastId = toast.loading(`Subiendo logo (${theme === 'light' ? 'Tema Claro' : 'Tema Oscuro'}) a Cloudinary...`)
 
     try {
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('theme', theme)
 
       const res = await fetch('/api/superadmin/settings/logo', {
         method: 'POST',
@@ -59,15 +60,19 @@ export default function SuperAdminSettingsPage() {
 
       const data = await res.json()
       if (res.ok && data.logoUrl) {
-        setSettings(prev => ({ ...prev, platform_logo: data.logoUrl }))
-        toast.success('Logo oficial actualizado con éxito', { id: toastId })
+        if (theme === 'light') {
+          setSettings(prev => ({ ...prev, platform_logo_light: data.logoUrl }))
+        } else {
+          setSettings(prev => ({ ...prev, platform_logo_dark: data.logoUrl, platform_logo: data.logoUrl }))
+        }
+        toast.success(`Logo (${theme === 'light' ? 'Tema Claro' : 'Tema Oscuro'}) actualizado con éxito`, { id: toastId })
       } else {
         toast.error(data.error || 'Error al subir el logo', { id: toastId })
       }
     } catch {
       toast.error('Error de conexión al subir la imagen', { id: toastId })
     } finally {
-      setUploadingLogo(false)
+      setUploadingTheme(null)
       // reset file input value
       e.target.value = ''
     }
@@ -224,57 +229,114 @@ export default function SuperAdminSettingsPage() {
                   <p className="text-[10px] text-zinc-400 mt-1">Nombre comercial visible en landing, emails y barra de título.</p>
                 </div>
 
-                <div className="sm:col-span-2 p-5 bg-zinc-50 border border-zinc-200 rounded-2xl">
-                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-wider block mb-2">
-                    Logo Oficial de BarberOS (Cloudinary)
-                  </label>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-                    <div className="w-20 h-20 rounded-2xl bg-white border border-zinc-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs relative group">
-                      {settings.platform_logo ? (
-                        <img
-                          src={settings.platform_logo}
-                          alt="Logo BarberOS"
-                          className="w-full h-full object-contain p-2"
-                        />
-                      ) : (
-                        <ImageIcon className="w-8 h-8 text-zinc-300" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs">
-                          {uploadingLogo ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Upload className="w-3.5 h-3.5 text-amber-400" />
-                          )}
-                          <span>{uploadingLogo ? 'Subiendo...' : 'Subir logo desde PC'}</span>
-                          <input
-                            type="file"
-                            accept="image/png,image/jpeg,image/webp"
-                            onChange={handleLogoFileChange}
-                            disabled={uploadingLogo}
-                            className="hidden"
-                          />
+                {/* SECCIÓN DE LOGOS CLARO Y OSCURO */}
+                <div className="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Logo Tema Claro */}
+                  <div className="p-5 bg-zinc-50 border border-zinc-200 rounded-2xl flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] font-black uppercase text-zinc-600 tracking-wider flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-amber-400" />
+                          Logo Oficial — Tema Claro
                         </label>
-                        <span className="text-[10px] font-mono text-zinc-400">
-                          Formatos: PNG, JPG, WEBP (Máx. 5MB)
+                        <span className="text-[9px] font-mono text-zinc-400 bg-white px-2 py-0.5 rounded border border-zinc-200">
+                          Fondo Blanco
                         </span>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={settings.platform_logo || '/logo.png'}
-                          onChange={e => handleChange('platform_logo', e.target.value)}
-                          placeholder="https://... o /logo.png"
-                          className="w-full px-3 py-1.5 bg-white border border-zinc-200 rounded-xl text-[11px] font-mono text-zinc-700 outline-none focus:border-zinc-950"
-                        />
+                      <div className="flex items-center gap-4 mb-3">
+                        <div className="w-16 h-16 rounded-xl bg-white border border-zinc-200 flex items-center justify-center overflow-hidden shrink-0 shadow-xs p-1">
+                          <img
+                            src={settings.platform_logo_light || '/logo-light.png'}
+                            alt="Logo Claro BarberOS"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <label className="inline-flex items-center gap-1.5 px-3 py-2 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs">
+                            {uploadingTheme === 'light' ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Upload className="w-3.5 h-3.5 text-amber-400" />
+                            )}
+                            <span>{uploadingTheme === 'light' ? 'Subiendo...' : 'Subir logo claro'}</span>
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp"
+                              onChange={e => handleLogoFileChange(e, 'light')}
+                              disabled={uploadingTheme !== null}
+                              className="hidden"
+                            />
+                          </label>
+                          <p className="text-[10px] text-zinc-400 mt-1 truncate">
+                            Se activa cuando el usuario usa Tema Claro.
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-[10px] text-zinc-400">
-                        Al subirlo se optimiza y almacena de forma segura en Cloudinary bajo <code className="text-zinc-600 font-bold">barberos/platform/logo</code>.
-                      </p>
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={settings.platform_logo_light || '/logo-light.png'}
+                        onChange={e => handleChange('platform_logo_light', e.target.value)}
+                        placeholder="https://... o /logo-light.png"
+                        className="w-full px-3 py-1.5 bg-white border border-zinc-200 rounded-xl text-[11px] font-mono text-zinc-700 outline-none focus:border-zinc-950"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Logo Tema Oscuro */}
+                  <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col justify-between text-white">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] font-black uppercase text-zinc-300 tracking-wider flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                          Logo Oficial — Tema Oscuro
+                        </label>
+                        <span className="text-[9px] font-mono text-zinc-400 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
+                          Fondo Oscuro
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 mb-3">
+                        <div className="w-16 h-16 rounded-xl bg-black border border-zinc-800 flex items-center justify-center overflow-hidden shrink-0 shadow-xs p-1">
+                          <img
+                            src={settings.platform_logo_dark || settings.platform_logo || '/logo-dark.png'}
+                            alt="Logo Oscuro BarberOS"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <label className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-zinc-100 text-zinc-950 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs">
+                            {uploadingTheme === 'dark' ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Upload className="w-3.5 h-3.5 text-amber-500" />
+                            )}
+                            <span>{uploadingTheme === 'dark' ? 'Subiendo...' : 'Subir logo oscuro'}</span>
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp"
+                              onChange={e => handleLogoFileChange(e, 'dark')}
+                              disabled={uploadingTheme !== null}
+                              className="hidden"
+                            />
+                          </label>
+                          <p className="text-[10px] text-zinc-400 mt-1 truncate">
+                            Se activa cuando el usuario usa Tema Oscuro.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={settings.platform_logo_dark || settings.platform_logo || '/logo-dark.png'}
+                        onChange={e => {
+                          handleChange('platform_logo_dark', e.target.value)
+                          handleChange('platform_logo', e.target.value)
+                        }}
+                        placeholder="https://... o /logo-dark.png"
+                        className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-700 rounded-xl text-[11px] font-mono text-zinc-200 outline-none focus:border-amber-400"
+                      />
                     </div>
                   </div>
                 </div>

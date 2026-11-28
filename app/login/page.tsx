@@ -19,6 +19,7 @@ import {
 import Link from 'next/link'
 import Image from 'next/image'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import BrandLogo from '@/components/ui/BrandLogo'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -275,13 +276,11 @@ export default function LoginPage() {
                   transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                   className="relative w-10 h-10 rounded-xl overflow-hidden shadow-md shrink-0"
                 >
-                  <Image
-                    src="/logo.png"
-                    alt="BarberOS"
+                  <BrandLogo
                     width={40}
                     height={40}
                     priority
-                    className="w-full h-full object-cover"
+                    className="w-full h-full"
                   />
                 </motion.div>
                 <span className="text-xl sm:text-2xl font-black tracking-tight text-text-primary uppercase">
@@ -659,12 +658,10 @@ export default function LoginPage() {
                     transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                     className="relative w-9 h-9 rounded-lg overflow-hidden border border-border-subtle shrink-0"
                   >
-                    <Image
-                      src="/logo.png"
-                      alt="BarberOS"
+                    <BrandLogo
                       width={36}
                       height={36}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full"
                     />
                   </motion.div>
                   <div>

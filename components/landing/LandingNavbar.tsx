@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles, BarChart3, Check, Users, Calendar, Phone, ShieldCheck } from 'lucide-react';
+import BrandLogo from '@/components/ui/BrandLogo';
 
 export default function LandingNavbar() {
   return (
@@ -10,12 +11,10 @@ export default function LandingNavbar() {
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-xl overflow-hidden transition-transform group-hover:scale-105 shadow-md shadow-white/10 shrink-0">
-            <Image
-              src="/logo.png"
-              alt="BarberOS Logo"
+            <BrandLogo
               width={36}
               height={36}
-              className="w-full h-full object-cover"
+              className="w-full h-full"
             />
           </div>
           <span className="text-2xl font-black tracking-tighter uppercase">

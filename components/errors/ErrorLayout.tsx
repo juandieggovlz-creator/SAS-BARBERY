@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import BrandLogo from '@/components/ui/BrandLogo'
 import { motion } from 'framer-motion'
 import { Scissors, ArrowLeft, ArrowRight, RefreshCw, Compass, HelpCircle } from 'lucide-react'
 
@@ -176,12 +177,10 @@ export default function ErrorLayout({
             aria-label="BarberOS - Inicio"
           >
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl overflow-hidden shadow-md shadow-black/50 transition-transform duration-200 group-hover:scale-105 border border-white/10 bg-black">
-              <Image
-                src="/logo.png"
-                alt="BarberOS Logo"
+              <BrandLogo
                 width={40}
                 height={40}
-                className="w-full h-full object-cover"
+                className="w-full h-full"
                 priority
               />
             </div>

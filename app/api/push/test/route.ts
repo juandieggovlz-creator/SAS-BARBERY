@@ -45,8 +45,8 @@ export async function POST() {
     const payload = JSON.stringify({
       title,
       body,
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
+      icon: '/icon.png',
+      badge: '/favicon.png',
       tag: `barberos-test-${Date.now()}`,
       data: {
         url: user.role === 'BARBER' ? '/barber/appointments' : '/appointments',

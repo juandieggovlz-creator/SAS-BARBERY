@@ -11,7 +11,10 @@ const DEFAULT_SETTINGS: Record<string, { value: string; description: string }> =
   currency: { value: 'COP', description: 'Moneda predeterminada del sistema' },
   maintenance_mode: { value: 'false', description: 'Activar modo mantenimiento en el SaaS' },
   allow_new_registrations: { value: 'true', description: 'Permitir registro de nuevas barberías' },
-  terms_url: { value: 'https://barberos.co/terms', description: 'Enlace a términos y condiciones' }
+  terms_url: { value: 'https://barberos.co/terms', description: 'Enlace a términos y condiciones' },
+  platform_logo: { value: '/logo-dark.png', description: 'Logo oficial de BarberOS (fallback)' },
+  platform_logo_light: { value: '/logo-light.png', description: 'Logo oficial de BarberOS para tema claro' },
+  platform_logo_dark: { value: '/logo-dark.png', description: 'Logo oficial de BarberOS para tema oscuro' }
 }
 
 export async function GET() {

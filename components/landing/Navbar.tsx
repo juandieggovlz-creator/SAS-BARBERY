@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, Menu, X, ChevronRight } from 'lucide-react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import BrandLogo from '@/components/ui/BrandLogo'
 
 const navLinks = [
   { label: 'Características', href: '#caracteristicas' },
@@ -46,12 +47,10 @@ export default function Navbar() {
                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                 className="w-10 h-10 rounded-2xl overflow-hidden shadow-md shadow-zinc-950/10 dark:shadow-black/40"
               >
-                <Image
-                  src="/logo.png"
-                  alt="BarberOS Logo"
+                <BrandLogo
                   width={40}
                   height={40}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full"
                   priority
                 />
               </motion.div>

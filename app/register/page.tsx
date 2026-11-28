@@ -34,6 +34,7 @@ import {
 import { DEFAULT_SCHEDULE, DayScheduleItem } from '@/lib/schedule'
 import LocationSelector from '@/components/ui/LocationSelector'
 import Image from 'next/image'
+import BrandLogo from '@/components/ui/BrandLogo'
 import { getPublicPageUrl } from '@/lib/url'
 import { useTheme } from '@/lib/theme'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -380,13 +381,11 @@ export default function RegisterWizardPage() {
                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                 className="relative w-9 h-9 rounded-xl overflow-hidden shadow-md shrink-0"
               >
-                <Image
-                  src="/logo.png"
-                  alt="BarberOS"
+                <BrandLogo
                   width={36}
                   height={36}
                   priority
-                  className="w-full h-full object-cover"
+                  className="w-full h-full"
                 />
               </motion.div>
               <span className="text-xl font-black tracking-tight text-text-primary uppercase">

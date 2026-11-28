@@ -9,13 +9,17 @@ export interface PublicPlatformSettings {
   support_email: string
   support_whatsapp: string
   platform_logo: string
+  platform_logo_light: string
+  platform_logo_dark: string
 }
 
 const DEFAULTS: PublicPlatformSettings = {
   platform_name: 'BarberOS',
   support_email: 'barberos.contacto@gmail.com',
   support_whatsapp: '+57 324 2063393',
-  platform_logo: '/logo.png'
+  platform_logo: '/logo-dark.png',
+  platform_logo_light: '/logo-light.png',
+  platform_logo_dark: '/logo-dark.png'
 }
 
 let cachedSettings: PublicPlatformSettings | null = null
