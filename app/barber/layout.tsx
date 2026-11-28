@@ -167,23 +167,13 @@ export default function BarberLayout({ children }: { children: React.ReactNode }
       {/* ── BRAND HEADER (Idéntico a OwnerSidebar) ── */}
       <div className="px-6 py-4.5 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between shrink-0">
         <Link href="/barber/dashboard" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-zinc-950 dark:bg-[#151518] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform overflow-hidden relative border border-zinc-200 dark:border-zinc-800 shrink-0">
-            {profile?.business?.logo ? (
-              <Image
-                src={profile.business.logo}
-                alt={profile.business.name || 'Barbería'}
-                fill
-                sizes="36px"
-                className="object-cover"
-                unoptimized
-              />
-            ) : (
-              <BrandLogo
-                width={36}
-                height={36}
-                className="w-full h-full"
-              />
-            )}
+          <div className="w-9 h-9 rounded-xl bg-white dark:bg-zinc-950 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform overflow-hidden relative border border-zinc-200 dark:border-zinc-800 shrink-0">
+            <BrandLogo
+              width={36}
+              height={36}
+              className="w-full h-full"
+              priority
+            />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
@@ -200,7 +190,13 @@ export default function BarberLayout({ children }: { children: React.ReactNode }
                   color: 'var(--accent, #F59E0B)',
                 }}
               >
-                <Store className="w-2.5 h-2.5 shrink-0" style={{ color: 'var(--accent, #F59E0B)' }} />
+                {profile?.business?.logo ? (
+                  <div className="w-2.5 h-2.5 rounded-full overflow-hidden shrink-0 relative">
+                    <Image src={profile.business.logo} alt="" fill sizes="10px" className="object-cover" />
+                  </div>
+                ) : (
+                  <Store className="w-2.5 h-2.5 shrink-0" style={{ color: 'var(--accent, #F59E0B)' }} />
+                )}
                 <span className="truncate">{profile?.business?.name || 'Mi Barbería'}</span>
               </span>
             </div>
